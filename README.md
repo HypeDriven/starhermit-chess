@@ -17,6 +17,10 @@ to the other player — clients can't cheat, spoof identity, or move out of turn
   to 20 concurrent games, friends top-10 elo leaderboard, recent replays,
   friend invites), game view (board, SAN move list, chat, opt-in voice via
   WebRTC — off by default per game), replay viewer.
+- `starhermit.txt` — the game manifest the platform reads when this repo is
+  added as a game: `name`, `launch` (HTML entry point), `owner` (the owning
+  Starhermit account — username or user id), and `server` (the repo file the
+  backend runs as the authoritative server script, i.e. `server.js`).
 - `API.md` — the REST/WebSocket contract against the starhermit platform
   (games subsystem, chat, voice, leaderboards, game-scoped launch tokens).
 - `deploy.sh` — registers the game + budgets on the platform via the
