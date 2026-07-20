@@ -1,0 +1,4 @@
+# dev-only smoke tooling artifacts
+node_modules/
+*.log
+.DS_Store

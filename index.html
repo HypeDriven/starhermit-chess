@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Correspondence Chess</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext x='4' y='26' font-size='26' fill='%23c8a35f'%3E%E2%99%9E%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wordmark"><span class="mark">&#9822;</span> <span class="wm-text">Correspondence Chess</span></div>
+  <div class="topbar-right">
+    <span id="top-elo" class="elo-chip" hidden></span>
+  </div>
+</header>
+
+<!-- ============================== AUTH ============================== -->
+<section id="view-auth" class="view">
+  <div class="auth-card">
+    <h1 class="auth-title">Take a seat</h1>
+    <p class="auth-sub">One move a day. Games are played over the starhermit platform &mdash; paste a user token to sit down at the board.</p>
+    <p id="auth-msg" class="auth-msg" hidden></p>
+    <label class="field">
+      <span class="field-label">User token (JWT)</span>
+      <textarea id="auth-jwt" rows="4" spellcheck="false" placeholder="eyJhbGciOi&hellip;"></textarea>
+    </label>
+    <label class="field">
+      <span class="field-label">API base URL</span>
+      <input id="auth-base" type="text" spellcheck="false" placeholder="http://localhost:5050">
+    </label>
+    <button id="auth-go" class="btn btn-primary btn-wide">Enter the club</button>
+  </div>
+</section>
+
+<!-- ============================== MENU ============================== -->
+<section id="view-menu" class="view">
+  <div class="menu-grid">
+    <div class="menu-main">
+      <div class="play-row">
+        <div id="play-idle">
+          <button id="btn-play" class="btn btn-primary btn-big">Play</button>
+          <span class="play-hint">Matched by rating against another club member</span>
+        </div>
+        <div id="play-searching" hidden>
+          <span class="searching"><span class="pulse"></span> Looking for an opponent&hellip;</span>
+          <button id="mm-cancel" class="btn">Cancel</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>My games</h2>
+          <span id="sessions-count" class="panel-note"></span>
+        </div>
+        <div id="sessions-list" class="cards"><p class="empty">Loading&hellip;</p></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Invitations</h2>
+          <button id="btn-invite" class="btn btn-small">Invite a friend</button>
+        </div>
+        <div id="invites-list" class="cards"><p class="empty">No invitations.</p></div>
+      </div>
+    </div>
+
+    <aside class="menu-side">
+      <div class="panel rating-card">
+        <div class="panel-head"><h2>My rating</h2></div>
+        <div id="lb-me" class="rating-body"><p class="empty">Loading&hellip;</p></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Friends table</h2></div>
+        <div id="lb-table"><p class="empty">Loading&hellip;</p></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Recent games</h2></div>
+        <div id="replays-list" class="cards cards-tight"><p class="empty">Loading&hellip;</p></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================== GAME ============================== -->
+<section id="view-game" class="view">
+  <div class="game-grid">
+    <div class="board-col">
+      <div class="seat seat-top">
+        <span id="g-opp-dot" class="dot" title="offline"></span>
+        <span id="g-opp-name" class="seat-name">&mdash;</span>
+        <span id="g-opp-color" class="seat-color"></span>
+      </div>
+      <div class="board-wrap">
+        <div id="game-board" class="board"></div>
+        <div id="promo-picker" class="promo" hidden></div>
+        <div id="game-over" class="gameover" hidden>
+          <div class="gameover-card">
+            <h2 id="go-title">Game over</h2>
+            <p id="go-reason"></p>
+            <p id="go-elo" class="go-elo"></p>
+            <div class="row-gap">
+              <button id="go-replay" class="btn">View replay</button>
+              <button id="go-menu" class="btn btn-primary">Back to the club</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="seat seat-bottom">
+        <span id="g-me-name" class="seat-name">&mdash;</span>
+        <span id="g-me-color" class="seat-color"></span>
+        <span id="g-check" class="check-flag" hidden>Check</span>
+      </div>
+      <div class="clock-card">
+        <div class="clock-line"><span id="g-turn">&mdash;</span><span id="g-clock" class="clock-time"></span></div>
+        <div class="fuse"><div id="g-fuse" class="fuse-fill"></div></div>
+      </div>
+      <div id="draw-banner" class="banner" hidden>
+        <span id="draw-text"></span>
+        <span class="row-gap">
+          <button id="draw-accept" class="btn btn-small btn-primary">Accept draw</button>
+          <button id="draw-decline" class="btn btn-small">Decline</button>
+        </span>
+      </div>
+      <div class="game-actions">
+        <button id="btn-back" class="btn">&larr; Club</button>
+        <span class="spacer"></span>
+        <button id="btn-draw" class="btn">Offer draw</button>
+        <button id="btn-resign" class="btn btn-danger">Resign</button>
+      </div>
+    </div>
+
+    <aside class="side-col">
+      <div class="panel sheet-panel">
+        <div class="panel-head"><h2>Scoresheet</h2><span id="conn-state" class="panel-note"></span></div>
+        <div id="movesheet" class="sheet"><p class="empty">No moves yet.</p></div>
+      </div>
+
+      <div class="panel voice-panel">
+        <div class="panel-head"><h2>Voice</h2>
+          <button id="btn-voice" class="btn btn-small">Enable voice</button>
+        </div>
+        <div id="voice-body" hidden>
+          <div id="voice-peers" class="voice-peers"></div>
+          <div class="row-gap">
+            <button id="btn-mute" class="btn btn-small">Mute</button>
+            <span id="voice-status" class="panel-note"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel chat-panel">
+        <div class="panel-head"><h2>Table talk</h2></div>
+        <div id="chat-msgs" class="chat-msgs"><p class="empty">Say hello.</p></div>
+        <form id="chat-form" class="chat-form">
+          <input id="chat-input" type="text" autocomplete="off" placeholder="Message your opponent" maxlength="2000">
+          <button class="btn btn-small btn-primary" type="submit">Send</button>
+        </form>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================== REPLAY ============================== -->
+<section id="view-replay" class="view">
+  <div class="game-grid">
+    <div class="board-col">
+      <div class="seat seat-top"><span id="r-top-name" class="seat-name">&mdash;</span><span id="r-top-color" class="seat-color"></span></div>
+      <div class="board-wrap"><div id="r-board" class="board"></div></div>
+      <div class="seat seat-bottom"><span id="r-bot-name" class="seat-name">&mdash;</span><span id="r-bot-color" class="seat-color"></span></div>
+      <div class="clock-card"><div class="clock-line"><span id="r-result">&mdash;</span><span id="r-elo" class="clock-time"></span></div></div>
+      <div class="game-actions replay-controls">
+        <button id="r-back" class="btn">&larr; Club</button>
+        <span class="spacer"></span>
+        <button id="r-first" class="btn" title="First (Home)">&#9198;</button>
+        <button id="r-prev" class="btn" title="Previous (&larr;)">&#9664;</button>
+        <button id="r-next" class="btn" title="Next (&rarr;)">&#9654;</button>
+        <button id="r-last" class="btn" title="Last (End)">&#9197;</button>
+      </div>
+    </div>
+    <aside class="side-col">
+      <div class="panel sheet-panel">
+        <div class="panel-head"><h2>Scoresheet</h2><span id="r-plies" class="panel-note"></span></div>
+        <div id="r-moves" class="sheet"></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- shared chrome -->
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<div id="modal" class="modal" hidden>
+  <div class="modal-card">
+    <p id="modal-text"></p>
+    <div id="modal-body"></div>
+    <div class="row-gap modal-btns">
+      <button id="modal-cancel" class="btn">Cancel</button>
+      <button id="modal-ok" class="btn btn-primary">OK</button>
+    </div>
+  </div>
+</div>
+
+<script src="server.js"></script>
+<script src="net.js"></script>
+<script src="ui.js"></script>
+<script src="game.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
