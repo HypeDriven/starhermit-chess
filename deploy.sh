@@ -32,14 +32,14 @@ curl -sf -X PUT "$ADMIN_URL/api/admin/v1/games/chess" \
   }' | python3 -m json.tool
 
 echo "==> Deploying server.js"
-python3 - "$HERE/server.js" << 'EOF' > /tmp/chess-script-payload.json
+python3 - "$HERE/server.js" << 'EOF' > /tmp/starhermit-chess-script-payload.json
 import json, sys
 print(json.dumps({"scriptSource": open(sys.argv[1]).read()}))
 EOF
 curl -sf -X PUT "$ADMIN_URL/api/admin/v1/games/chess/script" \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  --data @/tmp/chess-script-payload.json \
+  --data @/tmp/starhermit-chess-script-payload.json \
   | python3 -c 'import sys,json; d=json.load(sys.stdin); print("    scriptVersion=%s bytes=%s" % (d.get("scriptVersion"), d.get("scriptBytes")))'
-rm -f /tmp/chess-script-payload.json
+rm -f /tmp/starhermit-chess-script-payload.json
 
 echo "==> Done. The chess client (index.html) can now be launched against the platform."

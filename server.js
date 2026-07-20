@@ -1,5 +1,5 @@
 // =============================================================================
-// chess/server.js — the single authoritative game-server script for Chess.
+// starhermit-chess/server.js — the single authoritative game-server script for Chess.
 //
 // This file is uploaded to the starhermit platform as the game's server script
 // and executed inside the platform's sandboxed GameScriptHost (Jint). It is the

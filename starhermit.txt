@@ -1,4 +1,4 @@
-# Starhermit game manifest — github.com/HypeDriven/chess
+# Starhermit game manifest — github.com/HypeDriven/starhermit-chess
 # Read by the Starhermit backend when this repository is added as a game.
 # Format: key=value lines; '#' comments and blank lines are ignored.
 
