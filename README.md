@@ -19,6 +19,14 @@ platform reads `starhermit.txt` at the repo root to identify the owner and the
 optional server script, then stands the game up. Publishing is just pushing to
 GitHub and adding the repo.
 
+When the submitter is the **verified owner**, the platform clones the repo and
+**serves the game itself at `<slug>.starhermit.com`** (so it runs in the web
+dashboard, not just the desktop client). The owner controls which version is
+live by pinning a **commit** in the game's details — the platform re-fetches the
+repo at that commit and serves it. The game's `/api` and `/ws` calls are proxied
+same-origin from its subdomain, so this client needs no CORS or API-base
+configuration.
+
 ## Files
 
 - `starhermit.txt` — the manifest the platform reads when the repo is added:
