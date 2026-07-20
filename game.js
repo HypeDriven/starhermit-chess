@@ -56,7 +56,7 @@ class GameController {
     this.unTick = UI.onTick(() => this.tickClock());
 
     try {
-      const s = await Net.api(`/api/v1/games/chess/sessions/${this.sessionId}`);
+      const s = await Net.api(Net.gamePath(`/sessions/${this.sessionId}`));
       for (const p of s.players || []) this.players[p.userId] = p.username;
       this.oppId = (s.players || []).map(p => p.userId).find(id => id !== Net.userId) || null;
       this.chat.convId = s.chatConversationId || null;
@@ -303,7 +303,7 @@ class GameController {
     this.tickClock();
     // fresh elo after the platform applies the result
     try {
-      const info = await Net.api('/api/v1/games/chess');
+      const info = await Net.api(Net.gamePath());
       const newElo = info && info.me ? info.me.elo : null;
       if (newElo != null) {
         const old = App.lastElo;

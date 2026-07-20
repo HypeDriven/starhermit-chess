@@ -20,15 +20,19 @@
 <section id="view-auth" class="view">
   <div class="auth-card">
     <h1 class="auth-title">Take a seat</h1>
-    <p class="auth-sub">One move a day. Games are played over the starhermit platform &mdash; paste a user token to sit down at the board.</p>
+    <p class="auth-sub">One move a day. Launched from the Starhermit client this signs you in automatically; for local development, paste a user token to sit down at the board.</p>
     <p id="auth-msg" class="auth-msg" hidden></p>
     <label class="field">
       <span class="field-label">User token (JWT)</span>
       <textarea id="auth-jwt" rows="4" spellcheck="false" placeholder="eyJhbGciOi&hellip;"></textarea>
     </label>
     <label class="field">
-      <span class="field-label">API base URL</span>
-      <input id="auth-base" type="text" spellcheck="false" placeholder="http://localhost:5050">
+      <span class="field-label">Game slug</span>
+      <input id="auth-slug" type="text" spellcheck="false" placeholder="chess">
+    </label>
+    <label class="field">
+      <span class="field-label">API base URL <span class="field-hint">(blank = same origin)</span></span>
+      <input id="auth-base" type="text" spellcheck="false" placeholder="same origin">
     </label>
     <button id="auth-go" class="btn btn-primary btn-wide">Enter the club</button>
   </div>

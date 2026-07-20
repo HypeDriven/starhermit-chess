@@ -1,8 +1,13 @@
 # Starhermit game manifest — github.com/HypeDriven/starhermit-chess
-# Read by the Starhermit backend when this repository is added as a game.
+# Read by the Starhermit backend when this repository is added as a game
+# (Add game -> paste the repo URL in the Starhermit client).
 # Format: key=value lines; '#' comments and blank lines are ignored.
 
 name=Chess
+
+# URL-safe identifier for this game on the platform. The game client reads its
+# own slug from the launch token, so nothing is hard-coded to it.
+slug=chess
 
 # Repo-relative HTML entry point the client loads.
 launch=index.html
@@ -10,8 +15,8 @@ launch=index.html
 # The Starhermit account that owns this game (the submitter's user id).
 owner=2712e04e-461b-4d23-81ae-e40b429128a8
 
-# The authoritative game-server script. When this repo is added as a game the
-# backend runs this file in its sandboxed engine — it validates every client
-# command before relaying, so clients cannot cheat. Must be a repo-relative
-# .js/.mjs file.
+# Optional: the authoritative game-server script. Games that need multiplayer or
+# server-side logic name a repo-relative .js/.mjs file here; the platform runs it
+# in its sandboxed engine, validating every client command before relaying so
+# clients cannot cheat. Games with no server logic simply omit this line.
 server=server.js

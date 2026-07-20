@@ -1,13 +1,31 @@
-# Chess — multiplayer correspondence chess on starhermit
+# Chess — multiplayer correspondence chess on Starhermit
 
-A browser chess game whose entire rules authority lives in **one server-side
-JavaScript file** (`server.js`) executed by the starhermit platform in a
-sandboxed, budgeted JS engine. Clients send commands; the platform runs each
-one through the script, and only what the script explicitly returns is relayed
-to the other player — clients can't cheat, spoof identity, or move out of turn.
+A reference implementation of a Starhermit game. Its entire rules authority
+lives in **one server-side JavaScript file** (`server.js`) that the platform
+runs in a sandboxed, budgeted engine. Clients send commands; the platform runs
+each through the script and relays only what the script explicitly returns — so
+clients can't cheat, spoof identity, or move out of turn.
+
+Use this repo as a template for your own Starhermit game: keep the shape
+(a `starhermit.txt` manifest, a static browser client, and — if your game needs
+multiplayer or server logic — a single authoritative `server.js`), and replace
+the chess-specific parts.
+
+## How a game gets onto the platform
+
+There is no deploy script and no special tooling. A player adds the game from
+the Starhermit client — **Add game → paste the GitHub repo URL** — and the
+platform reads `starhermit.txt` at the repo root to identify the owner and the
+optional server script, then stands the game up. Publishing is just pushing to
+GitHub and adding the repo.
 
 ## Files
 
+- `starhermit.txt` — the manifest the platform reads when the repo is added:
+  `name`, `slug` (the game's URL-safe id on the platform), `launch` (HTML entry
+  point), `owner` (the owning Starhermit account — username or user id), and the
+  optional `server` (the repo-relative file run as the authoritative server
+  script). Omit `server` for a game with no server-side logic.
 - `server.js` — the single authoritative game script (chess rules incl.
   castling/en passant/promotion/mate/stalemate/repetition/50-move, 24 h move
   clock, elo, color assignment, replays). Also exposes `chessRules` for the
@@ -16,17 +34,11 @@ to the other player — clients can't cheat, spoof identity, or move out of turn
   static client (no build step): main menu (play via elo matchmaking, rejoin up
   to 20 concurrent games, friends top-10 elo leaderboard, recent replays,
   friend invites), game view (board, SAN move list, chat, opt-in voice via
-  WebRTC — off by default per game), replay viewer.
-- `starhermit.txt` — the game manifest the platform reads when this repo is
-  added as a game: `name`, `launch` (HTML entry point), `owner` (the owning
-  Starhermit account — username or user id), and `server` (the repo file the
-  backend runs as the authoritative server script, i.e. `server.js`).
-- `API.md` — the REST/WebSocket contract against the starhermit platform
-  (games subsystem, chat, voice, leaderboards, game-scoped launch tokens).
-- `deploy.sh` — registers the game + budgets on the platform via the
-  starhermit admin backend and uploads `server.js`.
-- `dev/mock-server.mjs` — dev-only smoke server that stubs the platform and
-  hosts the real `server.js` so the UI can be driven without a backend.
+  WebRTC — off by default per game), replay viewer. The client is slug-agnostic:
+  it reads its slug from the launch token, so nothing here is tied to one
+  deployment.
+- `API.md` — the platform REST/WebSocket contract the client speaks (games
+  subsystem, chat, voice, leaderboards, game-scoped launch tokens).
 
 ## Rules of engagement (game design)
 
@@ -39,26 +51,17 @@ to the other player — clients can't cheat, spoof identity, or move out of turn
 - Chat works between any two matched players; voice chat is opt-in and starts
   disabled for every new game.
 
-## Running locally
+## Local development
 
-```bash
-# 1. Start the starhermit stack (API on :5050) and the admin backend (:5040)
-# 2. Register + deploy the game script:
-./deploy.sh
-# 3. Serve this directory statically (any file server) and open index.html.
-#    Launched by the platform it receives #game_token=...; opened bare it shows
-#    a dev panel where a user JWT can be pasted (it then mints its own
-#    game-scoped launch token via POST /api/v1/games/chess/launch-token).
-```
+Serve this directory with any static file server and open `index.html`.
+Launched by the platform the game receives `#game_token=…` and signs in
+automatically; opened directly it shows a panel where you enter a user token,
+the game slug, and (optionally) an API base URL to point at a running platform.
 
-Engine tests: `node <scratch>/test-server.js` covers movement legality, pins,
-castling/en-passant edge cases, promotions, mates/stalemates/repetition,
-timeouts, elo math, color alternation — plus perft(1..4) exact node counts.
+## Sandboxing & resource budgets
 
-## Budgets & abuse control (platform side)
-
-Admins control, per game, via the admin dashboard/API: per-player state budget
-(default 5 MB), CPU ms / memory / statement budgets per script invocation, and
-concurrent-session caps. The platform meters every invocation (avg/peak
-processing ms) so a malicious or runaway game script is visible and can be
-throttled by tightening its budgets.
+The platform runs `server.js` in an isolated sandbox and applies per-game
+resource limits with sensible defaults — per-player state budget (5 MB), CPU /
+memory / statement ceilings per script call, and a concurrent-session cap — and
+meters each invocation's processing time. A game repo neither configures nor
+depends on any of this; it just writes correct, bounded game logic.

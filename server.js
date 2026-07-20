@@ -10,7 +10,7 @@
 //
 // Host contract (see starhermit src/Platform.Application/Services/GameScript*):
 // the host loads this file into a fresh, constrained JS engine per invocation
-// (memory limit + statement/time limit are the admin-tunable per-game budgets)
+// (memory limit + statement/time limit are the platform's per-game budgets)
 // and calls one of the functions on `globalThis.game`:
 //
 //   game.createSession(ctx)          -> called once when a session is created
@@ -447,7 +447,7 @@ function eloAfter(a, b, result) {
 
 // ---------------------------------------------------------------------------
 // Per-player persistent doc (lives under the platform's per-player state
-// budget — default 5 MB, admin-tunable). Everything here is script-owned.
+// budget — default 5 MB, platform-enforced). Everything here is script-owned.
 // ---------------------------------------------------------------------------
 
 function defaultPlayerDoc() {

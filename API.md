@@ -6,11 +6,34 @@ every client command is validated by that script before anything is relayed to
 the other player. The platform also provides auth, matchmaking, invites, chat,
 voice, the elo leaderboard, and replays.
 
-Base URL (dev): `http://localhost:5050` — REST under `/api/v1`, WebSockets
-under `/ws/v1`. All REST calls: `Authorization: Bearer <token>`. WebSockets
-authenticate with `?access_token=<token>` in the query string.
+All requests are **same-origin**: launched from the Starhermit client the game
+is served by the platform, so REST goes to `/api/v1/...` and WebSockets to
+`/ws/v1/...` directly. REST calls send `Authorization: Bearer <token>`;
+WebSockets authenticate with `?access_token=<token>` in the query string.
 
-Game slug: `chess`.
+**Game slug.** Every game has a URL-safe slug on the platform. This game declares
+`slug=chess` in its `starhermit.txt`, so its endpoints live under
+`/api/v1/games/chess/...` and the examples below use `chess`. A game built from
+this template substitutes its own slug — the client never hard-codes it, it
+reads the slug from the launch token's `game_scope` claim.
+
+## Publishing the game (how it gets onto the platform)
+
+There is no separate deploy step and no internal tooling. A player adds the game
+through the Starhermit client — **Add game → paste the GitHub repo URL** — and
+the platform reads `starhermit.txt` at the repo root to:
+
+- identify the **owner** (`owner=`, a Starhermit username or user id) and verify
+  it against the submitter;
+- read the optional **server script** (`server=`, a repo-relative `.js`/`.mjs`
+  file). Games that need multiplayer or server-side logic name it here; the
+  platform fetches that file and runs it as the game's authoritative server
+  script in its sandboxed engine. Games with no server logic omit the line and
+  are pure browser games.
+
+Resource budgets (state per player, CPU/memory/statements per script call,
+concurrent sessions) are applied by the platform with sensible defaults; they
+are not something a game repo configures.
 
 ## Launch flow & the game-scoped token
 
@@ -45,9 +68,9 @@ state even if a client hands its token to a different game:
   its own game's stored rows — one game's backend logic physically cannot read
   or modify another game's session or player state.
 
-If `index.html` is opened without `#game_token`, the client shows a dev panel
-where a full user JWT can be pasted; it then calls `launch-token` itself and
-proceeds identically.
+If `index.html` is opened without `#game_token` (local development), the client
+shows a panel where a user JWT and the game slug can be entered; it then calls
+`launch-token` itself and proceeds identically.
 
 ## Game info & rating
 
@@ -225,24 +248,18 @@ conversation under a game token):
 The other player sees the room exist (poll `GET /voice/rooms?conversationId=`)
 and may join or ignore it — voice never auto-joins.
 
-## Budgets & metering (admin)
+## Resource budgets (platform-enforced)
 
-The platform enforces, per game (admin-tunable in the starhermit admin
-dashboard, defaults in parentheses):
+The platform sandboxes `server.js` and applies per-game resource limits with
+defaults so a game repo never has to configure them:
 
 - per-player script state budget (**5 MB**) — the script's per-player doc
   (elo, history, pairing colors) and the per-session doc must each serialize
   under this budget or the update is rejected;
 - CPU time per script invocation (**250 ms**), memory per invocation
-  (**32 MB**), max JS statements per invocation — enforced by the sandbox;
+  (**32 MB**), and a max-JS-statements ceiling — enforced by the sandbox;
 - max concurrent sessions per player (**20**).
 
-The host records every invocation's processing time; admins see
-`avgProcessingMs` / `peakProcessingMs` / `invocations` per game and can adjust
-the budgets to mitigate abusive or runaway game scripts:
-
-```
-GET /api/admin/v1/games                     (admin backend, port 5040)
-PUT /api/admin/v1/games/chess               { budgets... }
-PUT /api/admin/v1/games/chess/script        { "scriptSource": "..." }   (deploys server.js)
-```
+The platform meters each invocation's processing time so operators can tune
+these limits for abusive or runaway scripts. That tuning is a platform-side
+concern; a game repo neither calls it nor depends on it.

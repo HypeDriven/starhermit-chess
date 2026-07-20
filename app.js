@@ -3,7 +3,7 @@
 'use strict';
 
 const App = {
-  info: null,            // GET /games/chess payload
+  info: null,            // GET /games/<slug> payload
   lastElo: null,
   currentView: null,
   game: null,            // active GameController
@@ -59,19 +59,22 @@ const App = {
     box.hidden = !msg;
     if (msg) box.textContent = msg;
     $('auth-base').value = Net.base;
+    if (!$('auth-slug').value) $('auth-slug').value = Net.slug || '';
     this.updateEloChip(null);
     this.showView('auth');
   },
 
   async authSubmit() {
     const jwt = $('auth-jwt').value.trim();
-    const base = $('auth-base').value.trim() || 'http://localhost:5050';
+    const base = $('auth-base').value.trim(); // blank = same origin
+    const slug = $('auth-slug').value.trim();
     if (!jwt) { this.showAuth('Paste a user token first.'); return; }
+    if (!slug) { this.showAuth('Enter the game slug to launch.'); return; }
     Net.setBase(base);
     const btn = $('auth-go');
     btn.disabled = true; btn.textContent = 'Signing in…';
     try {
-      await Net.launchToken(jwt);
+      await Net.launchToken(jwt, slug);
       this.enterClub();
     } catch (e) {
       this.showAuth(e.message);
@@ -113,7 +116,7 @@ const App = {
 
   async loadGameInfo() {
     try {
-      this.info = await Net.api('/api/v1/games/chess');
+      this.info = await Net.api(Net.gamePath());
       const me = this.info.me || {};
       this.lastElo = me.elo != null ? me.elo : this.lastElo;
       this.updateEloChip(me.elo);
@@ -133,7 +136,7 @@ const App = {
   async loadSessions() {
     let sessions;
     try {
-      sessions = await Net.api('/api/v1/games/chess/sessions/mine') || [];
+      sessions = await Net.api(Net.gamePath('/sessions/mine')) || [];
     } catch (e) {
       if (e.status !== 401) $('sessions-list').replaceChildren(UI.el('p', 'empty', 'Could not load games — ' + e.message));
       return;
@@ -182,7 +185,7 @@ const App = {
   // ---- matchmaking
   async startMatchmaking() {
     try {
-      const r = await Net.api('/api/v1/games/chess/matchmaking', { method: 'POST' });
+      const r = await Net.api(Net.gamePath('/matchmaking'), { method: 'POST' });
       if (r.status === 'matched' && r.sessionId) { this.openGame(r.sessionId); return; }
       this.showMatchmakingUi(true);
       this._mmTimer = setInterval(() => this.pollMatchmaking(), 3000);
@@ -194,7 +197,7 @@ const App = {
 
   async pollMatchmaking() {
     try {
-      const r = await Net.api('/api/v1/games/chess/matchmaking');
+      const r = await Net.api(Net.gamePath('/matchmaking'));
       if (r && r.status === 'matched' && r.sessionId) {
         this.stopMatchmakingUi(false);
         UI.toast('Opponent found — good luck.', 'ok');
@@ -207,7 +210,7 @@ const App = {
 
   async cancelMatchmaking() {
     this.stopMatchmakingUi(false);
-    try { await Net.api('/api/v1/games/chess/matchmaking', { method: 'DELETE' }); }
+    try { await Net.api(Net.gamePath('/matchmaking'), { method: 'DELETE' }); }
     catch (e) { /* already gone */ }
   },
 
@@ -249,7 +252,7 @@ const App = {
     const list = $('replays-list');
     let replays;
     try {
-      replays = await Net.api('/api/v1/games/chess/replays/mine?limit=10') || [];
+      replays = await Net.api(Net.gamePath('/replays/mine?limit=10')) || [];
     } catch (e) {
       if (e.status !== 401) list.replaceChildren(UI.el('p', 'empty', 'No archive available.'));
       return;
@@ -291,7 +294,7 @@ const App = {
   // ---- invites
   async loadInvites() {
     let j;
-    try { j = await Net.api('/api/v1/games/chess/invites'); }
+    try { j = await Net.api(Net.gamePath('/invites')); }
     catch (e) { return; }
     const list = $('invites-list');
     UI.clear(list);
@@ -309,13 +312,13 @@ const App = {
       const acc = UI.el('button', 'btn btn-small btn-primary', 'Accept');
       acc.addEventListener('click', async () => {
         try {
-          const r = await Net.api(`/api/v1/games/chess/invites/${inv.inviteId}/accept`, { method: 'POST' });
+          const r = await Net.api(Net.gamePath(`/invites/${inv.inviteId}/accept`), { method: 'POST' });
           if (r && r.sessionId) this.openGame(r.sessionId);
         } catch (e) { UI.toast('Could not accept: ' + e.message, 'err'); this.loadInvites(); }
       });
       const dec = UI.el('button', 'btn btn-small', 'Decline');
       dec.addEventListener('click', async () => {
-        try { await Net.api(`/api/v1/games/chess/invites/${inv.inviteId}/decline`, { method: 'POST' }); }
+        try { await Net.api(Net.gamePath(`/invites/${inv.inviteId}/decline`), { method: 'POST' }); }
         catch (e) { /* gone */ }
         this.loadInvites();
       });
@@ -354,7 +357,7 @@ const App = {
         card.addEventListener('click', async () => {
           close(null);
           try {
-            await Net.api('/api/v1/games/chess/invites', { method: 'POST', body: { toUserId: id } });
+            await Net.api(Net.gamePath('/invites'), { method: 'POST', body: { toUserId: id } });
             UI.toast('Invitation sent to ' + (f.username || 'your friend') + '.', 'ok');
             this.loadInvites();
           } catch (e) {
@@ -379,7 +382,7 @@ const App = {
   async openReplay(sessionId) {
     let raw;
     try {
-      raw = await Net.api(`/api/v1/games/chess/replays/${sessionId}`);
+      raw = await Net.api(Net.gamePath(`/replays/${sessionId}`));
     } catch (e) {
       UI.toast('Could not open the replay: ' + e.message, 'err');
       return;
