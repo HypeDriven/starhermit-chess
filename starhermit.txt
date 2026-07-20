@@ -3,7 +3,7 @@
 # (Add game -> paste the repo URL in the Starhermit client).
 # Format: key=value lines; '#' comments and blank lines are ignored.
 
-name=Chess
+name=StarHermit Chess
 
 # URL-safe identifier for this game on the platform. The game client reads its
 # own slug from the launch token, so nothing is hard-coded to it.
