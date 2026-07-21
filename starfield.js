@@ -8,12 +8,10 @@
    This is a progressive enhancement: it lazy-loads three.js and the model the
    first time the menu is shown, and any failure (no WebGL, missing asset, no
    import-map support) leaves the menu working exactly as before, with the
-   reason logged to the console. Under prefers-reduced-motion the pieces are
-   rendered once as a still life instead of animating. */
+   reason logged to the console. */
 
 const menu = document.getElementById('view-menu');
 const canvas = document.getElementById('starfield');
-const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 const DEPTH = 70;          // how far away pieces spawn (world units; king height = 1)
 const SPREAD_X = 28;
@@ -140,7 +138,6 @@ function resize() {
   world.camera.aspect = wpx / hpx;
   world.camera.updateProjectionMatrix();
   world.renderer.setSize(wpx, hpx, false);
-  if (!raf && !canvas.hidden) render(0); // keep the reduced-motion still frame filled
 }
 
 function stopLoop() {
@@ -166,12 +163,7 @@ async function sync() {
   }
   if (!world) return;
   canvas.hidden = false;
-  if (reducedMotion.matches) {
-    // Motion is the accessibility concern, not the imagery: draw one still frame.
-    stopLoop();
-    render(0);
-    console.info('[starfield] prefers-reduced-motion: rendering a still frame');
-  } else if (!raf) {
+  if (!raf) {
     world.lastT = 0;
     raf = requestAnimationFrame(frame);
   }
@@ -179,5 +171,4 @@ async function sync() {
 
 new MutationObserver(sync).observe(menu, { attributes: true, attributeFilter: ['class'] });
 window.addEventListener('resize', resize);
-reducedMotion.addEventListener('change', sync);
 sync();
