@@ -138,6 +138,18 @@ POST /api/v1/games/chess/invites/{id}/decline → 204
 Invites can only be sent to friends (`GET /api/v1/me/friends` for the picker).
 Accepting creates the session immediately.
 
+For display the client never shows a raw username: it resolves each friend /
+inviter through the platform's public profile endpoints (both allowed for
+game-scoped tokens):
+
+```
+GET /api/v1/users/{id}/profile   → 200 { "id", "username", "nickname" }
+GET /api/v1/users/{id}/avatar    → 200 image/png | 404 (no picture set)
+```
+
+and renders the profile nickname plus avatar (an initial-letter placeholder
+when no picture is set).
+
 ## Replays
 
 ```

@@ -81,6 +81,17 @@ const Net = {
     return json;
   },
 
+  /** Authenticated GET for binary content (e.g. avatars). Returns a Blob, or null if absent. */
+  async apiBlob(path) {
+    const headers = {};
+    if (this.token) headers['Authorization'] = 'Bearer ' + this.token;
+    let res;
+    try { res = await fetch(this.base + path, { headers }); }
+    catch (e) { return null; }
+    if (!res.ok) return null;
+    return res.blob();
+  },
+
   /**
    * POST launch-token. In the dev panel pass an explicit user JWT and the game
    * slug to launch; on refresh both are omitted and the current scoped token

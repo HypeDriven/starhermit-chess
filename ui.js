@@ -14,6 +14,18 @@ const UI = {
 
   clear(node) { while (node.firstChild) node.removeChild(node.firstChild); },
 
+  /** Round avatar: the profile picture when one exists, else the name's initial. */
+  avatar(profile) {
+    if (profile && profile.avatarUrl) {
+      const img = UI.el('img', 'avatar');
+      img.src = profile.avatarUrl;
+      img.alt = '';
+      return img;
+    }
+    const name = (profile && profile.name) || '?';
+    return UI.el('span', 'avatar avatar-fallback', name.charAt(0).toUpperCase());
+  },
+
   // ----------------------------------------------------------- toasts
   toast(msg, kind) {
     const t = UI.el('div', 'toast' + (kind ? ' ' + kind : ''), msg);

@@ -291,22 +291,55 @@ const App = {
     }
   },
 
+  // ---- friend identity (profile nickname + picture, never the username)
+  _profiles: new Map(),
+
+  /**
+   * Resolve a user's display identity from their public profile: nickname and
+   * avatar (as an object URL, null if they have none). Cached per session so
+   * the 10 s invite poll doesn't refetch. Falls back to `fallbackName` only
+   * when the profile has no nickname to show.
+   */
+  profileFor(userId, fallbackName) {
+    if (!userId) return Promise.resolve({ name: fallbackName || '?', avatarUrl: null });
+    if (!this._profiles.has(userId)) {
+      this._profiles.set(userId, (async () => {
+        let name = fallbackName || '?';
+        let avatarUrl = null;
+        try {
+          const p = await Net.api(`/api/v1/users/${encodeURIComponent(userId)}/profile`);
+          if (p && p.nickname) name = p.nickname;
+        } catch (e) { /* keep fallback */ }
+        const blob = await Net.apiBlob(`/api/v1/users/${encodeURIComponent(userId)}/avatar`);
+        if (blob) avatarUrl = URL.createObjectURL(blob);
+        return { name, avatarUrl };
+      })());
+    }
+    return this._profiles.get(userId);
+  },
+
   // ---- invites
   async loadInvites() {
     let j;
     try { j = await Net.api(Net.gamePath('/invites')); }
     catch (e) { return; }
-    const list = $('invites-list');
-    UI.clear(list);
     const incoming = (j && j.incoming) || [];
     const outgoing = ((j && j.outgoing) || []).filter(o => o.status === 'pending');
+    const profOf = (u) => this.profileFor(u && u.userId, u && u.username);
+    const [inProfs, outProfs] = await Promise.all([
+      Promise.all(incoming.map(inv => profOf(inv.from))),
+      Promise.all(outgoing.map(inv => profOf(inv.to))),
+    ]);
+    const list = $('invites-list');
+    UI.clear(list);
     if (!incoming.length && !outgoing.length) {
       list.appendChild(UI.el('p', 'empty', 'No invitations.'));
       return;
     }
-    for (const inv of incoming) {
+    incoming.forEach((inv, i) => {
       const card = UI.el('div', 'card card-static');
-      card.appendChild(UI.el('span', 'card-name', inv.from ? inv.from.username : '?'));
+      card.appendChild(UI.avatar(inProfs[i]));
+      card.appendChild(UI.el('span', 'card-name', inProfs[i].name));
       card.appendChild(UI.el('span', 'card-sub', 'invites you to a game'));
       card.appendChild(UI.el('span', 'spacer'));
       const acc = UI.el('button', 'btn btn-small btn-primary', 'Accept');
@@ -325,13 +358,14 @@ const App = {
       card.appendChild(acc);
       card.appendChild(dec);
       list.appendChild(card);
-    }
-    for (const inv of outgoing) {
+    });
+    outgoing.forEach((inv, i) => {
       const card = UI.el('div', 'card card-static');
-      card.appendChild(UI.el('span', 'card-name', inv.to ? inv.to.username : '?'));
+      card.appendChild(UI.avatar(outProfs[i]));
+      card.appendChild(UI.el('span', 'card-name', outProfs[i].name));
       card.appendChild(UI.el('span', 'card-sub', 'invited — waiting'));
       list.appendChild(card);
-    }
+    });
   },
 
   async inviteFriend() {
@@ -343,29 +377,32 @@ const App = {
       UI.toast('Could not load friends: ' + e.message, 'err');
       return;
     }
+    const profiles = await Promise.all(
+      friends.map(f => this.profileFor(f.userId || f.id, f.username || String(f.userId || f.id).slice(0, 8))));
     await UI.picker('Invite a friend to a game', (body, close) => {
       if (!friends.length) {
         body.appendChild(UI.el('p', 'empty', 'No friends on the platform yet.'));
         return;
       }
-      for (const f of friends) {
+      friends.forEach((f, i) => {
         const id = f.userId || f.id;
         const card = UI.el('button', 'card');
-        card.appendChild(UI.el('span', 'card-name', f.username || String(id).slice(0, 8)));
+        card.appendChild(UI.avatar(profiles[i]));
+        card.appendChild(UI.el('span', 'card-name', profiles[i].name));
         card.appendChild(UI.el('span', 'spacer'));
         card.appendChild(UI.el('span', 'card-sub', 'Invite'));
         card.addEventListener('click', async () => {
           close(null);
           try {
             await Net.api(Net.gamePath('/invites'), { method: 'POST', body: { toUserId: id } });
-            UI.toast('Invitation sent to ' + (f.username || 'your friend') + '.', 'ok');
+            UI.toast('Invitation sent to ' + profiles[i].name + '.', 'ok');
             this.loadInvites();
           } catch (e) {
             UI.toast('Could not invite: ' + e.message, 'err');
           }
         });
         body.appendChild(card);
-      }
+      });
     });
   },
 
