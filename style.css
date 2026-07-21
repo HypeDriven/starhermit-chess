@@ -67,7 +67,10 @@ button { font: inherit; }
   font-size: 13px;
   color: var(--muted);
 }
-.wordmark .mark { color: var(--brass); font-size: 19px; letter-spacing: 0; margin-right: 6px; }
+.wordmark .mark {
+  width: 22px; height: 22px; border-radius: 5px;
+  margin-right: 6px; vertical-align: -6px;
+}
 .elo-chip {
   font-family: var(--serif); font-size: 14px; color: var(--brass);
   font-variant-numeric: tabular-nums;

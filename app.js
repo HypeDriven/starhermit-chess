@@ -36,11 +36,14 @@ const App = {
     };
 
     // #game_token=<jwt> from the platform launcher — read once, strip from URL.
+    // An optional &session_id= jumps straight into that game (invite accept flows).
     const m = location.hash.match(/[#&]game_token=([^&]+)/);
     if (m) {
+      const sm = location.hash.match(/[#&]session_id=([^&]+)/);
       history.replaceState(null, '', location.pathname + location.search);
       Net.setToken(decodeURIComponent(m[1]));
       this.enterClub();
+      if (sm) this.openGame(decodeURIComponent(sm[1]));
       return;
     }
     if (Net.token) {

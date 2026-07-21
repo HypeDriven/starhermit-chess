@@ -44,7 +44,10 @@ POST /api/v1/games/chess/launch-token          (full user JWT required)
 → 200 { "token": "<jwt>", "expiresInSeconds": 3600 }
 ```
 
-and opens the game as `index.html#game_token=<jwt>`. The returned token is a
+and opens the game as `index.html#game_token=<jwt>`. An optional
+`&session_id=<guid>` in the same fragment makes the client jump straight into
+that session after signing in — dashboards use this to implement
+"accept invite and join". The returned token is a
 **game-scoped** token: it is a signed JWT carrying the player (`sub`) and the
 game (`game_scope: chess`), both verified server-side on every request
 (signature + token-revocation version), so it cannot be forged or its scope
