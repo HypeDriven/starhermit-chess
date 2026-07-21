@@ -14,10 +14,12 @@ const menu = document.getElementById('view-menu');
 const canvas = document.getElementById('starfield');
 
 const DEPTH = 70;          // how far away pieces spawn (world units; king height = 1)
-const SPREAD_X = 28;
+const SPREAD_X_MAX = 28;
 const SPREAD_Y = 16;
 const BASE_SPEED = 5.5;    // world units per second toward the camera
-const TOTAL = 210;         // piece count (a menu backdrop, not a benchmark)
+// Piece count (a menu backdrop, not a benchmark); phones get a lighter field.
+const TOTAL = Math.min(window.innerWidth, window.innerHeight) < 620 ? 120 : 210;
+let spreadX = SPREAD_X_MAX; // narrowed to the visible cone on portrait screens (see resize)
 // A chess set's own census as spawn weights: pawns are the dust of this galaxy.
 const WEIGHTS = { pawn: 8, rook: 2, knight: 2, bishop: 2, queen: 1, king: 1 };
 
@@ -54,6 +56,8 @@ async function build() {
 
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, DEPTH + 10);
   camera.position.set(0, 0, 0);
+  spreadX = Math.min(SPREAD_X_MAX,
+    Math.max(12, SPREAD_Y * (window.innerWidth / window.innerHeight) * 1.6));
 
   scene.add(new THREE.AmbientLight(0x8a7a5f, 0.5));
   const key = new THREE.DirectionalLight(0xe2c17e, 1.6); // the club's brass lamp
@@ -91,7 +95,7 @@ async function build() {
 /* A fresh star: far away on first respawn, anywhere along the run at startup. */
 function spawn(THREE, anywhere, star) {
   star = star || {};
-  star.x = (Math.random() * 2 - 1) * SPREAD_X;
+  star.x = (Math.random() * 2 - 1) * spreadX;
   star.y = (Math.random() * 2 - 1) * SPREAD_Y;
   star.z = anywhere ? -(2 + Math.random() * (DEPTH - 2)) : -DEPTH + Math.random() * -4;
   star.speed = BASE_SPEED * (0.7 + Math.random() * 0.9);
@@ -138,6 +142,9 @@ function resize() {
   world.camera.aspect = wpx / hpx;
   world.camera.updateProjectionMatrix();
   world.renderer.setSize(wpx, hpx, false);
+  // Keep spawns inside the visible cone on narrow screens so portrait phones
+  // see the same piece density as a desktop window (respawns migrate over ~10s).
+  spreadX = Math.min(SPREAD_X_MAX, Math.max(12, SPREAD_Y * world.camera.aspect * 1.6));
 }
 
 function stopLoop() {

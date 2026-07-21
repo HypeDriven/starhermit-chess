@@ -35,7 +35,12 @@ body {
   font-size: 15px;
   line-height: 1.45;
   min-height: 100vh;
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
 }
+
+/* Two quick taps (select square, then destination) must never double-tap-zoom. */
+button, .sq.clickable, .mv.jump { touch-action: manipulation; }
 
 h1, h2, h3 { font-family: var(--serif); font-weight: 600; margin: 0; }
 button { font: inherit; }
@@ -378,8 +383,45 @@ table.lb tr.me td { color: var(--brass-hi); }
 @media (max-width: 940px) {
   .menu-grid, .game-grid { grid-template-columns: 1fr; }
   .view { padding: 14px; }
-  .board-wrap, .seat, .clock-card, .banner, .game-actions { width: min(100%, 92vw); }
+  /* on landscape phones, also cap the board by viewport height so it stays in reach */
+  .board-wrap, .seat, .clock-card, .banner, .game-actions {
+    width: min(100%, 92vw, max(300px, calc(100vh - 230px)));
+    width: min(100%, 92vw, max(300px, calc(100dvh - 230px)));
+  }
   .sheet { max-height: 200px; }
+  /* 16px stops iOS Safari from zooming the page when a field gets focus */
+  .chat-form input, .field input, .field textarea { font-size: 16px; }
+  .toast { max-width: 92vw; }
+  #modal-body { max-height: 55vh; max-height: 55dvh; }
+}
+
+@media (max-width: 600px) {
+  .topbar { padding: max(10px, env(safe-area-inset-top)) 14px 8px; }
+  .wordmark { letter-spacing: 0.12em; font-size: 12px; }
+  #play-idle, #play-searching { flex-direction: column; align-items: stretch; text-align: center; gap: 8px; width: 100%; }
+  #btn-play { width: 100%; }
+  .gameover-card { padding: 18px 16px; }
+}
+
+/* fingers need bigger targets than a mouse pointer does */
+@media (pointer: coarse) {
+  .btn { padding: 10px 18px; }
+  .btn-small { padding: 7px 14px; font-size: 14px; }
+  .mvrow { height: 34px; }
+  .sheet { background-size: 100% 34px; }
+  .card { padding: 12px 14px; }
+}
+
+/* touch screens: don't let tap-hover states stick after the finger lifts */
+@media (hover: none) {
+  .btn:hover { border-color: var(--line); }
+  .btn-primary:hover { background: var(--brass); border-color: var(--brass); }
+  .btn-danger:hover { border-color: rgba(201, 103, 79, 0.5); }
+  .card:hover { border-color: var(--line); }
+  .card-static:hover, .btn:disabled:hover { border-color: var(--line); }
+  .mv.jump:hover { color: inherit; }
+  .promo button:hover { background: var(--panel); }
+  .btn.on:hover { border-color: var(--brass); }
 }
 
 @media (prefers-reduced-motion: reduce) {
