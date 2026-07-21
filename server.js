@@ -499,16 +499,34 @@ function publicSessionView(s) {
     type: 'state',
     white: s.white, black: s.black,
     board: s.game.board, turn: s.game.turn,
-    moves: s.game.moves,
+    // moves is snapshotted: an AI reply can mutate the game inside the same
+    // invocation after this view was built for the human's own move message
+    moves: s.game.moves.slice(),
     status: s.game.status,
     result: s.result || null,
     deadline: s.deadline,
     drawOfferBy: s.drawOfferBy || null,
+    ai: s.aiId ? colorOf(s, s.aiId) : null,   // which color the AI plays, if any
   };
 }
 
 // Ends the session: updates both player docs, produces eloUpdates + result.
+// Practice (AI) games are unrated: status/result only, no doc or elo changes.
 function finishGame(ctx, s, kind, reason) {
+  if (s.aiId) {
+    s.game.status = 'finished';
+    s.result = { kind: kind, reason: reason, at: ctx.now };
+    syncSummary(s);
+    return {
+      result: {
+        kind: kind, reason: reason, at: ctx.now,
+        white: s.white, black: s.black,
+        moveCount: s.game.moves.length,
+        practice: true,
+      },
+    };
+  }
+
   var whiteDoc = playerDoc(ctx, s.white);
   var blackDoc = playerDoc(ctx, s.black);
 
@@ -566,6 +584,58 @@ function finishGame(ctx, s, kind, reason) {
 }
 
 // ---------------------------------------------------------------------------
+// Greedy AI (practice sessions). The platform flags the AI seat with ai:true
+// in createSession; this script then plays that seat itself. Pure material
+// greed: take the most valuable capture/promotion available, otherwise any
+// move, with tie-breaks derived from the host-supplied random.
+// ---------------------------------------------------------------------------
+var PIECE_VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+
+function greedyPick(g, seed) {
+  var moves = allLegalMoves(g);
+  if (!moves.length) return null;
+  // tiny LCG so the single host random float yields a whole tie-break sequence
+  var state = (Math.floor(seed * 2147483645) % 2147483646) + 1;
+  function rnd() { state = (state * 48271) % 2147483647; return state / 2147483647; }
+  var best = null, bestScore = -1, ties = 0;
+  for (var i = 0; i < moves.length; i++) {
+    var m = moves[i], score = 0;
+    var target = g.board[m.to];
+    if (target !== '.') score += PIECE_VALUE[target.toLowerCase()] || 0;
+    if (m.isEp) score += 1;
+    if (m.promo) score += (PIECE_VALUE[m.promo] || 0) - 1;
+    if (score > bestScore) { bestScore = score; best = m; ties = 1; }
+    else if (score === bestScore) { ties++; if (rnd() < 1 / ties) best = m; }
+  }
+  return best;
+}
+
+// While the AI seat is to move in an active practice game, play one greedy
+// move: mutates s and appends to `out` exactly like a player's move would.
+function aiReply(ctx, s, out) {
+  if (!s.aiId || s.game.status !== 'active') return;
+  var aiColor = colorOf(s, s.aiId);
+  if (s.game.turn !== aiColor) return;
+  var m = greedyPick(s.game, ctx.random);
+  if (!m) return;
+  var req = { from: algebraic(m.from), to: algebraic(m.to), promo: m.promo || null };
+  var res = makeMove(s.game, req, ctx.now);
+  if (!res.ok) return; // unreachable for a legal move; worst case the human wins on time
+  s.drawOfferBy = null;
+  s.deadline = ctx.now + MOVE_TIMEOUT_MS;
+  syncSummary(s);
+  out.broadcast.push({
+    to: 'all',
+    data: { type: 'moved', by: aiColor, san: res.san, from: req.from, to: req.to, promo: req.promo, view: publicSessionView(s) },
+  });
+  if (res.gameOver) {
+    var fin = finishGame(ctx, s, res.gameOver.kind, res.gameOver.reason);
+    out.result = fin.result;
+    out.broadcast.push({ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s) } });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Entry points
 // ---------------------------------------------------------------------------
 
@@ -578,6 +648,31 @@ globalThis.game = {
       return { ok: false, error: 'Chess needs exactly 2 players.' };
     var a = ctx.players[0].id, b = ctx.players[1].id;
     if (a === b) return { ok: false, error: 'Cannot play yourself.' };
+
+    // Practice session: one seat is the platform's AI. Unrated, colors random
+    // every time (no pairing memory), and the AI opens immediately when white.
+    var aiEntry = ctx.players[0].ai ? ctx.players[0] : (ctx.players[1].ai ? ctx.players[1] : null);
+    if (aiEntry) {
+      if (ctx.players[0].ai && ctx.players[1].ai)
+        return { ok: false, error: 'Practice needs a human.' };
+      var humanId = aiEntry.id === a ? b : a;
+      var humanIsWhite = ctx.random < 0.5;
+      var ps = {
+        white: humanIsWhite ? humanId : aiEntry.id,
+        black: humanIsWhite ? aiEntry.id : humanId,
+        aiId: aiEntry.id,
+        game: newGameState(),
+        createdAt: ctx.now,
+        deadline: ctx.now + MOVE_TIMEOUT_MS,
+        result: null,
+        drawOfferBy: null,
+      };
+      syncSummary(ps);
+      var pout = { ok: true, sessionState: ps, broadcast: [] };
+      aiReply(ctx, ps, pout);
+      pout.broadcast.push({ to: 'all', data: publicSessionView(ps) });
+      return pout;
+    }
 
     var aDoc = playerDoc(ctx, a);
     var bDoc = playerDoc(ctx, b);
@@ -654,6 +749,8 @@ globalThis.game = {
         out.eloUpdates = fin.eloUpdates;
         out.result = fin.result;
         out.broadcast.push({ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s) } });
+      } else {
+        aiReply(ctx, s, out);   // no-op unless a practice game with the AI to move
       }
       return out;
     }
@@ -669,6 +766,10 @@ globalThis.game = {
     }
 
     if (data.type === 'offer-draw') {
+      if (s.aiId) {
+        // the house declines instantly; no pending-offer state
+        return { ok: true, broadcast: [{ to: 'all', data: { type: 'draw-declined', by: colorOf(s, s.aiId) } }] };
+      }
       if (s.drawOfferBy === color) return { ok: false, error: 'Draw already offered.' };
       if (s.drawOfferBy) {
         // both sides have now offered — that's an agreement

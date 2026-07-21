@@ -104,9 +104,25 @@ GET  /api/v1/games/chess/sessions/{sessionId}
         "result": { "kind": "white"|"black"|"draw", "reason": "..." } | null }
 ```
 
-Sessions are only created by matchmaking or invite acceptance (below) — there
-is no "create empty session and wait" endpoint. A player may have at most
-**20 active sessions**; matchmaking/invites fail with `409` beyond that.
+Sessions are only created by matchmaking, invite acceptance (below), or the
+practice endpoint — there is no "create empty session and wait" endpoint. A
+player may have at most **20 active sessions**; matchmaking/invites fail with
+`409` beyond that.
+
+### Practice session (AI opponent)
+
+```
+POST /api/v1/games/chess/sessions/ai   → 200 { "sessionId" }   (409 at the cap)
+```
+
+Creates a session between the caller and the platform's AI seat (a system
+account named "The House"). The platform flags that player with `ai: true` in
+the script's `createSession`, and `server.js` plays the seat itself: a greedy
+material-count algorithm that answers within the same invocation as the
+human's move (and opens immediately when it draws white). Practice games are
+**unrated** — no elo updates, no win/loss records; the result carries
+`practice: true`, and the state view carries `ai: "white"|"black"` so clients
+can adapt (the chess client offers this after 30 s of unmatched matchmaking).
 
 ## Matchmaking (elo-based)
 

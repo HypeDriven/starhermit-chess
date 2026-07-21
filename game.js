@@ -108,7 +108,7 @@ class GameController {
   onFrame(msg) {
     if (msg.type === 'error') { UI.toast(msg.error || 'Command rejected.', 'err'); return; }
     if (msg.type === 'presence') {
-      if (msg.userId === this.oppId) {
+      if (msg.userId === this.oppId && !(this.view && this.view.ai)) {
         $('g-opp-dot').classList.toggle('on', !!msg.online);
         $('g-opp-dot').title = msg.online ? 'online' : 'offline';
       }
@@ -185,6 +185,16 @@ class GameController {
     $('g-opp-name').textContent = this.nameOf(this.oppId);
     $('g-opp-color').textContent = oppColorName;
     $('g-check').hidden = !(check && v.turn === this.myColor);
+
+    // practice game: the AI is always "online", never talks, never joins voice
+    const vsAi = !!v.ai;
+    if (vsAi) {
+      $('g-opp-dot').classList.add('on');
+      $('g-opp-dot').title = 'AI opponent';
+      $('chat-input').disabled = true;
+      $('chat-input').placeholder = "The House doesn't chat.";
+    }
+    $('voice-panel').hidden = vsAi;
 
     UI.renderSheet($('movesheet'), v.moves || []);
     this.renderDrawBanner();
@@ -301,6 +311,10 @@ class GameController {
     $('go-elo').textContent = '';
     $('game-over').hidden = false;
     this.tickClock();
+    if (this.view && this.view.ai) {
+      $('go-elo').textContent = 'Practice game — unrated.';
+      return;
+    }
     // fresh elo after the platform applies the result
     try {
       const info = await Net.api(Net.gamePath());

@@ -10,6 +10,7 @@ const App = {
   replay: null,          // replay viewer state
   _menuTimers: [],
   _mmTimer: null,
+  _mmAiTimer: null,
   _onLeave: null,
 
   // ------------------------------------------------------------- views
@@ -189,6 +190,8 @@ const App = {
       if (r.status === 'matched' && r.sessionId) { this.openGame(r.sessionId); return; }
       this.showMatchmakingUi(true);
       this._mmTimer = setInterval(() => this.pollMatchmaking(), 3000);
+      // a long wait deserves an out: offer the house AI after 30 s of searching
+      this._mmAiTimer = setTimeout(() => { $('btn-play-ai').hidden = false; }, 30000);
     } catch (e) {
       if (e.status === 409) UI.toast('Cannot queue: ' + e.message, 'err');
       else if (e.status !== 401) UI.toast(e.message, 'err');
@@ -221,7 +224,20 @@ const App = {
 
   stopMatchmakingUi(keepUi) {
     if (this._mmTimer) { clearInterval(this._mmTimer); this._mmTimer = null; }
+    if (this._mmAiTimer) { clearTimeout(this._mmAiTimer); this._mmAiTimer = null; }
+    $('btn-play-ai').hidden = true;
     if (!keepUi) this.showMatchmakingUi(false);
+  },
+
+  /** Leave the queue and start an unrated practice game against the server AI. */
+  async playAi() {
+    await this.cancelMatchmaking();
+    try {
+      const r = await Net.api(Net.gamePath('/sessions/ai'), { method: 'POST' });
+      if (r && r.sessionId) this.openGame(r.sessionId);
+    } catch (e) {
+      UI.toast('Could not start a practice game: ' + e.message, 'err');
+    }
   },
 
   // ---- leaderboard
@@ -504,6 +520,7 @@ const App = {
 $('auth-go').addEventListener('click', () => App.authSubmit());
 $('btn-play').addEventListener('click', () => App.startMatchmaking());
 $('mm-cancel').addEventListener('click', () => App.cancelMatchmaking());
+$('btn-play-ai').addEventListener('click', () => App.playAi());
 $('btn-invite').addEventListener('click', () => App.inviteFriend());
 
 $('btn-back').addEventListener('click', () => App.showMenu());
