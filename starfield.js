@@ -7,8 +7,9 @@
 
    This is a progressive enhancement: it lazy-loads three.js and the model the
    first time the menu is shown, and any failure (no WebGL, missing asset, no
-   import-map support) leaves the menu working exactly as before. It honours
-   prefers-reduced-motion by never starting. */
+   import-map support) leaves the menu working exactly as before, with the
+   reason logged to the console. Under prefers-reduced-motion the pieces are
+   rendered once as a still life instead of animating. */
 
 const menu = document.getElementById('view-menu');
 const canvas = document.getElementById('starfield');
@@ -28,7 +29,7 @@ let building = false;
 let raf = 0;
 
 function menuActive() {
-  return menu.classList.contains('active') && !reducedMotion.matches;
+  return menu.classList.contains('active');
 }
 
 async function build() {
@@ -106,9 +107,14 @@ function spawn(THREE, anywhere, star) {
 
 function frame(t) {
   raf = requestAnimationFrame(frame);
+  const dt = Math.min((t - (world.lastT || t)) / 1000, 0.1); // clamp tab-return jumps
+  world.lastT = t;
+  render(dt);
+}
+
+/* Advance every piece by dt seconds (dt 0 = draw as-is) and draw the scene. */
+function render(dt) {
   const w = world;
-  const dt = Math.min((t - (w.lastT || t)) / 1000, 0.1); // clamp tab-return jumps
-  w.lastT = t;
   for (const g of w.groups) {
     for (let i = 0; i < g.starList.length; i++) {
       const s = g.starList[i];
@@ -134,23 +140,38 @@ function resize() {
   world.camera.aspect = wpx / hpx;
   world.camera.updateProjectionMatrix();
   world.renderer.setSize(wpx, hpx, false);
+  if (!raf && !canvas.hidden) render(0); // keep the reduced-motion still frame filled
+}
+
+function stopLoop() {
+  if (raf) { cancelAnimationFrame(raf); raf = 0; }
 }
 
 async function sync() {
   if (!menuActive()) {
-    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    stopLoop();
     canvas.hidden = true;
     return;
   }
   if (!world && !failed && !building) {
     building = true;
     try { await build(); }
-    catch (e) { failed = true; return; }
+    catch (e) {
+      failed = true;
+      console.warn('[starfield] disabled:', e && (e.message || e));
+      return;
+    }
     finally { building = false; }
     if (!menuActive()) { sync(); return; } // view changed while loading
   }
-  if (world && !raf) {
-    canvas.hidden = false;
+  if (!world) return;
+  canvas.hidden = false;
+  if (reducedMotion.matches) {
+    // Motion is the accessibility concern, not the imagery: draw one still frame.
+    stopLoop();
+    render(0);
+    console.info('[starfield] prefers-reduced-motion: rendering a still frame');
+  } else if (!raf) {
     world.lastT = 0;
     raf = requestAnimationFrame(frame);
   }
