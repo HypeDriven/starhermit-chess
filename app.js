@@ -11,6 +11,7 @@ const App = {
   _menuTimers: [],
   _mmTimer: null,
   _mmAiTimer: null,
+  _mmStartedAt: null,
   _onLeave: null,
 
   // ------------------------------------------------------------- views
@@ -19,6 +20,11 @@ const App = {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     $('view-' + name).classList.add('active');
     this.currentView = name;
+  },
+
+  playerName(player) {
+    if (!player) return 'Unknown opponent';
+    return player.username === 'The House' ? 'hal' : player.username;
   },
 
   updateEloChip(elo) {
@@ -116,6 +122,7 @@ const App = {
     this.loadSessions();
     this.loadReplays();
     this.loadInvites();
+    this.resumeMatchmaking();
   },
 
   async loadGameInfo() {
@@ -158,7 +165,7 @@ const App = {
     for (const s of active) {
       const opp = (s.players || []).find(p => p.userId !== Net.userId);
       const card = UI.el('button', 'card');
-      card.appendChild(UI.el('span', 'card-name', opp ? opp.username : 'Unknown opponent'));
+      card.appendChild(UI.el('span', 'card-name', this.playerName(opp)));
       const sub = UI.el('span', 'card-sub');
       sub.dataset.deadline = s.deadline || '';
       sub.dataset.myturn = s.myTurn === true ? '1' : '';
@@ -187,17 +194,81 @@ const App = {
   },
 
   // ---- matchmaking
+  matchmakingStorageKey() {
+    return 'chess.matchmaking.' + (Net.slug || '') + '.' + (Net.userId || '');
+  },
+
+  rememberMatchmaking(ticket, fallbackStartedAt) {
+    let startedAt = Number(fallbackStartedAt) || 0;
+    // Use a server timestamp when available; accept common field names/casing
+    // while remaining compatible with the original timestamp-free response.
+    const serverStartedAt = ticket && (ticket.createdAt || ticket.CreatedAt || ticket.queuedAt || ticket.QueuedAt);
+    if (serverStartedAt) startedAt = Number(serverStartedAt) || Date.parse(serverStartedAt) || startedAt;
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(this.matchmakingStorageKey())); } catch (e) { /* ignore */ }
+    if (!startedAt && saved && saved.ticketId === ticket.ticketId) startedAt = Number(saved.startedAt) || 0;
+    // A ticket with no timestamp or local marker predates this frontend. It has
+    // survived a relaunch, so do not make that player wait another 30 seconds.
+    if (!startedAt) startedAt = Date.now() - 30000;
+    this._mmStartedAt = startedAt;
+    try {
+      localStorage.setItem(this.matchmakingStorageKey(), JSON.stringify({
+        ticketId: ticket.ticketId, startedAt,
+      }));
+    } catch (e) { /* storage can be disabled */ }
+    return startedAt;
+  },
+
+  forgetMatchmaking() {
+    this._mmStartedAt = null;
+    try { localStorage.removeItem(this.matchmakingStorageKey()); } catch (e) { /* ignore */ }
+  },
+
+  startSearchingUi(startedAt) {
+    if (this._mmTimer) return; // already searching
+    this._mmStartedAt = Number(startedAt) || this._mmStartedAt || Date.now();
+    this.showMatchmakingUi(true);
+    this._mmTimer = setInterval(() => this.pollMatchmaking(), 3000);
+    // The 30 seconds belongs to the queue ticket, not this page load. That
+    // matters when the player relaunches while their existing ticket waits.
+    const aiDelay = Math.max(0, 30000 - (Date.now() - this._mmStartedAt));
+    if (aiDelay === 0) $('btn-play-ai').hidden = false;
+    else this._mmAiTimer = setTimeout(() => { $('btn-play-ai').hidden = false; }, aiDelay);
+  },
+
+  /**
+   * The queue outlives the page: relaunching the game while a ticket is still
+   * queued must come back up in the searching state, not on the Play button.
+   * Returns true when a queued ticket was found and the UI resumed.
+   */
+  async resumeMatchmaking() {
+    if (this._mmTimer) return true;
+    let r = null;
+    try { r = await Net.api(Net.gamePath('/matchmaking')); }
+    catch (e) { return false; } // 404: not queued
+    // Only a *queued* ticket resumes. A stale "matched" ticket's session is
+    // already in My games — jumping into it here would hijack every menu load.
+    if (!r || r.status !== 'queued' || this.currentView !== 'menu') return false;
+    this.startSearchingUi(this.rememberMatchmaking(r));
+    return true;
+  },
+
   async startMatchmaking() {
     try {
       const r = await Net.api(Net.gamePath('/matchmaking'), { method: 'POST' });
-      if (r.status === 'matched' && r.sessionId) { this.openGame(r.sessionId); return; }
-      this.showMatchmakingUi(true);
-      this._mmTimer = setInterval(() => this.pollMatchmaking(), 3000);
-      // a long wait deserves an out: offer the house AI after 30 s of searching
-      this._mmAiTimer = setTimeout(() => { $('btn-play-ai').hidden = false; }, 30000);
+      if (r.status === 'matched' && r.sessionId) {
+        this.forgetMatchmaking();
+        this.openGame(r.sessionId);
+        return;
+      }
+      this.startSearchingUi(this.rememberMatchmaking(r, Date.now()));
     } catch (e) {
-      if (e.status === 409) UI.toast('Cannot queue: ' + e.message, 'err');
-      else if (e.status !== 401) UI.toast(e.message, 'err');
+      if (e.status === 409) {
+        // Possibly "already queued" (e.g. a race with resume): reflect the
+        // queue instead of erroring if that's what this is.
+        if (await this.resumeMatchmaking()) return;
+        UI.toast('Cannot queue: ' + e.message, 'err');
+      } else if (e.status !== 401) UI.toast(e.message, 'err');
     }
   },
 
@@ -206,11 +277,16 @@ const App = {
       const r = await Net.api(Net.gamePath('/matchmaking'));
       if (r && r.status === 'matched' && r.sessionId) {
         this.stopMatchmakingUi(false);
+        this.forgetMatchmaking();
         UI.toast('Opponent found — good luck.', 'ok');
         this.openGame(r.sessionId);
       }
     } catch (e) {
-      if (e.status === 404) { this.stopMatchmakingUi(false); this.loadSessions(); }
+      if (e.status === 404) {
+        this.stopMatchmakingUi(false);
+        this.forgetMatchmaking();
+        this.loadSessions();
+      }
     }
   },
 
@@ -218,6 +294,7 @@ const App = {
     this.stopMatchmakingUi(false);
     try { await Net.api(Net.gamePath('/matchmaking'), { method: 'DELETE' }); }
     catch (e) { /* already gone */ }
+    this.forgetMatchmaking();
   },
 
   showMatchmakingUi(on) {
@@ -232,14 +309,14 @@ const App = {
     if (!keepUi) this.showMatchmakingUi(false);
   },
 
-  /** Leave the queue and start an unrated practice game against the server AI. */
+  /** Leave the queue and start a rated game against the server AI. */
   async playAi() {
     await this.cancelMatchmaking();
     try {
       const r = await Net.api(Net.gamePath('/sessions/ai'), { method: 'POST' });
       if (r && r.sessionId) this.openGame(r.sessionId);
     } catch (e) {
-      UI.toast('Could not start a practice game: ' + e.message, 'err');
+      UI.toast('Could not start a game against hal: ' + e.message, 'err');
     }
   },
 
@@ -291,7 +368,7 @@ const App = {
       const delta = (myAfter != null && myBefore != null) ? myAfter - myBefore : null;
       const opp = (r.players || []).find(p => p.userId !== Net.userId);
       const card = UI.el('button', 'card');
-      const name = UI.el('span', 'card-name', opp ? opp.username : '?');
+      const name = UI.el('span', 'card-name', opp ? this.playerName(opp) : '?');
       const kind = r.result ? r.result.kind : null;
       const resTxt = kind === 'draw' ? 'draw' : (kind ? kind + ' won' : '');
       const sub = UI.el('span', 'card-sub',
@@ -467,7 +544,7 @@ const App = {
       });
     }
     const names = {};
-    for (const p of data.players || []) names[p.userId] = p.username;
+    for (const p of data.players || []) names[p.userId] = this.playerName(p);
     const flipped = data.black === Net.userId;
     this.replay = { data, states, idx: states.length - 1, flipped, names, eloAfter };
 

@@ -118,14 +118,15 @@ player may have at most **20 active sessions**; matchmaking/invites fail with
 POST /api/v1/games/chess/sessions/ai   → 200 { "sessionId" }   (409 at the cap)
 ```
 
-Creates a session between the caller and the platform's AI seat (a system
-account named "The House"). The platform flags that player with `ai: true` in
-the script's `createSession`, and `server.js` plays the seat itself: a greedy
+Creates a session between the caller and the platform's AI seat, displayed by
+this game as **hal**. The platform flags that player with `ai: true` in the
+script's `createSession`, and `server.js` plays the seat itself: a greedy
 material-count algorithm that answers within the same invocation as the
-human's move (and opens immediately when it draws white). Practice games are
-**unrated** — no elo updates, no win/loss records; the result carries
-`practice: true`, and the state view carries `ai: "white"|"black"` so clients
-can adapt (the chess client offers this after 30 s of unmatched matchmaking).
+human's move (and opens immediately when it draws white). Games against hal are
+rated normally: both the human and hal have persistent Elo and win/loss/draw
+records. The state view carries `ai: "white"|"black"` and `aiName: "hal"` so
+clients can adapt (the chess client offers this after 30 s of unmatched
+matchmaking).
 
 ## Matchmaking (elo-based)
 
@@ -235,8 +236,9 @@ client's identity is never taken from the payload.
 
 ### Script broadcasts (script → clients)
 
-- `{ "type": "state", white, black, board, turn, moves, status, result, deadline, drawOfferBy }`
-  — full session view. `board` is a 64-char string, index = rank*8+file,
+- `{ "type": "state", white, black, ratings: {white,black}, board, turn, moves, status, result, deadline, drawOfferBy }`
+  — full session view. `ratings` contains each seat's Elo, including hal's
+  persistent rating in AI games. `board` is a 64-char string, index = rank*8+file,
   `"a1"` = index 0, chars `PNBRQK` white / `pnbrqk` black / `.` empty.
   `deadline` is the ms-epoch time at which the player to move loses on time
   (24 h per move; if the game times out before anyone has moved it is a draw).

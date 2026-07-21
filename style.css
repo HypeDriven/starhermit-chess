@@ -287,6 +287,7 @@ table.lb tr.me td { color: var(--brass-hi); }
 /* seats + clock */
 .seat { display: flex; align-items: center; gap: 8px; padding: 6px 2px; max-width: 640px; margin: 0 auto; width: min(100%, calc(100vh - 300px), 640px); }
 .seat-name { font-family: var(--serif); font-size: 17px; }
+.seat-elo { color: var(--brass); font-size: 13px; font-variant-numeric: tabular-nums; }
 .seat-color { color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); display: inline-block; }
 .dot.on { background: var(--ok); box-shadow: 0 0 6px rgba(140, 175, 120, 0.7); }

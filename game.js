@@ -152,7 +152,15 @@ class GameController {
     }
   }
 
-  nameOf(id) { return this.players[id] || (id ? String(id).slice(0, 8) : '—'); }
+  isAiId(id) {
+    if (!this.view || !this.view.ai) return false;
+    return id === (this.view.ai === 'white' ? this.view.white : this.view.black);
+  }
+
+  nameOf(id) {
+    if (this.isAiId(id)) return this.view.aiName || 'hal';
+    return this.players[id] || (id ? String(id).slice(0, 8) : '—');
+  }
 
   myTurn() {
     return this.view && this.view.status === 'active' && this.view.turn === this.myColor;
@@ -180,19 +188,27 @@ class GameController {
     const meId = this.myColor === 'black' ? v.black : v.white;
     const myColorName = this.myColor || 'white';
     const oppColorName = myColorName === 'white' ? 'black' : 'white';
+    const ratings = v.ratings || {};
     $('g-me-name').textContent = 'You — ' + this.nameOf(meId);
+    $('g-me-elo').textContent = ratings[myColorName] != null ? 'Elo ' + ratings[myColorName] : '';
     $('g-me-color').textContent = myColorName;
     $('g-opp-name').textContent = this.nameOf(this.oppId);
+    $('g-opp-elo').textContent = ratings[oppColorName] != null ? 'Elo ' + ratings[oppColorName] : '';
     $('g-opp-color').textContent = oppColorName;
     $('g-check').hidden = !(check && v.turn === this.myColor);
 
-    // practice game: the AI is always "online", never talks, never joins voice
+    // hal is always "online", never talks, and never joins voice
     const vsAi = !!v.ai;
     if (vsAi) {
       $('g-opp-dot').classList.add('on');
       $('g-opp-dot').title = 'AI opponent';
       $('chat-input').disabled = true;
-      $('chat-input').placeholder = "The House doesn't chat.";
+      $('chat-input').placeholder = "hal doesn't chat.";
+    } else {
+      $('g-opp-dot').classList.remove('on');
+      $('g-opp-dot').title = 'offline';
+      $('chat-input').disabled = false;
+      $('chat-input').placeholder = 'Message your opponent';
     }
     $('voice-panel').hidden = vsAi;
 
@@ -311,10 +327,6 @@ class GameController {
     $('go-elo').textContent = '';
     $('game-over').hidden = false;
     this.tickClock();
-    if (this.view && this.view.ai) {
-      $('go-elo').textContent = 'Practice game — unrated.';
-      return;
-    }
     // fresh elo after the platform applies the result
     try {
       const info = await Net.api(Net.gamePath());

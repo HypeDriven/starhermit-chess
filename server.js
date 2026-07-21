@@ -462,7 +462,8 @@ function defaultPlayerDoc() {
 }
 
 function playerDoc(ctx, id) {
-  return ctx.playerStates[id] || defaultPlayerDoc();
+  if (!ctx.playerStates[id]) ctx.playerStates[id] = defaultPlayerDoc();
+  return ctx.playerStates[id];
 }
 
 function rememberColor(doc, oppId, color) {
@@ -494,10 +495,13 @@ function syncSummary(s) {
   };
 }
 
-function publicSessionView(s) {
+function publicSessionView(s, ctx) {
+  var whiteElo = ctx ? playerDoc(ctx, s.white).elo : ELO_START;
+  var blackElo = ctx ? playerDoc(ctx, s.black).elo : ELO_START;
   return {
     type: 'state',
     white: s.white, black: s.black,
+    ratings: { white: whiteElo, black: blackElo },
     board: s.game.board, turn: s.game.turn,
     // moves is snapshotted: an AI reply can mutate the game inside the same
     // invocation after this view was built for the human's own move message
@@ -507,26 +511,14 @@ function publicSessionView(s) {
     deadline: s.deadline,
     drawOfferBy: s.drawOfferBy || null,
     ai: s.aiId ? colorOf(s, s.aiId) : null,   // which color the AI plays, if any
+    aiName: s.aiId ? 'hal' : null,
   };
 }
 
 // Ends the session: updates both player docs, produces eloUpdates + result.
-// Practice (AI) games are unrated: status/result only, no doc or elo changes.
+// The AI has a normal per-game player document, so games against hal affect
+// both players' ratings and records exactly like human-vs-human games.
 function finishGame(ctx, s, kind, reason) {
-  if (s.aiId) {
-    s.game.status = 'finished';
-    s.result = { kind: kind, reason: reason, at: ctx.now };
-    syncSummary(s);
-    return {
-      result: {
-        kind: kind, reason: reason, at: ctx.now,
-        white: s.white, black: s.black,
-        moveCount: s.game.moves.length,
-        practice: true,
-      },
-    };
-  }
-
   var whiteDoc = playerDoc(ctx, s.white);
   var blackDoc = playerDoc(ctx, s.black);
 
@@ -610,7 +602,7 @@ function greedyPick(g, seed) {
   return best;
 }
 
-// While the AI seat is to move in an active practice game, play one greedy
+// While the AI seat is to move in an active game, play one greedy
 // move: mutates s and appends to `out` exactly like a player's move would.
 function aiReply(ctx, s, out) {
   if (!s.aiId || s.game.status !== 'active') return;
@@ -626,12 +618,12 @@ function aiReply(ctx, s, out) {
   syncSummary(s);
   out.broadcast.push({
     to: 'all',
-    data: { type: 'moved', by: aiColor, san: res.san, from: req.from, to: req.to, promo: req.promo, view: publicSessionView(s) },
+    data: { type: 'moved', by: aiColor, san: res.san, from: req.from, to: req.to, promo: req.promo, view: publicSessionView(s, ctx) },
   });
   if (res.gameOver) {
     var fin = finishGame(ctx, s, res.gameOver.kind, res.gameOver.reason);
     out.result = fin.result;
-    out.broadcast.push({ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s) } });
+    out.broadcast.push({ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } });
   }
 }
 
@@ -649,13 +641,18 @@ globalThis.game = {
     var a = ctx.players[0].id, b = ctx.players[1].id;
     if (a === b) return { ok: false, error: 'Cannot play yourself.' };
 
-    // Practice session: one seat is the platform's AI. Unrated, colors random
-    // every time (no pairing memory), and the AI opens immediately when white.
+    // AI session: colors are random every time (no pairing memory), and hal
+    // opens immediately when white. Elo and records are still fully rated.
     var aiEntry = ctx.players[0].ai ? ctx.players[0] : (ctx.players[1].ai ? ctx.players[1] : null);
     if (aiEntry) {
       if (ctx.players[0].ai && ctx.players[1].ai)
         return { ok: false, error: 'Practice needs a human.' };
       var humanId = aiEntry.id === a ? b : a;
+      var humanDoc = playerDoc(ctx, humanId);
+      var aiDoc = playerDoc(ctx, aiEntry.id);
+      var practicePlayerStates = {};
+      practicePlayerStates[humanId] = humanDoc;
+      practicePlayerStates[aiEntry.id] = aiDoc;
       var humanIsWhite = ctx.random < 0.5;
       var ps = {
         white: humanIsWhite ? humanId : aiEntry.id,
@@ -668,9 +665,9 @@ globalThis.game = {
         drawOfferBy: null,
       };
       syncSummary(ps);
-      var pout = { ok: true, sessionState: ps, broadcast: [] };
+      var pout = { ok: true, sessionState: ps, playerStates: practicePlayerStates, broadcast: [] };
       aiReply(ctx, ps, pout);
-      pout.broadcast.push({ to: 'all', data: publicSessionView(ps) });
+      pout.broadcast.push({ to: 'all', data: publicSessionView(ps, ctx) });
       return pout;
     }
 
@@ -706,7 +703,7 @@ globalThis.game = {
       ok: true,
       sessionState: s,
       playerStates: playerStates,
-      broadcast: [{ to: 'all', data: publicSessionView(s) }],
+      broadcast: [{ to: 'all', data: publicSessionView(s, ctx) }],
     };
   },
 
@@ -722,7 +719,7 @@ globalThis.game = {
 
     // --- commands that work on finished games -----------------------------
     if (data.type === 'sync') {
-      return { ok: true, broadcast: [{ to: [from], data: publicSessionView(s) }] };
+      return { ok: true, broadcast: [{ to: [from], data: publicSessionView(s, ctx) }] };
     }
     if (s.game.status !== 'active')
       return { ok: false, error: 'Game is over.' };
@@ -740,7 +737,7 @@ globalThis.game = {
         sessionState: s,
         broadcast: [{
           to: 'all',
-          data: { type: 'moved', by: color, san: res.san, from: data.from, to: data.to, promo: data.promo || null, view: publicSessionView(s) },
+          data: { type: 'moved', by: color, san: res.san, from: data.from, to: data.to, promo: data.promo || null, view: publicSessionView(s, ctx) },
         }],
       };
       if (res.gameOver) {
@@ -748,9 +745,9 @@ globalThis.game = {
         out.playerStates = fin.playerStates;
         out.eloUpdates = fin.eloUpdates;
         out.result = fin.result;
-        out.broadcast.push({ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s) } });
+        out.broadcast.push({ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } });
       } else {
-        aiReply(ctx, s, out);   // no-op unless a practice game with the AI to move
+        aiReply(ctx, s, out);   // no-op unless this is hal's turn
       }
       return out;
     }
@@ -761,13 +758,13 @@ globalThis.game = {
       return {
         ok: true, sessionState: s,
         playerStates: fin2.playerStates, eloUpdates: fin2.eloUpdates, result: fin2.result,
-        broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s) } }],
+        broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } }],
       };
     }
 
     if (data.type === 'offer-draw') {
       if (s.aiId) {
-        // the house declines instantly; no pending-offer state
+        // hal declines instantly; no pending-offer state
         return { ok: true, broadcast: [{ to: 'all', data: { type: 'draw-declined', by: colorOf(s, s.aiId) } }] };
       }
       if (s.drawOfferBy === color) return { ok: false, error: 'Draw already offered.' };
@@ -777,7 +774,7 @@ globalThis.game = {
         return {
           ok: true, sessionState: s,
           playerStates: fin3.playerStates, eloUpdates: fin3.eloUpdates, result: fin3.result,
-          broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s) } }],
+          broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } }],
         };
       }
       s.drawOfferBy = color;
@@ -794,7 +791,7 @@ globalThis.game = {
       return {
         ok: true, sessionState: s,
         playerStates: fin4.playerStates, eloUpdates: fin4.eloUpdates, result: fin4.result,
-        broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s) } }],
+        broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } }],
       };
     }
 
@@ -830,7 +827,7 @@ globalThis.game = {
     return {
       ok: true, sessionState: s,
       playerStates: fin.playerStates, eloUpdates: fin.eloUpdates, result: fin.result,
-      broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s) } }],
+      broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } }],
     };
   },
 };
