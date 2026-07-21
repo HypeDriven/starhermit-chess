@@ -168,7 +168,8 @@ GET /api/v1/users/{id}/avatar    → 200 image/png | 404 (no picture set)
 ```
 
 and renders the profile nickname plus avatar (an initial-letter placeholder
-when no picture is set).
+when no picture is set). Player-facing game and replay views never render the
+account username; if profile lookup fails they use a neutral shortened id.
 
 ## Replays
 

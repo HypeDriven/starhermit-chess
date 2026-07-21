@@ -33,7 +33,7 @@ class GameController {
     this.view = null;         // last server state view
     this.g = null;            // local rules state rebuilt from view.moves
     this.myColor = null;
-    this.players = {};        // userId -> username
+    this.players = {};        // userId -> profile nickname
     this.oppId = null;
     this.selected = null;
     this.cands = [];
@@ -57,8 +57,10 @@ class GameController {
 
     try {
       const s = await Net.api(Net.gamePath(`/sessions/${this.sessionId}`));
-      for (const p of s.players || []) this.players[p.userId] = p.username;
-      this.oppId = (s.players || []).map(p => p.userId).find(id => id !== Net.userId) || null;
+      const sessionPlayers = s.players || [];
+      const profiles = await Promise.all(sessionPlayers.map(p => App.profileFor(p.userId)));
+      sessionPlayers.forEach((p, i) => { this.players[p.userId] = profiles[i].name; });
+      this.oppId = sessionPlayers.map(p => p.userId).find(id => id !== Net.userId) || null;
       this.chat.convId = s.chatConversationId || null;
     } catch (e) {
       if (e.status !== 401) UI.toast(e.message, 'err');

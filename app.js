@@ -22,9 +22,8 @@ const App = {
     this.currentView = name;
   },
 
-  playerName(player) {
-    if (!player) return 'Unknown opponent';
-    return player.username === 'The House' ? 'hal' : player.username;
+  isHal(player) {
+    return !!player && player.username === 'The House';
   },
 
   updateEloChip(elo) {
@@ -162,10 +161,14 @@ const App = {
       return;
     }
     active.sort((a, b) => (b.myTurn === true) - (a.myTurn === true) || (a.deadline || 0) - (b.deadline || 0));
-    for (const s of active) {
-      const opp = (s.players || []).find(p => p.userId !== Net.userId);
+    const opponents = active.map(s => (s.players || []).find(p => p.userId !== Net.userId));
+    const opponentProfiles = await Promise.all(opponents.map(p => this.profileFor(p && p.userId)));
+    for (let i = 0; i < active.length; i++) {
+      const s = active[i];
+      const opp = opponents[i];
+      const oppName = this.isHal(opp) ? 'hal' : opponentProfiles[i].name;
       const card = UI.el('button', 'card');
-      card.appendChild(UI.el('span', 'card-name', this.playerName(opp)));
+      card.appendChild(UI.el('span', 'card-name', oppName));
       const sub = UI.el('span', 'card-sub');
       sub.dataset.deadline = s.deadline || '';
       sub.dataset.myturn = s.myTurn === true ? '1' : '';
@@ -327,13 +330,15 @@ const App = {
     try {
       const j = await Net.api(`/api/v1/leaderboards/${this.info.leaderboardId}/entries?friendsOnly=true&page=1&pageSize=10`);
       const entries = (j && (j.entries || j.items)) || (Array.isArray(j) ? j : []);
+      const profiles = await Promise.all(entries.map(e => this.profileFor(e.userId)));
       UI.clear(holder);
       if (!entries.length) { holder.appendChild(UI.el('p', 'empty', 'No rated friends yet.')); return; }
       const table = UI.el('table', 'lb');
-      for (const e of entries) {
+      for (let i = 0; i < entries.length; i++) {
+        const e = entries[i];
         const tr = UI.el('tr', e.userId === Net.userId ? 'me' : null);
         tr.appendChild(UI.el('td', 'lb-rank', String(e.rank != null ? e.rank : '')));
-        tr.appendChild(UI.el('td', null, e.username || String(e.userId).slice(0, 8)));
+        tr.appendChild(UI.el('td', null, profiles[i].name));
         tr.appendChild(UI.el('td', 'lb-score', String(e.score)));
         table.appendChild(tr);
       }
@@ -359,6 +364,8 @@ const App = {
       return;
     }
     replays.sort((a, b) => (b.finishedAt || 0) - (a.finishedAt || 0));
+    const replayOpponents = replays.map(r => (r.players || []).find(p => p.userId !== Net.userId));
+    const replayOpponentProfiles = await Promise.all(replayOpponents.map(p => this.profileFor(p && p.userId)));
     for (let i = 0; i < replays.length; i++) {
       const r = replays[i];
       // The result record carries the rating change directly (eloBefore/eloAfter by userId).
@@ -366,9 +373,10 @@ const App = {
       const myAfter = res.eloAfter ? res.eloAfter[Net.userId] : null;
       const myBefore = res.eloBefore ? res.eloBefore[Net.userId] : null;
       const delta = (myAfter != null && myBefore != null) ? myAfter - myBefore : null;
-      const opp = (r.players || []).find(p => p.userId !== Net.userId);
+      const opp = replayOpponents[i];
+      const oppName = this.isHal(opp) ? 'hal' : replayOpponentProfiles[i].name;
       const card = UI.el('button', 'card');
-      const name = UI.el('span', 'card-name', opp ? this.playerName(opp) : '?');
+      const name = UI.el('span', 'card-name', oppName);
       const kind = r.result ? r.result.kind : null;
       const resTxt = kind === 'draw' ? 'draw' : (kind ? kind + ' won' : '');
       const sub = UI.el('span', 'card-sub',
@@ -393,14 +401,14 @@ const App = {
   /**
    * Resolve a user's display identity from their public profile: nickname and
    * avatar (as an object URL, null if they have none). Cached per session so
-   * the 10 s invite poll doesn't refetch. Falls back to `fallbackName` only
-   * when the profile has no nickname to show.
+   * repeated game/menu renders do not refetch. Usernames are deliberately not
+   * accepted as a fallback: player-facing UI must display profile nicknames.
    */
-  profileFor(userId, fallbackName) {
-    if (!userId) return Promise.resolve({ name: fallbackName || '?', avatarUrl: null });
+  profileFor(userId) {
+    if (!userId) return Promise.resolve({ name: 'Player', avatarUrl: null });
     if (!this._profiles.has(userId)) {
       this._profiles.set(userId, (async () => {
-        let name = fallbackName || '?';
+        let name = 'Player ' + String(userId).slice(0, 8);
         let avatarUrl = null;
         try {
           const p = await Net.api(`/api/v1/users/${encodeURIComponent(userId)}/profile`);
@@ -421,7 +429,7 @@ const App = {
     catch (e) { return; }
     const incoming = (j && j.incoming) || [];
     const outgoing = ((j && j.outgoing) || []).filter(o => o.status === 'pending');
-    const profOf = (u) => this.profileFor(u && u.userId, u && u.username);
+    const profOf = (u) => this.profileFor(u && u.userId);
     const [inProfs, outProfs] = await Promise.all([
       Promise.all(incoming.map(inv => profOf(inv.from))),
       Promise.all(outgoing.map(inv => profOf(inv.to))),
@@ -474,7 +482,7 @@ const App = {
       return;
     }
     const profiles = await Promise.all(
-      friends.map(f => this.profileFor(f.userId || f.id, f.username || String(f.userId || f.id).slice(0, 8))));
+      friends.map(f => this.profileFor(f.userId || f.id)));
     await UI.picker('Invite a friend to a game', (body, close) => {
       if (!friends.length) {
         body.appendChild(UI.el('p', 'empty', 'No friends on the platform yet.'));
@@ -528,6 +536,7 @@ const App = {
       result: raw.result || st.result || null,
       white: st.white,
       black: st.black,
+      aiId: st.aiId || null,
       moves: (st.game && st.game.moves) || [],
     };
     const eloAfter = data.result && data.result.eloAfter;
@@ -544,7 +553,11 @@ const App = {
       });
     }
     const names = {};
-    for (const p of data.players || []) names[p.userId] = this.playerName(p);
+    const replayPlayers = data.players || [];
+    const replayProfiles = await Promise.all(replayPlayers.map(p => this.profileFor(p.userId)));
+    replayPlayers.forEach((p, i) => {
+      names[p.userId] = p.userId === data.aiId ? 'hal' : replayProfiles[i].name;
+    });
     const flipped = data.black === Net.userId;
     this.replay = { data, states, idx: states.length - 1, flipped, names, eloAfter };
 
