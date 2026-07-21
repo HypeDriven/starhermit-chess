@@ -9,6 +9,9 @@
 </head>
 <body>
 
+<!-- 3D chess-piece starfield behind the main menu (see starfield.js) -->
+<canvas id="starfield" class="starfield" aria-hidden="true" hidden></canvas>
+
 <header class="topbar">
   <div class="wordmark"><span class="mark">&#9822;</span> <span class="wm-text">Correspondence Chess</span></div>
   <div class="topbar-right">
@@ -209,5 +212,7 @@
 <script src="ui.js"></script>
 <script src="game.js"></script>
 <script src="app.js"></script>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+<script type="module" src="starfield.js"></script>
 </body>
 </html>

@@ -47,6 +47,12 @@ configuration.
   deployment.
 - `API.md` — the platform REST/WebSocket contract the client speaks (games
   subsystem, chat, voice, leaderboards, game-scoped launch tokens).
+- `starfield.js`, `vendor/`, `assets/chess-pieces.glb` — the main menu's
+  three.js backdrop: the classic starfield with drifting 3D chess pieces
+  instead of stars. Lazy-loaded when the menu first shows, skipped under
+  `prefers-reduced-motion` or without WebGL. Piece models from
+  [mrabhin03/3D-Chess-Game](https://github.com/mrabhin03/3D-Chess-Game) (MIT),
+  repacked from 4.3 MB to 0.37 MB — see `vendor/ATTRIBUTION.md`.
 
 ## Rules of engagement (game design)
 

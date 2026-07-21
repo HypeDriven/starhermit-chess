@@ -41,6 +41,14 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 600; margin: 0; }
 button { font: inherit; }
 :focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
 
+/* ---------------- starfield (menu backdrop) ---------------- */
+.starfield {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  z-index: 0; pointer-events: none;
+}
+/* content sits above the backdrop; toasts (50) and modal (40) already do */
+.topbar, .view { position: relative; z-index: 1; }
+
 /* ---------------- top bar ---------------- */
 .topbar {
   display: flex; align-items: baseline; justify-content: space-between;
