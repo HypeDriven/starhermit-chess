@@ -1,4 +1,4 @@
-# Chess — multiplayer correspondence chess on Starhermit
+# StarHermit Chess — multiplayer correspondence chess on Starhermit
 
 A reference implementation of a Starhermit game. Its entire rules authority
 lives in **one server-side JavaScript file** (`server.js`) that the platform
