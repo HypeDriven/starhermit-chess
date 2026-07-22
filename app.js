@@ -510,6 +510,29 @@ const App = {
     });
   },
 
+  // ---- share link
+  /**
+   * Copy a dashboard game-invite URL to the clipboard. Anyone who opens it is
+   * signed in on the web dashboard, walked through friending this player (and
+   * picking a nickname), dropped into this game — and a play invitation comes
+   * back automatically, so the new opponent shows up in Invitations above.
+   * Reference implementation of the platform's /game-invite/ share URLs.
+   */
+  shareInviteLink() {
+    if (!Net.userId) return;
+    const url = 'https://dashboard.starhermit.com/game-invite/' + Net.userId + '/' + (Net.slug || 'chess');
+    navigator.clipboard.writeText(url).then(
+      () => UI.toast('Invite link copied — send it to a friend and they join you here.', 'ok'),
+      () => UI.picker('Copy this invite link', (body) => {
+        const input = UI.el('input', 'share-url');
+        input.value = url;
+        input.readOnly = true;
+        input.addEventListener('focus', () => input.select());
+        body.appendChild(input);
+        input.focus();
+      }));
+  },
+
   // ------------------------------------------------------------- game
   openGame(sessionId) {
     this.showView('game');
@@ -615,6 +638,7 @@ $('btn-play').addEventListener('click', () => App.startMatchmaking());
 $('mm-cancel').addEventListener('click', () => App.cancelMatchmaking());
 $('btn-play-ai').addEventListener('click', () => App.playAi());
 $('btn-invite').addEventListener('click', () => App.inviteFriend());
+$('btn-share').addEventListener('click', () => App.shareInviteLink());
 
 $('btn-back').addEventListener('click', () => App.showMenu());
 $('btn-resign').addEventListener('click', () => App.game && App.game.resign());

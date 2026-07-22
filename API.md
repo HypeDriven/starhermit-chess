@@ -158,6 +158,19 @@ POST /api/v1/games/chess/invites/{id}/decline → 204
 Invites can only be sent to friends (`GET /api/v1/me/friends` for the picker).
 Accepting creates the session immediately.
 
+For opponents who are not friends (or not on the platform) yet, the menu's
+**Share invite link** button copies a web-dashboard share URL:
+
+```
+https://dashboard.starhermit.com/game-invite/<my userId>/<slug>
+```
+
+Opening it signs the recipient in, friends them with the sharer (with a
+nickname prompt for new accounts), launches the game, and sends the play
+invite back to the sharer — so it arrives through the normal invites list
+above. The client only builds the string (`App.shareInviteLink`); the
+dashboard does the rest.
+
 For display the client never shows a raw username: it resolves each friend /
 inviter through the platform's public profile endpoints (both allowed for
 game-scoped tokens):

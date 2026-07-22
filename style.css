@@ -139,6 +139,15 @@ button { font: inherit; }
 }
 .field textarea:focus, .field input:focus { outline: none; border-color: var(--brass); }
 
+/* Clipboard-fallback modal: the invite URL shown for manual copy. */
+.share-url {
+  width: 100%; background: var(--bg); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 8px 10px; font-family: ui-monospace, monospace; font-size: 12px;
+  margin-top: 10px;
+}
+.share-url:focus { outline: none; border-color: var(--brass); }
+
 /* ---------------- menu ---------------- */
 .menu-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 22px; }
 .menu-side { min-width: 0; }
