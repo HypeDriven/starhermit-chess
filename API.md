@@ -11,11 +11,19 @@ is served by the platform, so REST goes to `/api/v1/...` and WebSockets to
 `/ws/v1/...` directly. REST calls send `Authorization: Bearer <token>`;
 WebSockets authenticate with `?access_token=<token>` in the query string.
 
-**Game slug.** Every game has a URL-safe slug on the platform. This game declares
-`slug=chess` in its `starhermit.txt`, so its endpoints live under
-`/api/v1/games/chess/...` and the examples below use `chess`. A game built from
-this template substitutes its own slug — the client never hard-codes it, it
-reads the slug from the launch token's `game_scope` claim.
+**Game slug.** Every game has a slug on the platform, and it is the game's **uid**
+— the same value as its `<uid>.starhermit.com` address, e.g.
+`83fd04b1-3cbe-4b09-a251-3733ad4b9d94`. Nothing chooses it: not `starhermit.txt`,
+not the repo name, not an operator. A name a developer could pick would be
+something two games could contend for, and would need the platform to arbitrate
+who got it.
+
+So endpoints live under `/api/v1/games/<uid>/...`. **Never hard-code it.** The
+client reads its own slug from the launch token's `game_scope` claim — see
+`net.js`, which does exactly that — and a browser game can equally read it from
+its own `location.hostname`, since the subdomain *is* the uid.
+
+The examples below write `{uid}` where that value goes.
 
 ## Publishing the game (how it gets onto the platform)
 
@@ -40,7 +48,7 @@ are not something a game repo configures.
 The platform launcher (or any frontend holding a full user JWT) calls:
 
 ```
-POST /api/v1/games/chess/launch-token          (full user JWT required)
+POST /api/v1/games/{uid}/launch-token          (full user JWT required)
 → 200 { "token": "<jwt>", "expiresInSeconds": 3600 }
 ```
 
@@ -52,7 +60,7 @@ that session after signing in — dashboards use this to implement
 game (`game_scope: chess`), both verified server-side on every request
 (signature + token-revocation version), so it cannot be forged or its scope
 re-pointed without invalidating the signature. The API rejects any request made
-with it outside the chess surface (the `/api/v1/games/chess/*` endpoints, the
+with it outside the chess surface (the `/api/v1/games/{uid}/*` endpoints, the
 games WebSocket **for chess sessions only**, the chess elo leaderboard read,
 the friends list read, avatar/profile reads, and the chat/voice endpoints *only
 for conversations attached to chess sessions*). It expires after 1 hour; the
@@ -78,7 +86,7 @@ shows a panel where a user JWT and the game slug can be entered; it then calls
 ## Game info & rating
 
 ```
-GET /api/v1/games/chess
+GET /api/v1/games/{uid}
 → 200 {
   "slug": "chess", "name": "Chess", "enabled": true,
   "leaderboardId": "<guid>",           // elo leaderboard
@@ -94,14 +102,14 @@ players who have never finished a game.
 ## Sessions (create / rejoin / list)
 
 ```
-GET  /api/v1/games/chess/sessions/mine
+GET  /api/v1/games/{uid}/sessions/mine
 → 200 [ { "sessionId", "status": "active"|"finished",
           "players": [{ "userId", "username" }],
           "createdAt", "finishedAt": null,
           "myTurn": true|false|null,     // from session state, null if finished
           "deadline": <ms epoch>|null }, ... ]     // move timeout deadline
 
-GET  /api/v1/games/chess/sessions/{sessionId}
+GET  /api/v1/games/{uid}/sessions/{sessionId}
 → 200 { "sessionId", "status", "players": [...], "createdAt", "finishedAt",
         "chatConversationId": "<guid>",       // per-session chat
         "result": { "kind": "white"|"black"|"draw", "reason": "..." } | null }
@@ -115,7 +123,7 @@ player may have at most **20 active sessions**; matchmaking/invites fail with
 ### Practice session (AI opponent)
 
 ```
-POST /api/v1/games/chess/sessions/ai   → 200 { "sessionId" }   (409 at the cap)
+POST /api/v1/games/{uid}/sessions/ai   → 200 { "sessionId" }   (409 at the cap)
 ```
 
 Creates a session between the caller and the platform's AI seat, displayed by
@@ -131,10 +139,10 @@ matchmaking).
 ## Matchmaking (elo-based)
 
 ```
-POST   /api/v1/games/chess/matchmaking      → 200 { "ticketId", "status": "queued" }
+POST   /api/v1/games/{uid}/matchmaking      → 200 { "ticketId", "status": "queued" }
                                             | 200 { "ticketId", "status": "matched", "sessionId" }
-GET    /api/v1/games/chess/matchmaking      → 200 { "ticketId", "status", "sessionId"? } | 404 (no ticket)
-DELETE /api/v1/games/chess/matchmaking      → 204 (cancels my queued ticket)
+GET    /api/v1/games/{uid}/matchmaking      → 200 { "ticketId", "status", "sessionId"? } | 404 (no ticket)
+DELETE /api/v1/games/{uid}/matchmaking      → 204 (cancels my queued ticket)
 ```
 
 Enqueuing when a compatible opponent is queued matches immediately (nearest
@@ -147,12 +155,12 @@ entries are rejected (`409`).
 ## Invitations ("join me in this game")
 
 ```
-POST /api/v1/games/chess/invites            { "toUserId": "<friend guid>" }
+POST /api/v1/games/{uid}/invites            { "toUserId": "<friend guid>" }
 → 200 { "inviteId", "status": "pending" }        (409 if either side is at cap)
-GET  /api/v1/games/chess/invites            → 200 { "incoming": [ { "inviteId", "from": {"userId","username"}, "createdAt" } ],
+GET  /api/v1/games/{uid}/invites            → 200 { "incoming": [ { "inviteId", "from": {"userId","username"}, "createdAt" } ],
                                                     "outgoing": [ { "inviteId", "to": {...}, "status", "createdAt" } ] }
-POST /api/v1/games/chess/invites/{id}/accept  → 200 { "sessionId" }
-POST /api/v1/games/chess/invites/{id}/decline → 204
+POST /api/v1/games/{uid}/invites/{id}/accept  → 200 { "sessionId" }
+POST /api/v1/games/{uid}/invites/{id}/decline → 204
 ```
 
 Invites can only be sent to friends (`GET /api/v1/me/friends` for the picker).
@@ -187,13 +195,13 @@ account username; if profile lookup fails they use a neutral shortened id.
 ## Replays
 
 ```
-GET /api/v1/games/chess/replays/mine?limit=10
+GET /api/v1/games/{uid}/replays/mine?limit=10
 → 200 [ { "sessionId", "players": [{userId,username}], "finishedAt", "moveCount",
           "result": { "kind", "reason", "at", "white", "black", "moveCount",
                       "eloBefore": { "<userId>": 1200, ... },
                       "eloAfter":  { "<userId>": 1216, ... } } }, ... ]
 
-GET /api/v1/games/chess/replays/{sessionId}
+GET /api/v1/games/{uid}/replays/{sessionId}
 → 200 { "sessionId", "players": [{userId,username}], "finishedAt",
         "result": { ...same as above... },
         "state": <archived session state> }
@@ -207,7 +215,7 @@ Only participants of the session can fetch a replay.
 
 ## Leaderboard (friends top-10 elo)
 
-Standard starhermit leaderboard, id from `GET /games/chess` → `leaderboardId`:
+Standard starhermit leaderboard, id from `GET /games/{uid}` → `leaderboardId`:
 
 ```
 GET /api/v1/leaderboards/{leaderboardId}/entries?friendsOnly=true&page=1&pageSize=10

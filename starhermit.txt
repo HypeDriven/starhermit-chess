@@ -5,9 +5,11 @@
 
 name=StarHermit Chess
 
-# URL-safe identifier for this game on the platform. The game client reads its
-# own slug from the launch token, so nothing is hard-coded to it.
-slug=chess
+# The platform assigns this game a uid and uses it as the game's slug — the same
+# value as its <uid>.starhermit.com address. Nothing here can set it: a name a
+# developer could choose would be something two games could fight over. The game
+# client reads its own slug from the launch token's game_scope claim, so nothing
+# is hard-coded to it.
 
 # Repo-relative HTML entry point the client loads.
 launch=index.html
