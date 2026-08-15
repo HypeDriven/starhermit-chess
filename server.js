@@ -17,6 +17,11 @@
 //   game.onPlayerMessage(ctx)        -> a client sent a command (ctx.message)
 //   game.onTick(ctx)                 -> periodic timer (move-timeout sweeps)
 //
+// It also reads `game.tickRateHz` at provision time to decide how often to call
+// onTick. Declaring it is not optional in practice: a script that says nothing
+// gets the platform's global maximum, so a correspondence game would be swept
+// as hard as an action game.
+//
 // ctx = {
 //   now:          ms since epoch (host clock — scripts get no Date access)
 //   random:       float in [0,1) supplied by the host per invocation
@@ -632,6 +637,14 @@ function aiReply(ctx, s, out) {
 // ---------------------------------------------------------------------------
 
 globalThis.game = {
+
+  // How often the platform calls onTick. The only thing onTick does is compare
+  // the 24h move deadline against the clock, so one sweep a second is already
+  // far finer than the deadline it adjudicates. Left undeclared, the platform
+  // would fall back to its global maximum and tick this correspondence game at
+  // action-game rates for no gain. The host clamps this to the operator
+  // override and the global maximum, so it is a request, not a guarantee.
+  tickRateHz: 1,
 
   // A new session between exactly two players. Colors: random the first time a
   // pair meets, then alternate on every subsequent game between the same two.
