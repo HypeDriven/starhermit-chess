@@ -194,6 +194,11 @@ account username; if profile lookup fails they use a neutral shortened id.
 
 ## Replays
 
+`server.js` declares `replays: true`, which is what makes the platform keep a
+finished session's state; nothing is kept for a game that does not ask, and its
+replay endpoints answer 404. An operator can answer for a game either way, so
+`GET /api/v1/games/{uid}` reports the effective answer as `replaysEnabled`.
+
 ```
 GET /api/v1/games/{uid}/replays/mine?limit=10
 → 200 [ { "sessionId", "players": [{userId,username}], "finishedAt", "moveCount",

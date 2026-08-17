@@ -18,9 +18,11 @@
 //   game.onTick(ctx)                 -> periodic timer (move-timeout sweeps)
 //
 // It also reads `game.tickRateHz` at provision time to decide how often to call
-// onTick. Declaring it is not optional in practice: a script that says nothing
-// gets the platform's global maximum, so a correspondence game would be swept
-// as hard as an action game.
+// onTick. Declaring it is what keeps the move deadline prompt: a script that
+// says nothing is ticked at the platform's slow 0.25 Hz default.
+// `game.replays` is read at the same moment and is
+// what makes the platform keep a finished session's state for the replay
+// viewer; a script that says nothing gets no replays.
 //
 // ctx = {
 //   now:          ms since epoch (host clock — scripts get no Date access)
@@ -641,10 +643,16 @@ globalThis.game = {
   // How often the platform calls onTick. The only thing onTick does is compare
   // the 24h move deadline against the clock, so one sweep a second is already
   // far finer than the deadline it adjudicates. Left undeclared, the platform
-  // would fall back to its global maximum and tick this correspondence game at
-  // action-game rates for no gain. The host clamps this to the operator
-  // override and the global maximum, so it is a request, not a guarantee.
+  // ticks at 0.25 Hz — still ample for a 24 h clock, but a declared rate is
+  // what makes a timeout land promptly rather than up to four seconds late.
+  // The host clamps this to the operator override and the global maximum, so
+  // it is a request, not a guarantee.
   tickRateHz: 1,
+
+  // Keep finished sessions as replays. The platform records none unless a game
+  // asks, and the client's replay viewer steps the move log in `state.game.moves`
+  // through this same rules file, so the archived state is the whole feature.
+  replays: true,
 
   // A new session between exactly two players. Colors: random the first time a
   // pair meets, then alternate on every subsequent game between the same two.
