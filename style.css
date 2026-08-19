@@ -256,7 +256,11 @@ table.lb tr.me td { color: var(--brass-hi); }
 .sq .coord.file { right: 4%; bottom: 4%; }
 .sq .coord.rank { left: 5%; top: 5%; }
 
-.pc { font-size: 10.4cqw; line-height: 1; z-index: 1; pointer-events: none; }
+.pc {
+  font-size: 10.4cqw; line-height: 1; z-index: 1; pointer-events: none;
+  /* keep the pawn (U+265F, an emoji codepoint) on the text font so .pc.w can colour it */
+  font-variant-emoji: text;
+}
 .pc.w { color: #f6ecd8; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.85), 0 0 3px rgba(0, 0, 0, 0.5); }
 .pc.b { color: #26190f; text-shadow: 0 1px 1px rgba(246, 236, 216, 0.30), 0 0 3px rgba(246, 236, 216, 0.18); }
 @supports not (font-size: 1cqw) {

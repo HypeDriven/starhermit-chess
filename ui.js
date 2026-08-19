@@ -101,7 +101,10 @@ const UI = {
   onTick(fn) { UI._tickFns.add(fn); fn(); return () => UI._tickFns.delete(fn); },
 
   // ----------------------------------------------------------- board
-  GLYPH: { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' },
+  // The black glyph set for both sides; colour comes from CSS (.pc.w / .pc.b). U+265F is the
+  // only one Unicode also lists as an emoji, so mobile picks the emoji font for it and renders a
+  // fixed black pawn that ignores `color` — U+FE0E forces text presentation like its five siblings.
+  GLYPH: { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟\uFE0E' },
 
   /**
    * Render a position into `container`.
