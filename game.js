@@ -294,10 +294,11 @@ class GameController {
     const box = $('promo-picker');
     UI.clear(box);
     for (const p of ['q', 'r', 'n', 'b']) {
-      const b = UI.el('button', null, UI.GLYPH[p]);
-      b.style.color = this.myColor === 'white' ? '#f6ecd8' : '#26190f';
-      b.style.textShadow = this.myColor === 'white' ? '0 1px 1px rgba(0,0,0,.85)' : '0 1px 1px rgba(246,236,216,.4)';
+      const b = UI.el('button');
+      // the piece as it will look on the board, in my colour
+      b.appendChild(UI.piece(this.myColor === 'white' ? p.toUpperCase() : p));
       b.title = { q: 'Queen', r: 'Rook', n: 'Knight', b: 'Bishop' }[p];
+      b.setAttribute('aria-label', b.title);
       b.addEventListener('click', () => { box.hidden = true; pick(p); });
       box.appendChild(b);
     }

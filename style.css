@@ -256,15 +256,20 @@ table.lb tr.me td { color: var(--brass-hi); }
 .sq .coord.file { right: 4%; bottom: 4%; }
 .sq .coord.rank { left: 5%; top: 5%; }
 
+/* Pieces are inline SVG (see UI.PIECE): `color` is the body fill, --pc-line the outline, so
+   both sides are exactly these colours on every platform instead of whatever the system font
+   or — for the pawn's emoji codepoint — the emoji font would have painted. */
 .pc {
-  font-size: 10.4cqw; line-height: 1; z-index: 1; pointer-events: none;
-  /* keep the pawn (U+265F, an emoji codepoint) on the text font so .pc.w can colour it */
-  font-variant-emoji: text;
+  display: block; width: 88%; height: 88%; aspect-ratio: 1; flex: 0 0 auto;
+  z-index: 1; pointer-events: none;
 }
-.pc.w { color: #f6ecd8; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.85), 0 0 3px rgba(0, 0, 0, 0.5); }
-.pc.b { color: #26190f; text-shadow: 0 1px 1px rgba(246, 236, 216, 0.30), 0 0 3px rgba(246, 236, 216, 0.18); }
+.pc path, .pc circle { fill: currentColor; stroke: var(--pc-line); stroke-width: 1.5;
+  stroke-linejoin: round; stroke-linecap: round; }
+.pc .mk { fill: var(--pc-line); stroke: none; }
+.pc .ln { fill: none; stroke-width: 1.3; }
+.pc.w { color: #f6ecd8; --pc-line: #2a1c10; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45)); }
+.pc.b { color: #26190f; --pc-line: #e7dbc0; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); }
 @supports not (font-size: 1cqw) {
-  .pc { font-size: 38px; }
   .sq .coord { font-size: 9px; }
 }
 
@@ -276,10 +281,12 @@ table.lb tr.me td { color: var(--brass-hi); }
   border-radius: 4px;
 }
 .promo button {
-  width: 17cqw; height: 17cqw; font-size: 11cqw;
+  width: 17cqw; height: 17cqw; padding: 0;
+  display: flex; align-items: center; justify-content: center;
   background: var(--panel); border: 1px solid var(--brass); border-radius: var(--radius);
   color: var(--ink); cursor: pointer;
 }
+.promo button .pc { width: 90%; height: 90%; }
 .promo button:hover { background: var(--panel-2); }
 
 /* game-over overlay */
