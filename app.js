@@ -542,6 +542,20 @@ const App = {
     this.game.start();
   },
 
+  /** Offline practice against hal — no platform, no sign-in (see local.js). */
+  playLocal() {
+    this.showView('game');
+    if (this.game) this.game.destroy();
+    this.game = new LocalGame();
+    this._onLeave = () => { if (this.game) { this.game.destroy(); this.game = null; } };
+    this.game.start();
+  },
+
+  /** "Back to the club" lands on the menu when signed in, on the sign-in screen otherwise. */
+  leaveToHome() {
+    if (Net.token) this.showMenu(); else this.showAuth();
+  },
+
   // ------------------------------------------------------------- replay viewer
   async openReplay(sessionId) {
     let raw;
@@ -634,18 +648,19 @@ const App = {
 
 // ---------------------------------------------------------------- wiring
 $('auth-go').addEventListener('click', () => App.authSubmit());
+$('btn-play-local').addEventListener('click', () => App.playLocal());
 $('btn-play').addEventListener('click', () => App.startMatchmaking());
 $('mm-cancel').addEventListener('click', () => App.cancelMatchmaking());
 $('btn-play-ai').addEventListener('click', () => App.playAi());
 $('btn-invite').addEventListener('click', () => App.inviteFriend());
 $('btn-share').addEventListener('click', () => App.shareInviteLink());
 
-$('btn-back').addEventListener('click', () => App.showMenu());
+$('btn-back').addEventListener('click', () => App.leaveToHome());
 $('btn-resign').addEventListener('click', () => App.game && App.game.resign());
 $('btn-draw').addEventListener('click', () => App.game && App.game.offerDraw());
 $('draw-accept').addEventListener('click', () => App.game && App.game.sendCmd({ type: 'accept-draw' }));
 $('draw-decline').addEventListener('click', () => App.game && App.game.sendCmd({ type: 'decline-draw' }));
-$('go-menu').addEventListener('click', () => App.showMenu());
+$('go-menu').addEventListener('click', () => App.leaveToHome());
 $('go-replay').addEventListener('click', () => {
   const id = App.game && App.game.sessionId;
   if (id) App.openReplay(id);

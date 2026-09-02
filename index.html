@@ -28,6 +28,11 @@
     <h1 class="auth-title">Take a seat</h1>
     <p class="auth-sub">One move a day. Launched from the Starhermit client this signs you in automatically; for local development, paste a user token to sit down at the board.</p>
     <p id="auth-msg" class="auth-msg" hidden></p>
+    <div class="auth-local">
+      <button id="btn-play-local" class="btn btn-primary btn-wide">Play</button>
+      <p class="auth-local-hint">Practice against hal right now — no sign-in needed.</p>
+    </div>
+    <p class="auth-divider"><span>or sign in to the club</span></p>
     <label class="field">
       <span class="field-label">User token (JWT)</span>
       <textarea id="auth-jwt" rows="4" spellcheck="false" placeholder="eyJhbGciOi&hellip;"></textarea>
@@ -218,6 +223,7 @@
 <script src="net.js"></script>
 <script src="ui.js"></script>
 <script src="game.js"></script>
+<script src="local.js"></script>
 <script src="app.js"></script>
 <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
 <script type="module" src="starfield.js"></script>

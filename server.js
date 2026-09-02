@@ -871,4 +871,59 @@ globalThis.chessRules = {
   algebraic: algebraic,
   fileOf: fileOf,
   rankOf: rankOf,
+  greedyPick: greedyPick,
 };
+
+// ---------------------------------------------------------------------------
+// Local static server. `PORT=8000 node server.js` serves this directory so the
+// game can be opened and played without the platform. The guard is skipped in
+// the browser (no require/process) and in the platform's Jint sandbox (same),
+// so the authoritative-script behaviour above is unchanged in both.
+// ---------------------------------------------------------------------------
+if (typeof require === 'function' && typeof process !== 'undefined' &&
+    process.versions && process.versions.node && typeof __dirname === 'string') {
+  (function () {
+    var http = require('http');
+    var fs = require('fs');
+    var path = require('path');
+    var ROOT = __dirname;
+    var PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8000;
+    var MIME = {
+      '.html': 'text/html; charset=utf-8',
+      '.js': 'text/javascript; charset=utf-8',
+      '.mjs': 'text/javascript; charset=utf-8',
+      '.css': 'text/css; charset=utf-8',
+      '.json': 'application/json; charset=utf-8',
+      '.txt': 'text/plain; charset=utf-8',
+      '.md': 'text/markdown; charset=utf-8',
+      '.svg': 'image/svg+xml',
+      '.png': 'image/png',
+      '.ico': 'image/x-icon',
+      '.glb': 'model/gltf-binary',
+      '.wasm': 'application/wasm',
+      '.opus': 'audio/ogg',
+    };
+    http.createServer(function (req, res) {
+      var pathname;
+      try {
+        pathname = decodeURIComponent(new URL(req.url || '/', 'http://localhost').pathname);
+      } catch (e) {
+        res.writeHead(400); res.end('Bad request'); return;
+      }
+      if (pathname === '/') pathname = '/index.html';
+      var file = path.normalize(path.join(ROOT, pathname));
+      if (file !== ROOT && file.indexOf(ROOT + path.sep) !== 0) {
+        res.writeHead(403); res.end('Forbidden'); return;
+      }
+      fs.readFile(file, function (err, data) {
+        if (err) { res.writeHead(404); res.end('Not found'); return; }
+        res.writeHead(200, {
+          'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream',
+        });
+        res.end(data);
+      });
+    }).listen(PORT, function () {
+      console.log('StarHermit Chess — local server on http://localhost:' + PORT);
+    });
+  })();
+}

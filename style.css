@@ -138,6 +138,14 @@ button { font: inherit; }
   resize: vertical;
 }
 .field textarea:focus, .field input:focus { outline: none; border-color: var(--brass); }
+.auth-local { margin-bottom: 18px; }
+.auth-local-hint { color: var(--faint); font-size: 13px; text-align: center; margin: 8px 0 0; }
+.auth-divider {
+  display: flex; align-items: center; gap: 12px;
+  color: var(--faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em;
+  margin: 0 0 16px;
+}
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
 
 /* Clipboard-fallback modal: the invite URL shown for manual copy. */
 .share-url {
