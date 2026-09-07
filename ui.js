@@ -182,14 +182,94 @@ const UI = {
     return proto.cloneNode(true);
   },
 
+  /**
+   * The promotion picker drawn over the board. `pick(piece)` runs on a choice;
+   * Escape or a click on the backdrop cancels, leaving the piece selected so the
+   * player can pick a different move instead of being stuck in the overlay.
+   */
+  promoPicker(color, pick) {
+    const box = $('promo-picker');
+    UI.clear(box);
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', 'Choose a promotion piece');
+    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); close(); } };
+    const onBackdrop = (e) => { if (e.target === box) close(); };
+    function close() {
+      box.hidden = true;
+      document.removeEventListener('keydown', onKey, true);
+      box.removeEventListener('click', onBackdrop);
+    }
+    for (const p of ['q', 'r', 'n', 'b']) {
+      const b = UI.el('button');
+      // the piece as it will look on the board, in my colour
+      b.appendChild(UI.piece(color === 'white' ? p.toUpperCase() : p));
+      b.title = { q: 'Queen', r: 'Rook', n: 'Knight', b: 'Bishop' }[p];
+      b.setAttribute('aria-label', b.title);
+      b.addEventListener('click', () => { close(); pick(p); });
+      box.appendChild(b);
+    }
+    box.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onKey, true);
+    box.hidden = false;
+    box.firstChild.focus();
+  },
+
   // ----------------------------------------------------------- board
+  PIECE_NAME: { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' },
+
+  /** "e4, white pawn" / "e4, empty" — what a screen reader reads for a square. */
+  squareLabel(i, p) {
+    const name = globalThis.chessRules.algebraic(i);
+    if (p === '.') return name + ', empty';
+    return name + ', ' + (p === p.toUpperCase() ? 'white ' : 'black ') + UI.PIECE_NAME[p.toLowerCase()];
+  },
+
+  /**
+   * Arrow-key navigation across a rendered board. Squares carry a roving
+   * tabindex: one is tabbable, the arrows move focus (and the tab stop) from it,
+   * Enter/Space plays the focused square exactly as a click would.
+   */
+  _boardKey(container, e) {
+    const cells = [...container.children];
+    const pos = cells.indexOf(document.activeElement);
+    if (pos < 0) return;
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      cells[pos].click();
+      return;
+    }
+    const col = pos % 8, row = (pos - col) / 8;
+    let next = -1;
+    if (e.key === 'ArrowRight') next = col < 7 ? pos + 1 : -1;
+    else if (e.key === 'ArrowLeft') next = col > 0 ? pos - 1 : -1;
+    else if (e.key === 'ArrowDown') next = row < 7 ? pos + 8 : -1;
+    else if (e.key === 'ArrowUp') next = row > 0 ? pos - 8 : -1;
+    else if (e.key === 'Home') next = row * 8;
+    else if (e.key === 'End') next = row * 8 + 7;
+    else return;
+    e.preventDefault();
+    if (next >= 0) cells[next].focus();   // focusin moves the tab stop with it
+  },
+
+  /** Whichever square gains focus becomes the board's single tab stop. */
+  _boardFocus(container, e) {
+    const cell = e.target && e.target.closest ? e.target.closest('.sq') : null;
+    if (!cell || cell.parentElement !== container) return;
+    const prev = container.querySelector('.sq[tabindex="0"]');
+    if (prev && prev !== cell) prev.tabIndex = -1;
+    cell.tabIndex = 0;
+    container._focusIdx = Number(cell.dataset.i);
+  },
+
   /**
    * Render a position into `container`.
    * opts: { flipped, lastMove:{from,to} (indices), selected (index), dests:[{to,cap}],
    *         checkSquare (index), onSquare(index) }
    */
   renderBoard(container, board, opts = {}) {
-    const R = globalThis.chessRules;
+    const interactive = !!opts.onSquare;
+    // A board redraws on every move; keep the keyboard user where they were.
+    const hadFocus = container.contains(document.activeElement);
     UI.clear(container);
     const flipped = !!opts.flipped;
     const dests = new Map();
@@ -221,14 +301,29 @@ const UI = {
           const c = UI.el('span', 'coord rank', String(rank + 1));
           sq.appendChild(c);
         }
-        if (opts.onSquare) {
+        sq.setAttribute('aria-label', UI.squareLabel(i, p));
+        if (interactive) {
           sq.classList.add('clickable');
+          sq.setAttribute('role', 'button');
+          sq.tabIndex = -1;
           sq.addEventListener('click', () => opts.onSquare(i));
+        } else {
+          sq.setAttribute('role', 'img');
         }
         container.appendChild(sq);
       }
     }
-    void R; // rules loaded via server.js; renderer itself only needs the board string
+    if (interactive) {
+      if (!container._kbd) {
+        container._kbd = true;
+        container.addEventListener('keydown', (e) => UI._boardKey(container, e));
+        container.addEventListener('focusin', (e) => UI._boardFocus(container, e));
+      }
+      let cell = container.querySelector('.sq[data-i="' + container._focusIdx + '"]');
+      if (!cell) { cell = container.firstChild; container._focusIdx = Number(cell.dataset.i); }
+      cell.tabIndex = 0;
+      if (hadFocus) cell.focus();
+    }
   },
 
   /** Locate a king on the 64-char board string. Returns index or -1. */

@@ -20,7 +20,7 @@ optional server script, then stands the game up. Publishing is just pushing to
 GitHub and adding the repo.
 
 The submitter can choose **Deploy to Starhermit** from the game's Manage menu;
-the platform then clones the repo and **serves it at `<slug>.starhermit.com`**
+the platform then clones the repo and **serves it at `<uid>.starhermit.com`**
 so it runs in the web dashboard, not just the desktop client. Verified GitHub
 ownership is not required. The submitter controls which version is live by
 pinning a **commit** in the game's details — the platform re-fetches the repo
@@ -31,21 +31,29 @@ configuration.
 ## Files
 
 - `starhermit.txt` — the manifest the platform reads when the repo is added:
-  `name`, `slug` (the game's URL-safe id on the platform), `launch` (HTML entry
-  point), `owner` (the owning Starhermit account — username or user id), and the
+  `name`, `launch` (HTML entry point), `owner` (the owning Starhermit account),
+  the optional `cover` (repo-relative cover art for the library tile), and the
   optional `server` (the repo-relative file run as the authoritative server
-  script). Omit `server` for a game with no server-side logic.
+  script). Omit `server` for a game with no server-side logic. There is **no
+  slug key**: the platform assigns the game a uid and uses it as both the slug
+  and the `<uid>.starhermit.com` address, so two games can never contend for a
+  name.
 - `server.js` — the single authoritative game script (chess rules incl.
   castling/en passant/promotion/mate/stalemate/repetition/50-move, 24 h move
   clock, elo, color assignment, replays). Also exposes `chessRules` for the
   client's move highlighting — one file, one source of truth.
-- `index.html`, `app.js`, `game.js`, `net.js`, `ui.js`, `style.css` — the
-  static client (no build step): main menu (play via elo matchmaking, rejoin up
+- `index.html`, `app.js`, `game.js`, `net.js`, `ui.js`, `local.js`,
+  `style.css` — the static client (no build step): main menu (play via elo matchmaking, rejoin up
   to 20 concurrent games, friends top-10 elo leaderboard, recent replays,
   friend invites), game view (board, SAN move list, chat, opt-in voice via
   WebRTC — off by default per game), replay viewer. The client is slug-agnostic:
   it reads its slug from the launch token, so nothing here is tied to one
-  deployment.
+  deployment, and `local.js` runs an offline practice game against hal with no
+  sign-in at all. The board is playable with the mouse, by touch, and from the
+  keyboard (arrow keys move between squares, Enter or Space plays one).
+- `tests/` — dev-only checks, not shipped with the game: `npm run test:rules`
+  exercises `server.js` (perft, SAN, draws, the platform entry points) and
+  `npm run test:e2e` drives the real UI in headless Chrome. `npm test` runs both.
 - `API.md` — the platform REST/WebSocket contract the client speaks (games
   subsystem, chat, voice, leaderboards, game-scoped launch tokens).
 - `starfield.js`, `vendor/`, `assets/chess-pieces.glb` — the main menu's
@@ -69,7 +77,8 @@ configuration.
 
 ## Local development
 
-Serve this directory with any static file server and open `index.html`.
+Serve this directory with any static file server — `node server.js` starts one
+on port 8000 — and open `index.html`.
 Launched by the platform the game receives `#game_token=…` and signs in
 automatically; opened directly it shows a panel where you enter a user token,
 the game slug, and (optionally) an API base URL to point at a running platform.

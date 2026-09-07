@@ -1,0 +1,13 @@
+{
+  "name": "starhermit-chess",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "npm run test:rules && npm run test:e2e",
+    "test:rules": "node tests/rules.mjs",
+    "test:e2e": "node tests/e2e.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.62.1"
+  }
+}

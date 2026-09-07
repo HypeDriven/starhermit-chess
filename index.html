@@ -104,13 +104,13 @@
   <div class="game-grid">
     <div class="board-col">
       <div class="seat seat-top">
-        <span id="g-opp-dot" class="dot" title="offline"></span>
+        <span id="g-opp-dot" class="dot" role="img" title="offline" aria-label="Opponent offline"></span>
         <span id="g-opp-name" class="seat-name">&mdash;</span>
         <span id="g-opp-elo" class="seat-elo"></span>
         <span id="g-opp-color" class="seat-color"></span>
       </div>
       <div class="board-wrap">
-        <div id="game-board" class="board"></div>
+        <div id="game-board" class="board" aria-label="Chess board"></div>
         <div id="promo-picker" class="promo" hidden></div>
         <div id="game-over" class="gameover" hidden>
           <div class="gameover-card">
@@ -185,16 +185,16 @@
   <div class="game-grid">
     <div class="board-col">
       <div class="seat seat-top"><span id="r-top-name" class="seat-name">&mdash;</span><span id="r-top-color" class="seat-color"></span></div>
-      <div class="board-wrap"><div id="r-board" class="board"></div></div>
+      <div class="board-wrap"><div id="r-board" class="board" aria-label="Replay board"></div></div>
       <div class="seat seat-bottom"><span id="r-bot-name" class="seat-name">&mdash;</span><span id="r-bot-color" class="seat-color"></span></div>
       <div class="clock-card"><div class="clock-line"><span id="r-result">&mdash;</span><span id="r-elo" class="clock-time"></span></div></div>
       <div class="game-actions replay-controls">
         <button id="r-back" class="btn">&larr; Club</button>
         <span class="spacer"></span>
-        <button id="r-first" class="btn" title="First (Home)">&#9198;</button>
-        <button id="r-prev" class="btn" title="Previous (&larr;)">&#9664;</button>
-        <button id="r-next" class="btn" title="Next (&rarr;)">&#9654;</button>
-        <button id="r-last" class="btn" title="Last (End)">&#9197;</button>
+        <button id="r-first" class="btn" title="First (Home)" aria-label="First move">&#9198;</button>
+        <button id="r-prev" class="btn" title="Previous (&larr;)" aria-label="Previous move">&#9664;</button>
+        <button id="r-next" class="btn" title="Next (&rarr;)" aria-label="Next move">&#9654;</button>
+        <button id="r-last" class="btn" title="Last (End)" aria-label="Last move">&#9197;</button>
       </div>
     </div>
     <aside class="side-col">
@@ -208,7 +208,7 @@
 
 <!-- shared chrome -->
 <div id="toasts" class="toasts" aria-live="polite"></div>
-<div id="modal" class="modal" hidden>
+<div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modal-text">
   <div class="modal-card">
     <p id="modal-text"></p>
     <div id="modal-body"></div>

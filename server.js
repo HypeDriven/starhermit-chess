@@ -87,7 +87,7 @@ function parseSquare(s) {
 }
 
 function newGameState() {
-  return {
+  var g = {
     board: START_BOARD,
     turn: 'white',
     // castling rights: K/Q = white king/queen side, k/q = black
@@ -99,6 +99,10 @@ function newGameState() {
     positionCounts: {},    // repetition detection: key -> count
     status: 'active',      // active | finished
   };
+  // The opening position is an occurrence like any other: without it, a line
+  // that shuffles back to the start would need a fourth visit to draw.
+  g.positionCounts[positionKey(g)] = 1;
+  return g;
 }
 
 function boardSet(board, i, p) {
@@ -353,17 +357,24 @@ function sanFor(g, m, gaveCheck, wasMate) {
       ? (capture ? 'abcdefgh'[fileOf(m.from)] + 'x' : '')
       : piece.toUpperCase().replace('P', '') + (capture ? 'x' : '');
     if (pl !== 'p') {
-      // minimal disambiguation: add file if another same-type piece also reaches `to`
+      // SAN disambiguation: prefer the file, fall back to the rank when a rival
+      // shares the file, and use the whole square when it shares both.
+      var ambiguous = false, sharesFile = false, sharesRank = false;
       for (var i = 0; i < 64; i++) {
-        if (i !== m.from && g.board[i] === piece) {
-          var others = legalMovesFrom(g, i);
-          for (var k = 0; k < others.length; k++) {
-            if (others[k].to === m.to) {
-              s = s.substring(0, 1) + 'abcdefgh'[fileOf(m.from)] + s.substring(1);
-              i = 64; break;
-            }
-          }
+        if (i === m.from || g.board[i] !== piece) continue;
+        var others = legalMovesFrom(g, i);
+        for (var k = 0; k < others.length; k++) {
+          if (others[k].to !== m.to) continue;
+          ambiguous = true;
+          if (fileOf(i) === fileOf(m.from)) sharesFile = true;
+          if (rankOf(i) === rankOf(m.from)) sharesRank = true;
+          break;
         }
+      }
+      if (ambiguous) {
+        var fileCh = 'abcdefgh'[fileOf(m.from)], rankCh = String(rankOf(m.from) + 1);
+        var hint = !sharesFile ? fileCh : (!sharesRank ? rankCh : fileCh + rankCh);
+        s = s.substring(0, 1) + hint + s.substring(1);
       }
     }
     s += algebraic(m.to);
@@ -629,6 +640,13 @@ function aiReply(ctx, s, out) {
   });
   if (res.gameOver) {
     var fin = finishGame(ctx, s, res.gameOver.kind, res.gameOver.reason);
+    // Ratings and records only persist if they leave with the invocation: a game
+    // hal ends (mate, stalemate, a drawn ending) must publish them just as a
+    // human-ended one does. Merge rather than replace — createSession already
+    // put both practice docs in `out`.
+    out.playerStates = out.playerStates || {};
+    for (var pid in fin.playerStates) out.playerStates[pid] = fin.playerStates[pid];
+    out.eloUpdates = fin.eloUpdates;
     out.result = fin.result;
     out.broadcast.push({ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } });
   }

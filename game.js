@@ -35,6 +35,7 @@ class GameController {
     this.myColor = null;
     this.players = {};        // userId -> profile nickname
     this.oppId = null;
+    this.oppOnline = false;   // last presence frame; a re-render must not forget it
     this.selected = null;
     this.cands = [];
     this.finishedShown = false;
@@ -110,9 +111,9 @@ class GameController {
   onFrame(msg) {
     if (msg.type === 'error') { UI.toast(msg.error || 'Command rejected.', 'err'); return; }
     if (msg.type === 'presence') {
-      if (msg.userId === this.oppId && !(this.view && this.view.ai)) {
-        $('g-opp-dot').classList.toggle('on', !!msg.online);
-        $('g-opp-dot').title = msg.online ? 'online' : 'offline';
+      if (msg.userId === this.oppId) {
+        this.oppOnline = !!msg.online;
+        this.applyPresence();
       }
       return;
     }
@@ -202,16 +203,13 @@ class GameController {
     // hal is always "online", never talks, and never joins voice
     const vsAi = !!v.ai;
     if (vsAi) {
-      $('g-opp-dot').classList.add('on');
-      $('g-opp-dot').title = 'AI opponent';
       $('chat-input').disabled = true;
       $('chat-input').placeholder = "hal doesn't chat.";
     } else {
-      $('g-opp-dot').classList.remove('on');
-      $('g-opp-dot').title = 'offline';
       $('chat-input').disabled = false;
       $('chat-input').placeholder = 'Message your opponent';
     }
+    this.applyPresence();
     $('voice-panel').hidden = vsAi;
 
     UI.renderSheet($('movesheet'), v.moves || []);
@@ -221,6 +219,18 @@ class GameController {
     $('btn-resign').disabled = over;
     $('btn-draw').disabled = over || v.drawOfferBy === this.myColor;
     this.tickClock();
+  }
+
+  /** Paint the opponent's seat lamp. hal is always lit; a human's state is the
+      last presence frame, which a board re-render used to wipe back to offline. */
+  applyPresence() {
+    const dot = $('g-opp-dot');
+    const vsAi = !!(this.view && this.view.ai);
+    const on = vsAi || this.oppOnline;
+    dot.classList.toggle('on', on);
+    const label = vsAi ? 'AI opponent' : (this.oppOnline ? 'online' : 'offline');
+    dot.title = label;
+    dot.setAttribute('aria-label', 'Opponent ' + label);
   }
 
   renderDrawBanner() {
@@ -291,18 +301,7 @@ class GameController {
   }
 
   showPromoPicker(pick) {
-    const box = $('promo-picker');
-    UI.clear(box);
-    for (const p of ['q', 'r', 'n', 'b']) {
-      const b = UI.el('button');
-      // the piece as it will look on the board, in my colour
-      b.appendChild(UI.piece(this.myColor === 'white' ? p.toUpperCase() : p));
-      b.title = { q: 'Queen', r: 'Rook', n: 'Knight', b: 'Bishop' }[p];
-      b.setAttribute('aria-label', b.title);
-      b.addEventListener('click', () => { box.hidden = true; pick(p); });
-      box.appendChild(b);
-    }
-    box.hidden = false;
+    UI.promoPicker(this.myColor, pick);
   }
 
   async resign() {

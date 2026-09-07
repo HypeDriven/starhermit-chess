@@ -28,6 +28,7 @@ class LocalGame {
 
     $('g-opp-dot').classList.add('on');
     $('g-opp-dot').title = 'AI opponent';
+    $('g-opp-dot').setAttribute('aria-label', 'Opponent AI opponent');
     $('g-opp-name').textContent = 'hal';
     $('g-opp-elo').textContent = '';
     $('g-opp-color').textContent = this.myColor === 'white' ? 'black' : 'white';
@@ -129,17 +130,7 @@ class LocalGame {
   }
 
   showPromoPicker(pick) {
-    const box = $('promo-picker');
-    UI.clear(box);
-    for (const p of ['q', 'r', 'n', 'b']) {
-      const b = UI.el('button');
-      b.appendChild(UI.piece(this.myColor === 'white' ? p.toUpperCase() : p));
-      b.title = { q: 'Queen', r: 'Rook', n: 'Knight', b: 'Bishop' }[p];
-      b.setAttribute('aria-label', b.title);
-      b.addEventListener('click', () => { box.hidden = true; pick(p); });
-      box.appendChild(b);
-    }
-    box.hidden = false;
+    UI.promoPicker(this.myColor, pick);
   }
 
   // ------------------------------------------------------------- hal

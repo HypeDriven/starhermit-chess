@@ -18,9 +18,10 @@ the client-facing platform contract this game speaks.
 
 | File | What it is |
 |---|---|
-| `starhermit.txt` | The manifest the platform reads when the repo is added: `name`, `launch` (HTML entry point), `owner`, and the optional `server` (the repo-relative file run as the authoritative script). There is **no slug key** — the platform assigns a uid and uses it as both the slug and the `<uid>.starhermit.com` address, so two games can never contend for a name. |
+| `starhermit.txt` | The manifest the platform reads when the repo is added: `name`, `launch` (HTML entry point), `owner`, the optional `cover` (repo-relative cover art for the library tile), and the optional `server` (the repo-relative file run as the authoritative script). There is **no slug key** — the platform assigns a uid and uses it as both the slug and the `<uid>.starhermit.com` address, so two games can never contend for a name. |
 | `server.js` | The single authoritative game script: full chess rules (castling, en passant, promotion, mate, stalemate, repetition, 50-move), the 24 h move clock, elo, colour assignment, replays. It also exposes `chessRules` to the client for move highlighting — one file, one source of truth. |
-| `index.html`, `app.js`, `game.js`, `net.js`, `ui.js`, `style.css` | The static client, no build step. |
+| `index.html`, `app.js`, `game.js`, `net.js`, `ui.js`, `local.js`, `style.css` | The static client, no build step. `local.js` is the offline practice game against hal. |
+| `tests/` | Dev-only checks, never shipped: `npm run test:rules` exercises `server.js` (perft, SAN, draws, the platform entry points), `npm run test:e2e` drives the real UI in headless Chrome, `npm test` runs both. |
 | `starfield.js`, `vendor/`, `assets/chess-pieces.glb` | The main menu's three.js backdrop: a starfield with drifting 3D chess pieces. Lazy-loaded when the menu first shows, skipped with a console note when WebGL is absent. Piece models from `mrabhin03/3D-Chess-Game` (MIT), repacked 4.3 MB → 0.37 MB (`vendor/ATTRIBUTION.md`). |
 | `API.md` | The platform REST/WebSocket contract the client speaks: games subsystem, chat, voice, leaderboards, launch tokens. |
 
@@ -31,6 +32,11 @@ the client-facing platform contract this game speaks.
 - **Game view** — board, SAN move list, chat, and opt-in voice over WebRTC (off by default for every
   new game).
 - **Replay viewer** — a finished session's state document is the replay.
+- **The board takes the keyboard as well as the pointer.** Squares are one roving
+  tab stop: arrow keys walk between them, Home/End jump along a rank, and Enter or
+  Space plays the focused square exactly as a click would. Every square carries its
+  coordinate and occupant as a label ("e4, white pawn"), and the promotion picker
+  can be dismissed with Escape.
 - **Pieces are inline SVG**, not the Unicode chess glyphs: those render from whichever font the
   platform picks, and the pawn's codepoint is also an emoji, so iOS painted it from the emoji font
   in a fixed colour that ignored the side it belonged to. Vectors take their fill from CSS, so each
