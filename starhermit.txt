@@ -3,7 +3,7 @@
 # (Add game -> paste the repo URL in the Starhermit client).
 # Format: key=value lines; '#' comments and blank lines are ignored.
 
-name=StarHermit Chess
+name=Chess
 
 # The platform assigns this game a uid and uses it as the game's slug — the same
 # value as its <uid>.starhermit.com address. Nothing here can set it: a name a
