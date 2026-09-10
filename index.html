@@ -4,9 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>StarHermit Chess</title>
-<!-- A real PNG (not a data: URI): the platform's library-icon service and the
-     Windows client's favicon scraper both read this link, so the library tile
-     matches the wordmark mark below. -->
+<!-- Browsers that support SVG favicons prefer this one; the real PNG below
+     (not a data: URI) stays for the platform's library-icon service and the
+     Windows client's favicon scraper, so the library tile matches the
+     wordmark mark below. -->
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -14,11 +16,14 @@
 
 <!-- 3D chess-piece starfield behind the main menu (see starfield.js) -->
 <canvas id="starfield" class="starfield" aria-hidden="true" hidden></canvas>
+<!-- key art behind the landing screen (assets/key-art.webp); hidden if it fails to load -->
+<img id="auth-art" class="auth-art" src="assets/key-art.webp" alt="" aria-hidden="true" onerror="this.hidden=true;this.dataset.failed=1">
 
 <header class="topbar">
   <div class="wordmark"><img class="mark" src="icon.png" alt=""> <span class="wm-text">StarHermit Chess</span></div>
   <div class="topbar-right">
     <span id="top-elo" class="elo-chip" hidden></span>
+    <button id="btn-sound" class="btn btn-small" type="button" aria-pressed="true" title="Toggle sound effects">Sound on</button>
   </div>
 </header>
 
@@ -222,6 +227,7 @@
 <script src="server.js"></script>
 <script src="net.js"></script>
 <script src="ui.js"></script>
+<script src="audio.js"></script>
 <script src="game.js"></script>
 <script src="local.js"></script>
 <script src="app.js"></script>

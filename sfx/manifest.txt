@@ -1,0 +1,18 @@
+# StarHermit Chess — SFX manifest (canonical). One clip per line:
+# file | event id (Sfx.play name, audio.js) | description of the sound | usage context
+# Clips: MOSS-SoundEffect v2.0, 48 kHz mono Opus 96 kbps VBR, loudness-normalised (-20 LUFS), 100 steps. One effects bus; the Sound toggle in the top bar mutes everything (localStorage chess.muted).
+# audio.js reads sfx/manifest.json for the file→event binding; a missing or failed clip is silent, never an error.
+piece-select.opus | select | A single wooden chess piece lifted off a wooden board, one light dry tap with a faint short slide | Own piece selected on the board (GameController.clickSquare / LocalGame.clickSquare)
+piece-move.opus | move | A wooden chess piece set down gently on a wooden chessboard, one soft solid knock with warm wood resonance | Any quiet move landing (SAN without x, O-O or =), either side, live or offline; forward step in the replay viewer
+piece-capture.opus | capture | A wooden piece knocking another off the board, a firm double clack of wood on wood with a small tumble | A capture landing (SAN contains x), either side
+piece-castle.opus | castle | Two wooden pieces set down in quick succession, two soft knocks a beat apart | Castling (SAN O-O / O-O-O), either side
+check-bell.opus | check | A single small brass bell struck once, a clear short ting with a gentle decaying ring | Layered on any move whose SAN ends in + or # (check or mate given)
+promote-chime.opus | promote | A short bright ascending glockenspiel triplet ending on a sustained high note | Pawn promotion landing (SAN contains =)
+illegal-knock.opus | illegal | A dull muted knuckle knock on a wooden tabletop, two quick damped taps | Server rejected a command (type error frame) or an offline move was refused
+match-found.opus | matchFound | A small desk bell struck once, bright and inviting, in a quiet room | Matchmaking ticket became matched (App.pollMatchmaking / App.startMatchmaking)
+draw-offer.opus | drawOffer | Two light polite fingertip taps on a polished wooden table | Opponent offered a draw (draw-offered frame not from me)
+chat-note.opus | chat | A folded paper note slid across a table, a soft paper swish ending in a faint tick | A new table-talk message from the opponent arrived after history loaded
+clock-warning.opus | clockWarning | A single mechanical chess clock tick followed by a short muted wooden click | Once per game view when my move clock first shows under one hour (GameController.tickClock)
+game-win.opus | win | A warm rising three-note brass and clarinet phrase resolving into a bright sustained major chord | Game-over card opens and I won (showGameOver / LocalGame.finish)
+game-lose.opus | lose | Three slow descending soft piano notes fading quietly into silence | Game-over card opens and I lost
+game-draw.opus | draw | Two soft equal piano notes held together, a neutral suspended chord fading slowly | Game-over card opens on a draw

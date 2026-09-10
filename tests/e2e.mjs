@@ -28,7 +28,7 @@ const MIME = {
   '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml',
   '.png': 'image/png', '.ico': 'image/x-icon', '.wav': 'audio/wav',
   '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.glb': 'model/gltf-binary',
-  '.woff2': 'font/woff2', '.ts': 'video/mp2t',
+  '.woff2': 'font/woff2', '.ts': 'video/mp2t', '.opus': 'audio/ogg', '.webp': 'image/webp',
 };
 
 const server = http.createServer(async (req, res) => {
@@ -44,7 +44,8 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(404); res.end('not found');
   }
 });
-await new Promise((r) => server.listen(0, '127.0.0.1', r));
+// PORT picks the listening port (an assigned dev port); unset = ephemeral.
+await new Promise((r) => server.listen(Number(process.env.PORT) || 0, '127.0.0.1', r));
 const BASE = `http://127.0.0.1:${server.address().port}`;
 
 // Same benign-noise filter as tools/production_game_audit.mjs

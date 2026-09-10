@@ -920,6 +920,7 @@ if (typeof require === 'function' && typeof process !== 'undefined' &&
       '.glb': 'model/gltf-binary',
       '.wasm': 'application/wasm',
       '.opus': 'audio/ogg',
+      '.webp': 'image/webp',
     };
     http.createServer(function (req, res) {
       var pathname;

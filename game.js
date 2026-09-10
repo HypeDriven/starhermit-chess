@@ -109,7 +109,7 @@ class GameController {
   }
 
   onFrame(msg) {
-    if (msg.type === 'error') { UI.toast(msg.error || 'Command rejected.', 'err'); return; }
+    if (msg.type === 'error') { Sfx.play('illegal'); UI.toast(msg.error || 'Command rejected.', 'err'); return; }
     if (msg.type === 'presence') {
       if (msg.userId === this.oppId) {
         this.oppOnline = !!msg.online;
@@ -128,7 +128,7 @@ class GameController {
         break;
       case 'draw-offered':
         if (this.view) { this.view.drawOfferBy = d.by; this.render(); }
-        if (d.by !== this.myColor) UI.toast(this.nameOf(this.oppId) + ' offers a draw.');
+        if (d.by !== this.myColor) { Sfx.play('drawOffer'); UI.toast(this.nameOf(this.oppId) + ' offers a draw.'); }
         break;
       case 'draw-declined':
         if (this.view) { this.view.drawOfferBy = null; this.render(); }
@@ -142,6 +142,9 @@ class GameController {
 
   // ------------------------------------------------------------- state/render
   setView(v) {
+    // a view that carries one more move than the last one is a move landing
+    const prevMoves = this.view && this.view.moves ? this.view.moves.length : -1;
+    if (prevMoves >= 0 && v.moves && v.moves.length > prevMoves) Sfx.forMove(v.moves[v.moves.length - 1].san);
     this.view = v;
     this.g = replayMoves(v.moves);
     this.myColor = v.white === Net.userId ? 'white' : (v.black === Net.userId ? 'black' : null);
@@ -263,6 +266,8 @@ class GameController {
     clockEl.classList.toggle('urgent', urgent);
     fuse.style.width = Math.max(0, Math.min(100, (left / 86400000) * 100)) + '%';
     fuse.classList.toggle('urgent', urgent);
+    // one warning per game view when my own clock first drops under an hour
+    if (urgent && v.turn === this.myColor && !this._clockWarned) { this._clockWarned = true; Sfx.play('clockWarning'); }
   }
 
   // ------------------------------------------------------------- interaction
@@ -284,6 +289,7 @@ class GameController {
     if (v.board[i] !== '.' && R().pieceColor(v.board[i]) === this.myColor && i !== this.selected) {
       this.selected = i;
       this.cands = R().legalMovesFrom(this.g, i);
+      Sfx.play('select');
     } else {
       this.selected = null;
       this.cands = [];
@@ -328,6 +334,7 @@ class GameController {
     $('go-reason').textContent = reasons[result.reason] || result.reason || '';
     $('go-elo').textContent = '';
     $('game-over').hidden = false;
+    Sfx.forResult(result.kind, this.myColor);
     this.tickClock();
     // fresh elo after the platform applies the result
     try {
@@ -360,6 +367,7 @@ class GameController {
       const j = await Net.api(`/api/v1/chat/conversations/${this.chat.convId}/messages?page=1&pageSize=50`);
       const arr = Array.isArray(j) ? j : (j && (j.messages || j.items || j.entries)) || [];
       for (const raw of arr) this.addChatMsg(normMsg(raw), false);
+      this.chat.primed = true;   // history is in; anything new from here on is live
       this.renderChat();
     } catch (e) { /* silent; polling may pick it up */ }
   }
@@ -412,6 +420,7 @@ class GameController {
     if (this.chat.seen.has(key)) return false;
     this.chat.seen.add(key);
     this.chat.msgs.push(m);
+    if (this.chat.primed && m.senderId && m.senderId !== Net.userId) Sfx.play('chat');
     if (sort !== false) this.chat.msgs.sort((a, b) => (a.at || 0) - (b.at || 0));
     return true;
   }

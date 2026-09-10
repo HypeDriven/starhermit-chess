@@ -1,0 +1,16 @@
+[
+  { "name": "piece-select",  "seconds": 1, "event": "select",       "prompt": "A single wooden chess piece lifted off a wooden chessboard, one light dry tap with a faint short slide, close and quiet." },
+  { "name": "piece-move",    "seconds": 1, "event": "move",         "prompt": "A wooden chess piece set down gently on a wooden chessboard, one soft solid knock with a short warm wood resonance." },
+  { "name": "piece-capture", "seconds": 1, "event": "capture",      "prompt": "A wooden chess piece knocking another piece off a wooden board, a firm double clack of wood on wood with a small tumble." },
+  { "name": "piece-castle",  "seconds": 2, "event": "castle",       "prompt": "Two wooden chess pieces set down in quick succession on a wooden chessboard, two soft knocks a beat apart." },
+  { "name": "check-bell",    "seconds": 2, "event": "check",        "prompt": "A single small brass bell struck once, a clear short ting with a gentle decaying ring in a quiet room." },
+  { "name": "promote-chime", "seconds": 2, "event": "promote",      "prompt": "A short bright ascending glockenspiel triplet ending on a sustained high note with a soft shimmer tail." },
+  { "name": "illegal-knock", "seconds": 1, "event": "illegal",      "prompt": "A dull muted knuckle knock on a wooden tabletop, two quick damped taps, refused and flat." },
+  { "name": "match-found",   "seconds": 2, "event": "matchFound",   "prompt": "A small hotel desk bell struck once, bright and inviting, ringing out in a quiet carpeted room." },
+  { "name": "draw-offer",    "seconds": 1, "event": "drawOffer",    "prompt": "Two light polite fingertip taps on a polished wooden table, close and soft." },
+  { "name": "chat-note",     "seconds": 1, "event": "chat",         "prompt": "A folded paper note slid quickly across a wooden table, a soft short paper swish ending in a faint tick." },
+  { "name": "clock-warning", "seconds": 2, "event": "clockWarning", "prompt": "A single mechanical chess clock tick followed by a short muted wooden click, in a silent room." },
+  { "name": "game-win",      "seconds": 3, "event": "win",          "prompt": "A warm rising three-note phrase on soft brass and clarinet resolving into a bright sustained major chord with quiet room reverb." },
+  { "name": "game-lose",     "seconds": 3, "event": "lose",         "prompt": "Three slow descending soft piano notes fading quietly into silence, gentle and dignified." },
+  { "name": "game-draw",     "seconds": 3, "event": "draw",         "prompt": "Two soft equal piano notes played together and held, a neutral suspended chord fading slowly." }
+]

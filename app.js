@@ -20,6 +20,8 @@ const App = {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     $('view-' + name).classList.add('active');
     this.currentView = name;
+    const art = $('auth-art');
+    if (art) art.hidden = name !== 'auth' || !!art.dataset.failed;
   },
 
   isHal(player) {
@@ -261,6 +263,7 @@ const App = {
       const r = await Net.api(Net.gamePath('/matchmaking'), { method: 'POST' });
       if (r.status === 'matched' && r.sessionId) {
         this.forgetMatchmaking();
+        Sfx.play('matchFound');
         this.openGame(r.sessionId);
         return;
       }
@@ -282,6 +285,7 @@ const App = {
         this.stopMatchmakingUi(false);
         this.forgetMatchmaking();
         UI.toast('Opponent found — good luck.', 'ok');
+        Sfx.play('matchFound');
         this.openGame(r.sessionId);
       }
     } catch (e) {
@@ -641,7 +645,9 @@ const App = {
   replayStep(delta) {
     const rp = this.replay;
     if (!rp) return;
+    const prev = rp.idx;
     rp.idx = Math.max(0, Math.min(rp.states.length - 1, rp.idx + delta));
+    if (rp.idx > prev) Sfx.forMove(rp.data.moves[rp.idx - 1].san);   // stepping forward sounds the move
     this.renderReplay();
   },
 };

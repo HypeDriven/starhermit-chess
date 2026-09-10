@@ -51,6 +51,11 @@ configuration.
   deployment, and `local.js` runs an offline practice game against hal with no
   sign-in at all. The board is playable with the mouse, by touch, and from the
   keyboard (arrow keys move between squares, Enter or Space plays one).
+- `audio.js`, `sfx/` — sound effects: one Opus clip per game event, bound
+  through `sfx/manifest.json`; `sfx/manifest.txt` is the canonical table. The
+  top-bar Sound button mutes them.
+- `assets/key-art.webp`, `coverart.png` — landing-screen backdrop and library
+  cover tile.
 - `tests/` — dev-only checks, not shipped with the game: `npm run test:rules`
   exercises `server.js` (perft, SAN, draws, the platform entry points) and
   `npm run test:e2e` drives the real UI in headless Chrome. `npm test` runs both.

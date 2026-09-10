@@ -106,6 +106,7 @@ class LocalGame {
     if (this.g.board[i] !== '.' && R().pieceColor(this.g.board[i]) === this.myColor && i !== this.selected) {
       this.selected = i;
       this.cands = R().legalMovesFrom(this.g, i);
+      Sfx.play('select');
     } else {
       this.selected = null;
       this.cands = [];
@@ -119,11 +120,13 @@ class LocalGame {
     this.selected = null;
     this.cands = [];
     if (!res.ok) {
+      Sfx.play('illegal');
       UI.toast(res.error || 'Illegal move.', 'err');
       this.render();
       return;
     }
     this.moves.push({ from: req.from, to: req.to, promo: promo || undefined, san: res.san, at: Date.now() });
+    Sfx.forMove(res.san);
     this.render();
     if (res.gameOver) { this.finish(res.gameOver); return; }
     this.scheduleAi();
@@ -148,6 +151,7 @@ class LocalGame {
     const res = R().makeMove(this.g, req, Date.now());
     if (!res.ok) return; // unreachable for a legal pick
     this.moves.push({ from: req.from, to: req.to, promo: req.promo, san: res.san, at: Date.now() });
+    Sfx.forMove(res.san);
     this.render();
     if (res.gameOver) this.finish(res.gameOver);
   }
@@ -189,6 +193,7 @@ class LocalGame {
     $('go-reason').textContent = reasons[gameOver.reason] || gameOver.reason || '';
     $('go-elo').textContent = '';
     $('game-over').hidden = false;
+    Sfx.forResult(gameOver.kind, this.myColor);
   }
 
   destroy() {
