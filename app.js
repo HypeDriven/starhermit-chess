@@ -655,6 +655,7 @@ const App = {
 // ---------------------------------------------------------------- wiring
 $('auth-go').addEventListener('click', () => App.authSubmit());
 $('btn-play-local').addEventListener('click', () => App.playLocal());
+$('btn-practice').addEventListener('click', () => App.playLocal());
 $('btn-play').addEventListener('click', () => App.startMatchmaking());
 $('mm-cancel').addEventListener('click', () => App.cancelMatchmaking());
 $('btn-play-ai').addEventListener('click', () => App.playAi());

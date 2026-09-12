@@ -162,7 +162,7 @@ legality and game end is the same `chessRules`.
 
 | Mode | Entry | What differs |
 |---|---|---|
-| Offline practice vs hal | Landing screen → **Play** (no sign-in) | `LocalGame`; unrated; no clock; no chat/voice/replay; "Back to the club" returns to the landing screen |
+| Offline practice vs hal | Landing screen → **Play** (no sign-in), or Club → **Practice vs hal** | `LocalGame`; unrated; no clock; no chat/voice/replay; "Back to the club" returns to the landing screen |
 | Rated matchmaking | Club → **Play** | `POST /matchmaking`; nearest-Elo pairing; polled every 3 s; after 30 s in the queue a **Play against hal** button appears (the 30 s belong to the ticket, and survive a reload) |
 | Rated game vs hal | Matchmaking → **Play against hal** | `POST /sessions/ai`; server-side hal; 24 h clock applies; hal's own Elo is shown on its seat; chat disabled, voice panel hidden |
 | Friend invite | Club → **Invite a friend** | Picker of platform friends (profile nickname + avatar); accepting creates the session immediately |
@@ -221,7 +221,7 @@ in `sessionStorage` also skips it.
 **Landing (auth).** Key art fills the viewport behind a 460 px card: "Take a seat", the Play button
 and hint, a divider, then the developer fields (user JWT, game slug, API base) and "Enter the club".
 
-**Club (menu).** Desktop: two columns, `minmax(0,1fr) 320px`. Main: Play row, "My games" (n of 20
+**Club (menu).** Desktop: two columns, `minmax(0,1fr) 320px`. Main: Play row (rated **Play** plus an unrated **Practice vs hal** entry), "My games" (n of 20
 seats), "Invitations" (Share invite link, Invite a friend). Side: "My rating", "Friends table",
 "Recent games". The starfield canvas sits behind everything at z-index 0.
 
@@ -238,6 +238,9 @@ stepping controls and the clickable scoresheet ("12 / 37" ply counter).
 `min(100%, 92vw, max(300px, 100dvh − 230px))` so a landscape phone still fits the board plus the
 action row; scoresheet capped at 200 px; inputs 16 px to stop iOS zoom; modal body 55dvh. ≤ 600 px:
 top bar padding honours `env(safe-area-inset-top)`, the Play row stacks and the button goes full width.
+Short landscape (≤ 500 px tall): the board column becomes two columns — the board on the left
+(`min(100dvh − 82px, 58vw)`), seats, clock, draw banner and the 44 px action row stacked beside it —
+so no scrolling is needed between a move and the actions.
 `pointer: coarse` grows buttons, sheet rows (34 px) and cards. Portrait phones get a 120-piece
 starfield instead of 210.
 

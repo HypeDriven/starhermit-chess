@@ -170,6 +170,7 @@ button { font: inherit; }
 .menu-main { min-width: 0; }
 
 .play-row { display: flex; align-items: center; margin-bottom: 20px; min-height: 52px; }
+#btn-practice { margin-left: auto; }
 #play-idle, #play-searching { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .play-hint { color: var(--faint); font-size: 13px; }
 .searching { color: var(--muted); font-family: var(--serif); font-style: italic; margin-right: 14px; }
@@ -466,4 +467,27 @@ table.lb tr.me td { color: var(--brass-hi); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* short landscape phones: board on the left, seats/clock/actions in a column
+   beside it so nothing needs scrolling between a move and the actions */
+@media (max-height: 500px) and (orientation: landscape) {
+  .topbar { padding: max(4px, env(safe-area-inset-top)) 12px 4px; min-height: 0; }
+  .view { padding: 6px 10px; }
+  .game-grid { grid-template-columns: 1fr; gap: 8px; }
+  .board-col {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "board top" "board bottom" "board clock" "board banner" "board actions";
+    grid-template-rows: auto auto auto auto 1fr;
+    column-gap: 12px; row-gap: 6px; align-items: start;
+  }
+  .board-wrap { grid-area: board; width: min(calc(100dvh - 82px), 58vw); margin: 0; }
+  .seat-top { grid-area: top; }
+  .seat-bottom { grid-area: bottom; }
+  .clock-card { grid-area: clock; }
+  #draw-banner { grid-area: banner; }
+  .game-actions { grid-area: actions; flex-wrap: wrap; align-self: end; }
+  .seat, .clock-card, .banner, .game-actions { width: auto; margin: 0; }
+  .game-actions .btn { min-height: 44px; }
 }

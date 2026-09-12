@@ -237,7 +237,8 @@ async function runPass(label, contextOpts, movePairs) {
 try {
   await runPass('desktop', { viewport: { width: 1280, height: 800 } }, 4);
   await runPass('mobile', { viewport: { width: 390, height: 844 }, hasTouch: true }, 2);
-  console.log('\nE2E PASS — both viewport passes clean, no page errors');
+  await runPass('landscape', { viewport: { width: 844, height: 361 }, hasTouch: true }, 1);
+  console.log('\nE2E PASS — all viewport passes clean, no page errors');
 } finally {
   await browser.close();
   server.close();
