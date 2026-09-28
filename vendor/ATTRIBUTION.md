@@ -1,10 +1,17 @@
 # Third-party assets & libraries
 
-## three.js (vendor/three.module.min.js, three.core.min.js, loaders/, utils/)
+## three.js (vendor/three.module.min.js, three.core.min.js, loaders/, utils/, addons/)
 
 [three.js](https://threejs.org/) — MIT license, Copyright 2010-2025 Three.js Authors.
-The build (r176dev) and the `GLTFLoader` / `BufferGeometryUtils` addons were taken
-from the vendored copy in [mrabhin03/3D-Chess-Game](https://github.com/mrabhin03/3D-Chess-Game).
+Everything is from the npm release `three@0.176.0` (r176): `build/three.module.min.js`,
+`build/three.core.min.js`, and from `examples/jsm/` the `GLTFLoader` / `BufferGeometryUtils`
+addons plus, under `addons/`, the post-processing passes (`EffectComposer`, `RenderPass`,
+`ShaderPass`, `OutputPass`, `UnrealBloomPass`, `SMAAPass`, `Pass`, `MaskPass`), the shaders
+they import (`CopyShader`, `FXAAShader`, `OutputShader`, `LuminosityHighPassShader`,
+`SMAAShader`) and `environments/RoomEnvironment`. The loaders were originally taken from
+[mrabhin03/3D-Chess-Game](https://github.com/mrabhin03/3D-Chess-Game)'s r176dev copy; they are
+byte-identical to the 0.176.0 release, and the core build was replaced with the release so no
+two revisions are mixed.
 
 ## Chess piece models (assets/chess-pieces.glb)
 

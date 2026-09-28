@@ -491,3 +491,127 @@ table.lb tr.me td { color: var(--brass-hi); }
   .seat, .clock-card, .banner, .game-actions { width: auto; margin: 0; }
   .game-actions .btn { min-height: 44px; }
 }
+
+/* =========================================================================
+   Graphics › Board and room detail (html[data-gfx-detail="detailed"], set by
+   graphics.js). Plain keeps the flat look above. Everything here is paint only:
+   no layout changes, and every overlay is pointer-events: none, low alpha, and
+   sits under the selection/dest/check markers so the board reads the same.
+   ========================================================================= */
+.room-glow {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; display: none;
+  background:
+    radial-gradient(ellipse 60% 45% at 50% -6%, rgba(226, 193, 126, 0.13), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.35) 100%);
+  animation: lamp-breathe 7s ease-in-out infinite alternate;
+}
+[data-gfx-detail="detailed"] .room-glow { display: block; }
+/* the menu has its own lamp in the 3D backdrop */
+[data-gfx-detail="detailed"] body:has(#view-menu.active) .room-glow { display: none; }
+@keyframes lamp-breathe { from { opacity: 0.82; } to { opacity: 1; } }
+
+/* walnut frame with a brass hairline, lifted off the table */
+[data-gfx-detail="detailed"] .board {
+  position: relative;
+  border-color: transparent;
+  background: linear-gradient(135deg, #3b2918 0%, #21160d 45%, #342415 70%, #1d130b 100%) border-box, #241a11;
+  box-shadow:
+    0 0 0 1px rgba(200, 163, 95, 0.35),
+    0 2px 0 1px rgba(0, 0, 0, 0.5),
+    0 18px 40px rgba(0, 0, 0, 0.55),
+    0 4px 10px rgba(0, 0, 0, 0.35);
+}
+/* lamp sheen and a soft inner shadow under the frame lip */
+[data-gfx-detail="detailed"] .board::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 3;
+  background: radial-gradient(ellipse 80% 70% at 28% 12%, rgba(255, 240, 210, 0.10), transparent 65%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), inset 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+/* fine wood grain: light squares run one way, dark squares the other, as on an inlaid board */
+[data-gfx-detail="detailed"] .sq.l {
+  background-image:
+    linear-gradient(180deg, rgba(255, 250, 235, 0.10), rgba(90, 60, 30, 0.06)),
+    repeating-linear-gradient(92deg, rgba(120, 82, 44, 0) 0 5px, rgba(120, 82, 44, 0.07) 5px 6px, rgba(120, 82, 44, 0) 6px 11px, rgba(120, 82, 44, 0.04) 11px 13px);
+}
+[data-gfx-detail="detailed"] .sq.d {
+  background-image:
+    linear-gradient(180deg, rgba(255, 230, 190, 0.07), rgba(20, 10, 4, 0.10)),
+    repeating-linear-gradient(2deg, rgba(30, 16, 6, 0) 0 4px, rgba(30, 16, 6, 0.12) 4px 5px, rgba(30, 16, 6, 0) 5px 9px, rgba(255, 220, 170, 0.05) 9px 10px);
+}
+[data-gfx-detail="detailed"] .sq:nth-child(3n) { background-position: 0 3px, 4px 0; }
+[data-gfx-detail="detailed"] .sq:nth-child(5n) { background-position: 0 -2px, -3px 0; }
+/* keep the check glow on top of the grain */
+[data-gfx-detail="detailed"] .sq.chk {
+  background-image: radial-gradient(circle, rgba(201, 103, 79, 0.85) 0%, rgba(201, 103, 79, 0.35) 70%, transparent 100%);
+}
+/* pieces cast a soft second shadow toward the viewer, away from the lamp */
+[data-gfx-detail="detailed"] .pc.w { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45)) drop-shadow(1px 3px 3px rgba(0, 0, 0, 0.28)); }
+[data-gfx-detail="detailed"] .pc.b { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)) drop-shadow(1px 3px 3px rgba(0, 0, 0, 0.3)); }
+/* paper cards: a faint top highlight and a soft lift */
+[data-gfx-detail="detailed"] .panel,
+[data-gfx-detail="detailed"] .clock-card {
+  box-shadow: inset 0 1px 0 rgba(236, 225, 204, 0.045), 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+
+/* ---------------- settings panel ---------------- */
+.settings { align-items: center; }
+.settings-card {
+  max-width: 480px;
+  max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px);
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: 16px 18px;
+}
+.settings-card p { font-family: var(--sans); font-size: 13px; margin: 0; }
+.settings-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.settings-head h2 { font-size: 20px; }
+.settings-section h3 {
+  font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brass);
+  margin: 10px 0 4px; font-family: var(--serif);
+}
+.settings-card .settings-hint { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+.set-grid { display: grid; gap: 8px; }
+.set-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; gap: 12px;
+  padding: 4px 0; border-bottom: 1px solid var(--line-soft);
+}
+.set-label { font-size: 14px; color: var(--ink); }
+.set-select {
+  width: 100%; min-height: 34px; padding: 5px 8px;
+  background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius);
+  font: inherit; font-size: 14px;
+}
+.set-select:hover { border-color: var(--brass); }
+.set-range { display: flex; align-items: center; gap: 10px; }
+.set-range input { flex: 1; min-width: 0; accent-color: var(--brass); }
+.set-range output { min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 14px; }
+.set-check { justify-self: start; width: 20px; height: 20px; accent-color: var(--brass); }
+.settings-card .settings-summary {
+  margin: 12px 0 0; font-size: 12.5px; color: var(--muted);
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+.settings-card .settings-note { margin: 8px 0 0; font-size: 13px; color: var(--danger); }
+
+/* top-bar Settings button: gear + label; the label hides on phones (aria-label keeps the name) */
+#btn-settings { display: inline-flex; align-items: center; gap: 6px; }
+#btn-settings .ico { width: 16px; height: 16px; flex: none; }
+.topbar-right .btn { white-space: nowrap; }
+
+.fps-meter {
+  position: fixed; right: 10px; bottom: 10px; z-index: 60; pointer-events: none;
+  padding: 3px 8px; border-radius: 4px; background: rgba(10, 8, 6, 0.7); border: 1px solid var(--line);
+  color: var(--brass); font: 12px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@media (max-width: 600px) {
+  .settings { padding: 10px; }
+  .set-row { grid-template-columns: 1fr; gap: 4px; }
+  .set-row.set-toggle { grid-template-columns: 1fr auto; }
+  #btn-settings .btn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  #btn-settings .ico { width: 18px; height: 18px; }
+  .set-select { min-height: 40px; font-size: 16px; }
+  .set-check { width: 24px; height: 24px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .settings { padding: 8px; }
+  .settings-card { max-height: calc(100dvh - 16px); }
+}

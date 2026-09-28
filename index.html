@@ -17,6 +17,8 @@
 <!-- 3D chess-piece starfield behind the main menu (see starfield.js) -->
 <canvas id="starfield" class="starfield" aria-hidden="true" hidden></canvas>
 <!-- key art behind the landing screen (assets/key-art.webp); hidden if it fails to load -->
+<!-- warm lamp-light pool over the room (Graphics › Board and room detail) -->
+<div class="room-glow" aria-hidden="true"></div>
 <img id="auth-art" class="auth-art" src="assets/key-art.webp" alt="" aria-hidden="true" onerror="this.hidden=true;this.dataset.failed=1">
 
 <header class="topbar">
@@ -24,6 +26,7 @@
   <div class="topbar-right">
     <span id="top-elo" class="elo-chip" hidden></span>
     <button id="btn-sound" class="btn btn-small" type="button" aria-pressed="true" title="Toggle sound effects">Sound on</button>
+    <button id="btn-settings" class="btn btn-small" type="button" aria-haspopup="dialog" aria-controls="settings" aria-expanded="false" hidden><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="3.2" stroke-dasharray="3.2 3.24"/><circle cx="12" cy="12" r="5.4" fill="none" stroke="currentColor" stroke-width="2.2"/></svg><span class="btn-label">Settings</span></button>
   </div>
 </header>
 
@@ -225,6 +228,23 @@
   </div>
 </div>
 
+<!-- Settings panel (settings.js builds the Graphics controls from gfx.js) -->
+<div id="settings" class="modal settings" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
+  <div class="modal-card settings-card">
+    <div class="settings-head">
+      <h2 id="settings-title">Settings</h2>
+      <button id="settings-close" class="btn btn-small" type="button">Close</button>
+    </div>
+    <section class="settings-section" aria-labelledby="settings-graphics-title" data-settings-section="graphics">
+      <h3 id="settings-graphics-title">Graphics</h3>
+      <p id="settings-hint" class="settings-hint"></p>
+      <div id="settings-graphics-body" class="set-grid"></div>
+      <p id="gfx-summary" class="settings-summary" aria-live="polite"></p>
+      <p id="gfx-post-note" class="settings-note" hidden></p>
+    </section>
+  </div>
+</div>
+
 <script src="server.js"></script>
 <script src="net.js"></script>
 <script src="ui.js"></script>
@@ -232,7 +252,8 @@
 <script src="game.js"></script>
 <script src="local.js"></script>
 <script src="app.js"></script>
-<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/addons/" } }</script>
+<script type="module" src="settings.js"></script>
 <script type="module" src="starfield.js"></script>
 </body>
 </html>

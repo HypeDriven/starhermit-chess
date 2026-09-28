@@ -136,13 +136,84 @@ async function playOneMoveByKeyboard(page) {
   await page.waitForFunction((n) => App.game.moves.length > n, plies, { timeout: 5000 });
 }
 
+/** Graphics settings through the visible panel: presets, an override, persistence across a
+ *  reload, the panel fitting the viewport, and the menu starfield at Ultra and Low. The menu
+ *  needs a platform sign-in, so the starfield is shown with App.showView('menu') (no API calls). */
+async function graphicsPass(page, label) {
+  const attr = (name) => page.evaluate((n) => document.documentElement.dataset[n], name);
+  const openPanel = async () => {
+    await page.click('#btn-settings');
+    await page.waitForSelector('#settings:not([hidden])');
+    const box = await page.locator('.settings-card').boundingBox();
+    const vp = page.viewportSize();
+    if (!box || box.x < 0 || box.y < 0 || box.x + box.width > vp.width + 0.5 || box.y + box.height > vp.height + 0.5)
+      throw new Error(`settings panel does not fit the ${vp.width}x${vp.height} viewport: ${JSON.stringify(box)}`);
+  };
+  const closePanel = async () => {
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('#settings', { state: 'hidden' });
+  };
+
+  // headless Chrome uses SwiftShader, so Auto must resolve to Low
+  if (await attr('gfxPreset') !== 'low' || await attr('gfxAuto') !== '1') throw new Error('Auto should resolve to Low on a software GPU');
+  await openPanel();
+  const autoLabel = await page.locator('#gfx-preset option[value="auto"]').textContent();
+  if (!/Low/.test(autoLabel)) throw new Error(`auto option should name the detected tier, got "${autoLabel}"`);
+
+  await page.selectOption('#gfx-preset', 'low');
+  await page.waitForFunction(() => document.documentElement.dataset.gfxPreset === 'low' && document.documentElement.dataset.gfxAuto === '0');
+  await page.selectOption('#gfx-preset', 'high');
+  await page.waitForFunction(() => document.documentElement.dataset.gfxPreset === 'high' && document.documentElement.dataset.gfxDetail === 'detailed');
+  if (!/bloom/.test(await page.textContent('#gfx-summary'))) throw new Error('High summary should list bloom');
+  const fromPreset = await page.locator('#gfx-cat-bloom option[value="preset"]').textContent();
+  if (!/On/.test(fromPreset)) throw new Error(`bloom "From preset" label should say On, got "${fromPreset}"`);
+  // one override: bloom off
+  await page.selectOption('#gfx-cat-bloom', 'off');
+  await page.waitForFunction(() => !/bloom/.test(document.getElementById('gfx-summary').textContent));
+  await page.screenshot({ path: SHOT('graphics-panel', label) });
+  await closePanel();
+
+  // survives a reload
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForSelector('#view-auth.active');
+  if (await attr('gfxPreset') !== 'high') throw new Error('High preset did not survive the reload');
+  await openPanel();
+  if (await page.inputValue('#gfx-preset') !== 'high') throw new Error('preset select lost High after reload');
+  if (await page.inputValue('#gfx-cat-bloom') !== 'off') throw new Error('bloom override lost after reload');
+  // choosing a preset clears overrides
+  await page.selectOption('#gfx-preset', 'ultra');
+  await page.waitForFunction(() => document.documentElement.dataset.gfxPreset === 'ultra');
+  if (await page.inputValue('#gfx-cat-bloom') !== 'preset') throw new Error('choosing a preset should clear overrides');
+  await closePanel();
+
+  // the menu starfield renders at Ultra, then drops to Low live (canvas swap for MSAA)
+  await page.evaluate(() => App.showView('menu'));
+  await page.waitForSelector('#starfield[data-gfx-preset="ultra"]:not([hidden])', { timeout: 20000 });
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: SHOT('menu-ultra', label) });
+  await openPanel();
+  await page.selectOption('#gfx-preset', 'low');
+  await page.waitForSelector('#starfield[data-gfx-preset="low"]:not([hidden])', { timeout: 10000 });
+  await page.waitForTimeout(600);
+  await closePanel();
+
+  // back to Auto (Low here) for the rest of the pass
+  await openPanel();
+  await page.selectOption('#gfx-preset', 'auto');
+  await page.waitForFunction(() => document.documentElement.dataset.gfxAuto === '1');
+  await closePanel();
+  await page.evaluate(() => App.showView('auth'));
+  await page.waitForSelector('#starfield', { state: 'hidden' });
+}
+
 async function runPass(label, contextOpts, movePairs) {
   const context = await browser.newContext(contextOpts);
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   page.on('console', (m) => {
-    if (m.type() === 'error' && !browserNoise.test(m.text())) errors.push(`console: ${m.text()}`);
+    if ((m.type() === 'error' || m.type() === 'warning') && !browserNoise.test(m.text()))
+      errors.push(`console ${m.type()}: ${m.text()}`);
   });
 
   const step = async (name, fn) => {
@@ -157,6 +228,10 @@ async function runPass(label, contextOpts, movePairs) {
       await page.waitForSelector('#btn-play-local:visible');
       await page.screenshot({ path: SHOT('auth', label) });
     });
+
+    if (label !== 'landscape') {
+      await step('graphics settings: presets, override, reload, starfield', () => graphicsPass(page, label));
+    }
 
     await step('start offline practice vs hal', async () => {
       await page.click('#btn-play-local');

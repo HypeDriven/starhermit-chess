@@ -16,7 +16,7 @@ needs no sign-in at all.
 | Players | 2 per game (human vs human, or human vs the server AI **hal**); up to 20 concurrent games per player |
 | Session length | Offline practice: 5–15 minutes. Online: one move per sitting, a game spans days to weeks (24 h per move) |
 | Platforms | Desktop and mobile browsers; launched from the StarHermit client or served at `<uid>.starhermit.com` |
-| Rendering | DOM/CSS grid board, inline-SVG pieces (`UI.PIECE`). Three.js is used only for the main-menu backdrop |
+| Rendering | DOM/CSS grid board, inline-SVG pieces (`UI.PIECE`). Three.js is used only for the main-menu backdrop; quality presets and a Graphics settings panel (§8 Graphics) |
 | Build | None. Static files, no bundler, no framework |
 
 **File map.**
@@ -32,13 +32,16 @@ needs no sign-in at all.
 | `ui.js` | DOM helpers, toasts, modal, SVG pieces, board renderer with keyboard navigation, scoresheet, 1 s ticker |
 | `net.js` | Token lifecycle, REST and WebSocket plumbing, slug from the launch token's `game_scope` |
 | `audio.js` | `Sfx`: clip-per-event sound effects from `sfx/manifest.json`, mute toggle |
-| `starfield.js` | Menu backdrop: drifting instanced 3D chess pieces (three.js, lazy-loaded, WebGL optional) |
+| `starfield.js` | Menu backdrop: drifting instanced 3D chess pieces (three.js, lazy-loaded, WebGL optional), its lighting, dust motes and post-processing chain |
+| `gfx.js` | Pure graphics quality model: presets, categories, `detectPreset`, `resolve`, `presetTier`, `withPreset`, `describe` |
+| `graphics.js` | Live graphics settings store: GPU detection, `chess.graphics` persistence, `data-gfx-*` attributes on `<html>`, frame-rate readout, subscribers |
+| `settings.js` | The Settings panel (top-bar gear button) and its Graphics section; its strings in the nine target locales |
 | `style.css` | The whole look: palette tokens, board, panels, responsive rules |
 | `assets/` | `key-art.webp` (landing backdrop), `chess-pieces.glb` (starfield geometry) |
 | `sfx/` | 14 Opus clips, `manifest.txt` (canonical table), `manifest.json` (generator binding), `manifest.md` (generated) |
 | `coverart.png`, `icon.png`, `favicon.svg` | Library tile, favicon/wordmark mark |
-| `vendor/` | three.js r176dev build, `GLTFLoader`, `BufferGeometryUtils` (MIT, `vendor/ATTRIBUTION.md`) |
-| `tests/` | `rules.mjs` (rules + script entry points), `e2e.mjs` (headless Chrome playthrough). Dev only, never shipped |
+| `vendor/` | three.js r176 (`three@0.176.0`) build, `GLTFLoader`, `BufferGeometryUtils`, and `addons/` (post-processing passes, their shaders, `RoomEnvironment`) of the same release, imported as `three/addons/…` (MIT, `vendor/ATTRIBUTION.md`) |
+| `tests/` | `gfx.test.mjs` (quality model, `node --test`), `rules.mjs` (rules + script entry points), `e2e.mjs` (headless Chrome playthrough). Dev only, never shipped |
 | `API.md`, `README.md` | The platform contract the client speaks; repo readme |
 
 ## 2. Vision and design pillars
@@ -190,6 +193,7 @@ friends-only top-10 table.
 | Voice | **Enable voice**, **Mute** | Same | Microphone permission prompt; hidden against hal |
 | Replay | ◀ ▶ ⏮ ⏭ buttons, ← → Home End keys, click a move on the sheet | Tap | Forward steps sound the move |
 | Sound | **Sound on/off** in the top bar | Same | Mutes all effects; remembered in `localStorage` |
+| Settings | Gear **Settings** button in the top bar (every screen); Escape, **Close** or a backdrop click closes | Same (icon only under 600 px) | Graphics section, §8; Tab stays inside the panel; focus returns to where it was |
 
 **Input locking.** Square clicks are ignored unless `myTurn()` (active game and my colour to move).
 While the promotion picker or the modal is open, board keys do nothing (the picker captures Escape;
@@ -246,7 +250,8 @@ starfield instead of 210.
 
 **Must never be cut off.** All 64 squares with their coordinates, the clock line, the Resign/Offer
 draw buttons, the promotion picker, the game-over card (max 88 % of the board width), the toast stack
-(bottom 18 px, ≤ 92vw on phones) and the modal buttons.
+(bottom 18 px, ≤ 92vw on phones), the modal buttons and the Settings panel (capped at the
+viewport height minus 32 px, scrolling inside itself; controls stack under their labels below 600 px).
 
 ## 8. Art direction
 
@@ -254,7 +259,7 @@ draw buttons, the promotion picker, the game-over card (max 88 % of the board wi
 
 | Token | Hex | Use |
 |---|---|---|
-| `--bg` | `#171310` | Page, fog colour of the starfield |
+| `--bg` | `#171310` | Page; what the starfield's fog resolves to on screen |
 | `--panel` / `--panel-2` | `#201a15` / `#29211a` | Cards, buttons, scoresheet paper |
 | `--line` / `--line-soft` | `#3a2f24` / `rgba(236,225,204,.10)` | Borders, sheet ruling |
 | `--ink` / `--muted` / `--faint` | `#ece1cc` / `#a4926f` / `#6f6250` | Text hierarchy |
@@ -262,7 +267,7 @@ draw buttons, the promotion picker, the game-over card (max 88 % of the board wi
 | `--sq-l` / `--sq-d` | `#d5bd92` / `#7c5a3e` | Light and dark squares; board frame `#241a11` |
 | White / black pieces | `#f6ecd8` line `#2a1c10` / `#26190f` line `#e7dbc0` | SVG fill and outline |
 | `--ok` / `--danger` | `#8caf78` / `#c9674f` | Presence lamp, rating up; check glow, resign, urgent clock |
-| Starfield materials | ivory `0xd9c9a3`, walnut `0x5a4330`, key light `0xe2c17e` | Three.js |
+| Starfield | ivory `0xd9c9a3` / lacquered `0xd9c59c`, walnut `0x6a4d36` / lacquered `0x573a28`, brass key light `0xffd49a`, cool rim `0x9db2d6`, dust motes warm HDR white | Three.js |
 
 **Shape language.** 6 px radii, 1 px lines, a 6 px board frame, the six pieces drawn on one 45×45
 grid sharing a plinth (`UI.PLINTH`) so they read as one carved set. Cards are flat panels; the only
@@ -275,17 +280,47 @@ small caps.
 
 **Motion.** Border/background transitions 120 ms, toast entry 160 ms, the searching pulse 1.4 s, the
 fuse width eases over 1 s each tick, the starfield drifts pieces toward the camera at 3.9–8.8 units/s
-with a slow tumble. `prefers-reduced-motion` collapses every CSS animation and transition to 0.01 ms.
-The starfield is skipped entirely when WebGL, import maps or the model are unavailable (a console
-note, nothing else).
+with a slow tumble while dust motes rise and twinkle, and the room's lamp glow breathes over 7 s.
+`prefers-reduced-motion` collapses every CSS animation and transition to 0.01 ms and freezes the
+starfield on a single still frame (redrawn on resize or a settings change). The starfield is skipped
+entirely, silently, when WebGL, import maps or the model are unavailable.
+
+**Graphics.** The starfield is tone-mapped (ACES filmic, sRGB output) and lit by a warm hemisphere
+fill, the brass-lamp key light and a cool rim light from behind the field, with a faint pool of lamp
+light far up-left; its fog colour is the inverse-ACES of `--bg`, so distant pieces melt into the page
+colour on every path. Optional effects: reflections (a `RoomEnvironment` PMREM as the scene
+environment, with the pieces switched to clearcoated `MeshPhysicalMaterial` lacquer), dust motes
+(70 or 180 additive HDR points drifting in the lamp light), bloom limited to clearcoat glints and motes
+(threshold 0.9), a colour grade (saturation, warm highlights / cool shadows, mid-tone S-curve) with
+vignette, and FXAA, SMAA or MSAA anti-aliasing. Post-processing (`EffectComposer`: RenderPass → bloom →
+grade → OutputPass → SMAA/FXAA, half-float target, 4× multisampled for MSAA) is built only when an
+effect needs it, and Low draws directly exactly as the pre-upgrade starfield did. The DOM gets
+**Board and room detail**: a walnut board frame with a brass hairline and deeper shadow, a lamp sheen
+and inner shadow over the squares, fine wood grain (crossing directions on light and dark squares), a
+second soft piece shadow, lifted paper cards and a breathing lamp-light glow over the room (off on the
+menu, which has its own). Markers (selection, dots, last move, check glow) and coordinates are
+unchanged and sit above the grain. The top-bar **Settings** panel's **Graphics** section offers a
+quality preset (Auto, chosen from the WebGL unmasked renderer string: software renderers such as
+SwiftShader or llvmpipe get Low, discrete GPUs and Apple M-series get High, others Balanced, and
+touch devices are capped at Balanced; Low; Balanced; High; Ultra), a render scale (50–200 % of the
+preset's; the pixel ratio is min(device ratio, 1.5) × preset scale × adaptive scale), a per-effect
+override for bloom, colour grade, anti-aliasing, reflections, dust motes and board/room detail
+("From preset (…)" by default; choosing a preset clears overrides), adaptive resolution (every
+90 frames: average above 26 ms steps the scale down 0.1 to a floor of 0.6, below 14 ms back up
+0.05), a frame-rate readout (bottom-right, any screen), and a summary "GPU · cost · W×H px". Changes
+apply immediately (switching canvas MSAA swaps in a fresh canvas) and persist in `chess.graphics`; if
+the post chain cannot be built the starfield renders without it and the panel says so. `<html>`
+carries `data-gfx-preset`, `data-gfx-auto` and `data-gfx-detail`, and the canvas `data-gfx-preset`.
+Shadows and ambient occlusion are not offered: the pieces float in a void with nothing to receive them.
 
 **Hero.** The board. Everything else is paper and brass around it; on the landing screen the hero is
 the key art (a lamp-lit board in a club library) that the real board then echoes.
 
 **Visual assets the design calls for.** Landing key art (`assets/key-art.webp`), the cover tile
 (`coverart.png`, the same art with the title), the wordmark mark (`icon.png`, `favicon.svg`), the six
-piece geometries for the starfield (`assets/chess-pieces.glb`). No further textures: squares are flat
-colour by design.
+piece geometries for the starfield (`assets/chess-pieces.glb`). No bitmap textures: the wood grain,
+lamp sheen and glow are CSS gradients, the starfield's sprites are drawn to canvases at load, and Plain
+detail keeps squares flat colour.
 
 ## 9. Audio direction
 
@@ -328,10 +363,17 @@ dynamic copy as literals in `app.js`, `game.js`, `local.js` and `ui.js` (result 
 and times already follow the browser locale (`toLocaleDateString(undefined, …)`,
 `toLocaleTimeString`). Chess notation (SAN, `O-O`) is locale-invariant by design.
 
-The product target is en-US, en-GB, es-419, es-ES, de-DE, fr-FR, fr-CA, pt-BR and it-IT, chosen from
+The one exception is the Settings panel: `settings.js` carries its strings (title, Close, the
+Graphics section, every control label, tier name, summary word and the post-processing note) in all
+nine target locales, picked by `pickLocale(navigator.languages)` (exact tag first, then language:
+`en-GB` for GB/IE/AU/NZ/ZA/IN English, `es-ES` only for Spain, `fr-CA` only for Canada, else en-US,
+es-419, fr-FR, pt-BR, de-DE, it-IT), and sets `lang` on the panel. en-US and en-GB differ in
+"Color"/"Colour grade".
+
+The product target for the whole UI is en-US, en-GB, es-419, es-ES, de-DE, fr-FR, fr-CA, pt-BR and it-IT, chosen from
 `navigator.languages` with a persisted override; German and French strings need ~30 % width
-allowance on buttons ("Offer draw", "Enter the club") and the seat/colour labels. None of this is
-implemented — see [Design intent](#design-intent-not-yet-implemented).
+allowance on buttons ("Offer draw", "Enter the club") and the seat/colour labels. Outside the
+Settings panel none of this is implemented — see [Design intent](#design-intent-not-yet-implemented).
 
 ## 11. Accessibility
 
@@ -394,27 +436,38 @@ random. Offline practice uses `Math.random` and `Date.now()` and is not reproduc
 
 **Persistence.** `sessionStorage`: `chess.gameToken`. `localStorage`: `chess.apiBase`,
 `chess.matchmaking.<slug>.<userId>` (ticket id + queued-at, so the 30 s hal offer survives a reload),
-`chess.muted`. Server-side: per-player document (Elo, record, `lastColorVs` LRU 200,
+`chess.muted`, `chess.graphics` (graphics settings JSON: `preset`, `render_scale`, `adaptive`,
+`show_fps` and any per-category overrides). Server-side: per-player document (Elo, record, `lastColorVs` LRU 200,
 `recentGames` 30) and the session document with its `summary` (turn, deadline, status, move count)
 that the platform reads for the games list.
 
 **Performance budgets.** No build, ~3,000 lines of client JS, one 0.37 MB model and 43 KB of key art.
 The board re-renders 64 nodes with cloned SVG prototypes on every state change (sub-millisecond).
-The starfield caps device pixel ratio at 1.5, uses one `InstancedMesh` per piece type and colour
-(120 or 210 instances), clamps frame delta at 100 ms and stops its loop the moment the menu is not
-the active view. Server invocations stay far under the 250 ms CPU / 32 MB sandbox limits: perft(3)
+The starfield caps the base device pixel ratio at 1.5 (Ultra's 1.34× scale reaches 2), uses one
+`InstancedMesh` per piece type and colour (120 or 210 instances), clamps frame delta at 100 ms, stops
+its loop the moment the menu is not the active view, and adapts its resolution when frames are slow.
+Low costs the same as before the graphics upgrade (direct draw, canvas MSAA, no post, no motes). Server invocations stay far under the 250 ms CPU / 32 MB sandbox limits: perft(3)
 of the full generator runs in the tests in well under a second.
 
 **How the e2e test drives the real UI.** `tests/e2e.mjs` starts its own static server (on `PORT` if
 set, else ephemeral), launches system Chrome via `playwright-core`, and clicks the visible controls:
-`#btn-play-local`, real `.sq` squares (waiting for the `.dest` dot before the second click), the
+`#btn-settings` and the Graphics selects, `#btn-play-local`, real `.sq` squares (waiting for the `.dest` dot before the second click), the
 promotion button, `#btn-draw` and `#btn-resign` through the modal, `#go-menu`. It reads the game
 state only to *choose* a legal move, never to make one. It runs at 1280×800 and again at 390×844 with
-touch, fails on any `pageerror` or console error, and writes screenshots to `/tmp/chess-e2e-*.png`.
+touch (and 844×361 landscape), fails on any `pageerror`, console error or console warning, and writes screenshots to `/tmp/chess-e2e-*.png`.
 
 ## 14. Testing and acceptance criteria
 
-`npm test` = `npm run test:rules` then `npm run test:e2e`.
+`npm test` = `npm run test:unit`, then `npm run test:rules`, then `npm run test:e2e`. The e2e run
+needs a working headless Chrome; on WSL with a stale WSLg display it hangs on the first frame, so run
+it as `env -u DISPLAY -u WAYLAND_DISPLAY npm test` there.
+
+**`tests/gfx.test.mjs`** (`node --test`): `detectPreset` on SwiftShader, llvmpipe, Microsoft Basic
+Render, NVIDIA, Radeon RX, Apple M, Intel UHD, Radeon Graphics, Adreno and empty strings, plus the
+touch cap at Balanced; `resolve` for Auto vs an explicit preset, per-category overrides, invalid values,
+the render-scale clamp (50–200 %), the adaptive/frame-rate defaults and when post-processing is on;
+`withPreset` clears overrides but keeps scale and toggles; every preset defines every category;
+`describe` lists cost and pixels.
 
 **`tests/rules.mjs`** loads `server.js` exactly as the browser does and checks: perft(1..3) =
 20 / 400 / 8902; castling, en passant and promotion play and score as `O-O`, `exd6`, `b8=Q+`; SAN
@@ -425,11 +478,18 @@ mate `Qh4#`, a stalemate, K+N v K insufficient material; a game hal ends still p
 refused without recording anything; colours alternate for a pair; `tickRateHz` and `replays` are
 declared; a one-player session is refused.
 
-**`tests/e2e.mjs`** (desktop then mobile): landing visible → practice game opens with 64 squares,
+**`tests/e2e.mjs`** (desktop, mobile, then landscape): landing visible → (desktop and mobile) the
+Graphics panel: Auto resolves to Low on the software GPU and says so, Low then High set
+`data-gfx-preset` (High also `data-gfx-detail="detailed"`), a bloom override drops "bloom" from the
+summary, the panel fits the viewport, High and the override survive a reload, choosing Ultra clears
+the override, the menu starfield renders at Ultra and switches live to Low, then back to Auto →
+practice game opens with 64 squares,
 opponent "hal", chat disabled → 4 (desktop) / 2 (mobile) move pairs by clicking, scoresheet count
 equals moves → one move played from the keyboard alone with focus preserved across the re-render →
 draw offer opens the modal and hal declines → resign through the modal shows "You lost / by
-resignation" → back to the landing screen. Zero console errors (WebGL driver noise filtered).
+resignation" → back to the landing screen. Zero console errors or warnings (WebGL driver noise
+filtered). The menu is shown with `App.showView('menu')` for the starfield check, since the real
+route needs a platform sign-in.
 
 **QA bar (checkable).**
 - Every feature the UI exposes works in the browser without dev tools; the offline path needs no
@@ -463,7 +523,8 @@ resignation" → back to the landing screen. Zero console errors (WebGL driver n
 - The chat push socket is closed to game-scoped tokens, so opponent messages arrive on a 5 s poll.
 - Opponent moves and check are not announced to screen readers as they happen; the user must
   re-read the board. The `Check` flag is visible text but not a live region.
-- The starfield does not honour `prefers-reduced-motion` (only CSS motion does).
+- Only the Settings panel is localized (nine locales from `navigator.languages`); the rest of the UI is English, so a German browser shows a German panel in an English page.
+- The 3D starfield is only on the club menu, which needs a platform sign-in; offline players see the Graphics settings through board and room detail only.
 - `--faint` text is below AA contrast at 12–13 px.
 - On a 300 px-wide board (the narrowest allowed) squares are 37 px, under the 44 px touch guideline.
 - Offline practice cannot be replayed or resumed; leaving the view ends it.
@@ -480,5 +541,5 @@ resignation" → back to the landing screen. Zero console errors (WebGL driver n
 - Localization into the nine target locales with a `navigator.languages` default and a persisted
   override; strings would move out of the markup and literals into a table.
 - An `aria-live` announcement of each move ("hal plays Nf3", "Check") and of game end.
-- Pausing the starfield under `prefers-reduced-motion`, and a per-user toggle for it.
+- A per-user toggle for the starfield's motion (it already holds still under `prefers-reduced-motion`).
 - A short "How to play" note on the landing card for players new to chess itself.
