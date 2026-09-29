@@ -543,3 +543,7 @@ route needs a platform sign-in.
 - An `aria-live` announcement of each move ("hal plays Nf3", "Check") and of game end.
 - A per-user toggle for the starfield's motion (it already holds still under `prefers-reduced-motion`).
 - A short "How to play" note on the landing card for players new to chess itself.
+
+## Browser interference
+
+`browser-guard.js` (loaded from `index.html`) suppresses browser UI that gets in the way of play: the right-click context menu, the iOS long-press callout, copy / cut / paste, and page text selection. Text fields (inputs, textareas, selects, contenteditable) keep normal selection, context menu and clipboard behaviour.
