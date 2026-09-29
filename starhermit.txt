@@ -4,6 +4,7 @@
 # Format: key=value lines; '#' comments and blank lines are ignored.
 
 name=Chess
+description=Play correspondence chess against other players or practice against an AI in a quiet club setting.
 
 # The platform assigns this game a uid and uses it as the game's slug — the same
 # value as its <uid>.starhermit.com address. Nothing here can set it: a name a
