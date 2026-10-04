@@ -24,3 +24,14 @@ owner=2712e04e-461b-4d23-81ae-e40b429128a8
 # clients cannot cheat. Games with no server logic simply omit this line.
 server=server.js
 cover=cover.jpg
+
+# Keyboard controls (players can rebind them on the platform). On the board the
+# arrows / Home / End move focus and Select plays the square; in the replay
+# viewer Left / Right step one move and Home / End jump to the ends.
+control.up=ArrowUp | Board: focus up
+control.down=ArrowDown | Board: focus down
+control.left=ArrowLeft | Board: focus left / replay: previous move
+control.right=ArrowRight | Board: focus right / replay: next move
+control.rowStart=Home | Board: row start / replay: first move
+control.rowEnd=End | Board: row end / replay: last move
+control.select=Enter+Space | Board: play the focused square

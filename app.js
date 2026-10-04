@@ -2,6 +2,8 @@
    invites) and the replay viewer. Views are plain sections toggled here. */
 'use strict';
 
+const PT = window.PlatformStrings.platformStrings(navigator.language); // StarHermit UI strings
+
 const App = {
   info: null,            // GET /games/<slug> payload
   lastElo: null,
@@ -42,25 +44,13 @@ const App = {
       App.showAuth(msg);
     };
 
-    // #game_token=<jwt> from the platform launcher — read once, strip from URL.
-    // An optional &session_id= jumps straight into that game (invite accept flows).
-    const m = location.hash.match(/[#&]game_token=([^&]+)/);
-    if (m) {
-      const sm = location.hash.match(/[#&]session_id=([^&]+)/);
-      history.replaceState(null, '', location.pathname + location.search);
-      Net.setToken(decodeURIComponent(m[1]));
-      this.enterClub();
-      if (sm) this.openGame(decodeURIComponent(sm[1]));
-      return;
-    }
+    // StarHermit.init() (index.html) already read #game_token=<jwt> (library
+    // launch) or #access_token=<jwt> (sign-in return) and stripped it. An
+    // optional session_id jumps straight into that game (invite accept flows).
     if (Net.token) {
-      const claims = Net.decodeJwt(Net.token);
-      if (claims && (!claims.exp || claims.exp * 1000 > Date.now() + 60000)) {
-        Net.setToken(Net.token); // populates userId
-        this.enterClub();
-        return;
-      }
-      Net.clearToken();
+      this.enterClub();
+      if (SH.launchSessionId) this.openGame(SH.launchSessionId);
+      return;
     }
     this.showAuth();
   },
@@ -71,6 +61,10 @@ const App = {
     if (msg) box.textContent = msg;
     $('auth-base').value = Net.base;
     if (!$('auth-slug').value) $('auth-slug').value = Net.slug || '';
+    // On <slug>.starhermit.com without a token: one-click platform sign-in.
+    const signIn = $('btn-signin');
+    signIn.textContent = PT.signIn;
+    signIn.hidden = !SH.canSignIn();
     this.updateEloChip(null);
     this.showView('auth');
   },
@@ -95,7 +89,7 @@ const App = {
   },
 
   enterClub() {
-    Net.startRefresh();
+    Net.loadBindings();
     this.showMenu();
   },
 
@@ -128,7 +122,9 @@ const App = {
 
   async loadGameInfo() {
     try {
-      this.info = await Net.api(Net.gamePath());
+      this.info = await Net.api(Net.gamePath()) || {};
+      // Replays exist only when the platform keeps them for this game.
+      $('replays-section').hidden = this.info.replaysEnabled === false;
       const me = this.info.me || {};
       this.lastElo = me.elo != null ? me.elo : this.lastElo;
       this.updateEloChip(me.elo);
@@ -148,7 +144,7 @@ const App = {
   async loadSessions() {
     let sessions;
     try {
-      sessions = await Net.api(Net.gamePath('/sessions/mine')) || [];
+      sessions = await SH.mySessions();
     } catch (e) {
       if (e.status !== 401) $('sessions-list').replaceChildren(UI.el('p', 'empty', 'Could not load games — ' + e.message));
       return;
@@ -260,7 +256,7 @@ const App = {
 
   async startMatchmaking() {
     try {
-      const r = await Net.api(Net.gamePath('/matchmaking'), { method: 'POST' });
+      const r = await SH.joinQueue() || {};
       if (r.status === 'matched' && r.sessionId) {
         this.forgetMatchmaking();
         Sfx.play('matchFound');
@@ -280,13 +276,15 @@ const App = {
 
   async pollMatchmaking() {
     try {
-      const r = await Net.api(Net.gamePath('/matchmaking'));
+      const r = await Net.api(Net.gamePath('/matchmaking'));   // null = 404: no ticket
       if (r && r.status === 'matched' && r.sessionId) {
         this.stopMatchmakingUi(false);
         this.forgetMatchmaking();
         UI.toast('Opponent found — good luck.', 'ok');
         Sfx.play('matchFound');
         this.openGame(r.sessionId);
+      } else if (!r || (r.status && r.status !== 'queued')) {
+        throw { status: 404 };
       }
     } catch (e) {
       if (e.status === 404) {
@@ -299,8 +297,7 @@ const App = {
 
   async cancelMatchmaking() {
     this.stopMatchmakingUi(false);
-    try { await Net.api(Net.gamePath('/matchmaking'), { method: 'DELETE' }); }
-    catch (e) { /* already gone */ }
+    await SH.cancelMatch();   // soft: an already-gone ticket is fine
     this.forgetMatchmaking();
   },
 
@@ -320,7 +317,7 @@ const App = {
   async playAi() {
     await this.cancelMatchmaking();
     try {
-      const r = await Net.api(Net.gamePath('/sessions/ai'), { method: 'POST' });
+      const r = await SH.startAiSession();
       if (r && r.sessionId) this.openGame(r.sessionId);
     } catch (e) {
       UI.toast('Could not start a game against hal: ' + e.message, 'err');
@@ -357,7 +354,7 @@ const App = {
     const list = $('replays-list');
     let replays;
     try {
-      replays = await Net.api(Net.gamePath('/replays/mine?limit=10')) || [];
+      replays = await SH.myReplays(10);
     } catch (e) {
       if (e.status !== 401) list.replaceChildren(UI.el('p', 'empty', 'No archive available.'));
       return;
@@ -412,15 +409,10 @@ const App = {
     if (!userId) return Promise.resolve({ name: 'Player', avatarUrl: null });
     if (!this._profiles.has(userId)) {
       this._profiles.set(userId, (async () => {
-        let name = 'Player ' + String(userId).slice(0, 8);
-        let avatarUrl = null;
-        try {
-          const p = await Net.api(`/api/v1/users/${encodeURIComponent(userId)}/profile`);
-          if (p && p.nickname) name = p.nickname;
-        } catch (e) { /* keep fallback */ }
-        const blob = await Net.apiBlob(`/api/v1/users/${encodeURIComponent(userId)}/avatar`);
-        if (blob) avatarUrl = URL.createObjectURL(blob);
-        return { name, avatarUrl };
+        // SDK: nickname first, 'Player <id>' fallback; avatar as an object URL.
+        const p = await SH.profile(userId);
+        const avatarUrl = await SH.avatarUrl(userId);
+        return { name: (p && p.displayName) || 'Player ' + String(userId).slice(0, 6), avatarUrl };
       })());
     }
     return this._profiles.get(userId);
@@ -429,7 +421,7 @@ const App = {
   // ---- invites
   async loadInvites() {
     let j;
-    try { j = await Net.api(Net.gamePath('/invites')); }
+    try { j = await SH.invites(); }
     catch (e) { return; }
     const incoming = (j && j.incoming) || [];
     const outgoing = ((j && j.outgoing) || []).filter(o => o.status === 'pending');
@@ -453,14 +445,13 @@ const App = {
       const acc = UI.el('button', 'btn btn-small btn-primary', 'Accept');
       acc.addEventListener('click', async () => {
         try {
-          const r = await Net.api(Net.gamePath(`/invites/${inv.inviteId}/accept`), { method: 'POST' });
+          const r = await SH.acceptInvite(inv.inviteId);
           if (r && r.sessionId) this.openGame(r.sessionId);
         } catch (e) { UI.toast('Could not accept: ' + e.message, 'err'); this.loadInvites(); }
       });
       const dec = UI.el('button', 'btn btn-small', 'Decline');
       dec.addEventListener('click', async () => {
-        try { await Net.api(Net.gamePath(`/invites/${inv.inviteId}/decline`), { method: 'POST' }); }
-        catch (e) { /* gone */ }
+        await SH.declineInvite(inv.inviteId);
         this.loadInvites();
       });
       card.appendChild(acc);
@@ -479,7 +470,7 @@ const App = {
   async inviteFriend() {
     let friends;
     try {
-      const j = await Net.api('/api/v1/me/friends');
+      const j = await SH.friends();
       friends = Array.isArray(j) ? j : (j && (j.friends || j.items)) || [];
     } catch (e) {
       UI.toast('Could not load friends: ' + e.message, 'err');
@@ -502,7 +493,7 @@ const App = {
         card.addEventListener('click', async () => {
           close(null);
           try {
-            await Net.api(Net.gamePath('/invites'), { method: 'POST', body: { toUserId: id } });
+            await SH.sendInvite(id);
             UI.toast('Invitation sent to ' + profiles[i].name + '.', 'ok');
             this.loadInvites();
           } catch (e) {
@@ -523,10 +514,10 @@ const App = {
    * Reference implementation of the platform's /game-invite/ share URLs.
    */
   shareInviteLink() {
-    if (!Net.userId) return;
-    const url = 'https://dashboard.starhermit.com/game-invite/' + Net.userId + '/' + (Net.slug || 'chess');
+    const url = SH.inviteLink();
+    if (!url) return;
     navigator.clipboard.writeText(url).then(
-      () => UI.toast('Invite link copied — send it to a friend and they join you here.', 'ok'),
+      () => UI.toast(PT.inviteCopied, 'ok'),
       () => UI.picker('Copy this invite link', (body) => {
         const input = UI.el('input', 'share-url');
         input.value = url;
@@ -562,11 +553,9 @@ const App = {
 
   // ------------------------------------------------------------- replay viewer
   async openReplay(sessionId) {
-    let raw;
-    try {
-      raw = await Net.api(Net.gamePath(`/replays/${sessionId}`));
-    } catch (e) {
-      UI.toast('Could not open the replay: ' + e.message, 'err');
+    const raw = await SH.getReplay(sessionId);
+    if (!raw) {
+      UI.toast('Could not open the replay.', 'err');
       return;
     }
     // The platform archives the script-owned session state verbatim under `state`;
@@ -692,10 +681,12 @@ $('r-last').addEventListener('click', () => App.replayStep(Infinity));
 
 document.addEventListener('keydown', (e) => {
   if (App.currentView !== 'replay' || !$('modal').hidden) return;
-  if (e.key === 'ArrowLeft') { e.preventDefault(); App.replayStep(-1); }
-  else if (e.key === 'ArrowRight') { e.preventDefault(); App.replayStep(1); }
-  else if (e.key === 'Home') { e.preventDefault(); App.replayStep(-Infinity); }
-  else if (e.key === 'End') { e.preventDefault(); App.replayStep(Infinity); }
+  const act = Net.actionFor(e);
+  if (act === 'left') { e.preventDefault(); App.replayStep(-1); }
+  else if (act === 'right') { e.preventDefault(); App.replayStep(1); }
+  else if (act === 'rowStart') { e.preventDefault(); App.replayStep(-Infinity); }
+  else if (act === 'rowEnd') { e.preventDefault(); App.replayStep(Infinity); }
 });
+$('btn-signin').addEventListener('click', () => SH.signIn());
 
 App.init();

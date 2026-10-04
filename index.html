@@ -12,6 +12,8 @@
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="stylesheet" href="style.css">
 <script src="browser-guard.js"></script>
+<script src="starhermit-sdk.js"></script>
+<script>StarHermit.init();</script>
 </head>
 <body>
 
@@ -42,6 +44,7 @@
       <p class="auth-local-hint">Practice against hal right now — no sign-in needed.</p>
     </div>
     <p class="auth-divider"><span>or sign in to the club</span></p>
+    <button id="btn-signin" class="btn btn-primary btn-wide" hidden>Sign in with StarHermit</button>
     <label class="field">
       <span class="field-label">User token (JWT)</span>
       <textarea id="auth-jwt" rows="4" spellcheck="false" placeholder="eyJhbGciOi&hellip;"></textarea>
@@ -101,7 +104,7 @@
         <div class="panel-head"><h2>Friends table</h2></div>
         <div id="lb-table"><p class="empty">Loading&hellip;</p></div>
       </div>
-      <div class="panel">
+      <div class="panel" id="replays-section">
         <div class="panel-head"><h2>Recent games</h2></div>
         <div id="replays-list" class="cards cards-tight"><p class="empty">Loading&hellip;</p></div>
       </div>
@@ -247,6 +250,7 @@
 </div>
 
 <script src="server.js"></script>
+<script src="platform-strings.js"></script>
 <script src="net.js"></script>
 <script src="ui.js"></script>
 <script src="audio.js"></script>

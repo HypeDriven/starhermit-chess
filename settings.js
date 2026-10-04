@@ -286,3 +286,35 @@ panel.addEventListener('keydown', (e) => {
   e.stopPropagation();
 });
 openBtn.hidden = false;
+
+// ---- StarHermit settings KV: the graphics settings and the Sound toggle follow
+// the player across devices. Signed in, the platform value wins on start (and
+// on a later dev-panel sign-in); every change is patched (debounced).
+const SH = window.StarHermit;
+// audio.js's Sfx is a classic-script global binding (not a window property).
+const sfx = () => (typeof Sfx !== 'undefined' ? Sfx : null);
+let kvReady = false;
+let kvLast = null;
+let kvTimer = 0;
+function kvPatch() {
+  if (!kvReady || !SH.signedIn) return;
+  const patch = { graphics: Graphics.saved, muted: !!sfx()?.muted };
+  const json = JSON.stringify(patch);
+  if (json === kvLast) return;
+  clearTimeout(kvTimer);
+  kvTimer = setTimeout(() => { kvLast = json; SH.patchSettings(patch); }, 800);
+}
+async function kvLoad() {
+  if (!SH || !SH.signedIn) return;
+  const kv = await SH.getSettings();
+  if (kv.graphics && typeof kv.graphics === 'object') Graphics._commit({ ...kv.graphics });
+  if (typeof kv.muted === 'boolean' && sfx()) sfx().setMuted(kv.muted);
+  kvLast = JSON.stringify({ graphics: Graphics.saved, muted: !!sfx()?.muted });
+  kvReady = true;
+}
+if (SH) {
+  Graphics.subscribe((r, why) => { if (why === 'settings') kvPatch(); });
+  if (sfx()) sfx().onChange = kvPatch;
+  SH.on('auth', (a) => { if (a.signedIn && !kvReady) kvLoad(); if (!a.signedIn) kvReady = false; });
+  kvLoad();
+}

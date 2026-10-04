@@ -58,10 +58,16 @@ const Sfx = {
   },
 
   toggle() {
-    this.muted = !this.muted;
+    this.setMuted(!this.muted);
+    if (this.onChange) this.onChange(this.muted);   // settings.js mirrors it to StarHermit
+  },
+
+  setMuted(m) {
+    this.muted = !!m;
     try { localStorage.setItem(this.KEY, this.muted ? '1' : '0'); } catch (e) { /* ignore */ }
     this.renderButton();
   },
+  onChange: null,
 
   renderButton() {
     const b = this._btn;

@@ -30,7 +30,7 @@ needs no sign-in at all.
 | `game.js` | `GameController` (game socket, board interaction, chat) and `VoiceController` (WebRTC voice) |
 | `local.js` | `LocalGame`: the offline practice game against hal, same rules and same greedy AI, no platform |
 | `ui.js` | DOM helpers, toasts, modal, SVG pieces, board renderer with keyboard navigation, scoresheet, 1 s ticker |
-| `net.js` | Token lifecycle, REST and WebSocket plumbing, slug from the launch token's `game_scope` |
+| `net.js` | The game's platform layer over `starhermit-sdk.js`: dev sign-in, REST/WebSocket helpers, control bindings |
 | `audio.js` | `Sfx`: clip-per-event sound effects from `sfx/manifest.json`, mute toggle |
 | `starfield.js` | Menu backdrop: drifting instanced 3D chess pieces (three.js, lazy-loaded, WebGL optional), its lighting, dust motes and post-processing chain |
 | `gfx.js` | Pure graphics quality model: presets, categories, `detectPreset`, `resolve`, `presetTier`, `withPreset`, `describe` |
@@ -41,7 +41,7 @@ needs no sign-in at all.
 | `sfx/` | 14 Opus clips, `manifest.txt` (canonical table), `manifest.json` (generator binding), `manifest.md` (generated) |
 | `coverart.png`, `icon.png`, `favicon.svg` | Library tile, favicon/wordmark mark |
 | `vendor/` | three.js r176 (`three@0.176.0`) build, `GLTFLoader`, `BufferGeometryUtils`, and `addons/` (post-processing passes, their shaders, `RoomEnvironment`) of the same release, imported as `three/addons/…` (MIT, `vendor/ATTRIBUTION.md`) |
-| `tests/` | `gfx.test.mjs` (quality model, `node --test`), `rules.mjs` (rules + script entry points), `e2e.mjs` (headless Chrome playthrough). Dev only, never shipped |
+| `tests/` | `gfx.test.mjs` (quality model, `node --test`), `platform.test.mjs` (net.js over the SDK, `node --test`), `rules.mjs` (rules + script entry points), `e2e.mjs` (headless Chrome playthrough). Dev only, never shipped |
 | `API.md`, `README.md` | The platform contract the client speaks; repo readme |
 
 ## 2. Vision and design pillars
@@ -219,11 +219,11 @@ auth ──token──▶ menu ──card/Play/Accept──▶ game(online) ─�
                  any ──401 / refresh failure──▶ auth (with a message)
 ```
 
-Launch with `#game_token=…` skips auth (and `&session_id=` opens that game directly). A valid token
-in `sessionStorage` also skips it.
+Launch with `#game_token=…` (or a sign-in return with `#access_token=…`) skips auth (and `&session_id=`
+opens that game directly). A valid token in `sessionStorage` (same tab, after a reload) also skips it.
 
 **Landing (auth).** Key art fills the viewport behind a 460 px card: "Take a seat", the Play button
-and hint, a divider, then the developer fields (user JWT, game slug, API base) and "Enter the club".
+and hint, a divider, **Sign in with StarHermit** (only on the platform host without a token), then the developer fields (user JWT, game slug, API base) and "Enter the club".
 
 **Club (menu).** Desktop: two columns, `minmax(0,1fr) 320px`. Main: Play row (rated **Play** plus an unrated **Practice vs hal** entry), "My games" (n of 20
 seats), "Invitations" (Share invite link, Invite a friend). Side: "My rating", "Friends table",
@@ -397,31 +397,39 @@ Settings panel none of this is implemented — see [Design intent](#design-inten
 
 ## 12. StarHermit integration
 
-Conventions per https://wiki.starhermit.com/ ; endpoints are listed in `API.md`.
+Conventions per https://wiki.starhermit.com/ ; endpoints are listed in `API.md`. `index.html` loads
+`starhermit-sdk.js` (the canonical client, shipped unchanged) and calls `StarHermit.init()` before
+any game script. `net.js` keeps the game's own surface (`Net.api`, `gamePath`, `wsUrl`, `userId`,
+`slug`) but routes it through `window.StarHermit`; `app.js`, `game.js` and `settings.js` call the SDK's
+named methods directly. Standalone (no token) the game makes no platform requests.
 
 | Platform feature | Used | How |
 |---|---|---|
-| Identity / launch token | Yes | `#game_token` from the launcher or `POST /games/{uid}/launch-token` from the dev panel; slug from the `game_scope` claim; refreshed every 45 min (`Net.startRefresh`) |
-| Profiles and avatars | Yes | `GET /users/{id}/profile` (nickname; usernames never shown) and `/avatar`, cached per session (`App.profileFor`) |
+| Identity / launch token | Yes | The SDK reads `#game_token=` (launcher, optional `&session_id=` opens that game) or `#access_token=` (sign-in return), strips it, takes the slug from `game_scope` and renews it; the dev panel exchanges a pasted user JWT via `POST /games/{uid}/launch-token` and hands the result to the SDK. A refused renewal or a 401 signs out and returns to the landing card with a message |
+| Sign in | Yes | On `<uid>.starhermit.com` without a token the landing card shows **Sign in with StarHermit** (`StarHermit.signIn()`); hidden when signed in and locally |
+| Profiles and avatars | Yes | `StarHermit.profile()` (nickname; usernames never shown) and `avatarUrl()`, cached per session (`App.profileFor`) |
 | Presence | Yes | `presence` frames on the game socket light the opponent's seat lamp; hal is always lit |
-| Sessions | Yes | `/sessions/mine`, `/sessions/{id}`, `/sessions/ai`; cap of 20 read from `maxConcurrentSessionsPerPlayer` |
-| Matchmaking | Yes | `POST/GET/DELETE /matchmaking`, ticket resumed across reloads |
-| Invitations | Yes | `/invites` list/send/accept/decline; friends from `/me/friends`; dashboard share URL |
+| Sessions | Yes | `mySessions()`, `getSession()`, `startAiSession()`; cap of 20 read from `maxConcurrentSessionsPerPlayer`; the gameplay socket is `StarHermit.connect()` (reconnect with backoff, `sync` on every open) |
+| Matchmaking | Yes | `joinQueue()` / ticket polled every 3 s / `cancelMatch()`, ticket resumed across reloads; after 30 s in the queue the menu offers a rated game against hal |
+| Invitations | Yes | `invites()` list with accept/decline, `sendInvite()` from the `friends()` picker, and **Share invite link** copying `StarHermit.inviteLink()` |
 | Leaderboard | Yes (read) | Friends-only top 10 from `leaderboardId`; the platform writes Elo from script results, the client never submits |
-| Replays | Yes | `replays: true` declared; `/replays/mine`, `/replays/{id}`; archived `state.game.moves` re-run through `chessRules` |
-| Chat | Yes | Per-session conversation from `chatConversationId`; REST history + send; push socket attempted twice then polling every 5 s (game tokens are fenced off the chat socket) |
-| Voice | Yes (opt-in) | Rooms by conversation, join, `/ws/v1/voice` for `rtc` signalling, `voice.*` events |
+| Replays | Yes | `replays: true` declared; the Recent games panel shows when `getGame().replaysEnabled` is not false; `myReplays()`, `getReplay()`; archived `state.game.moves` re-run through `chessRules` |
+| Chat | Yes | Per-session conversation from `chatConversationId`; `pollChat()` every 5 s and `sendChat()` (launch tokens cannot use the chat push socket) |
+| Voice | Yes (opt-in) | `StarHermit.voice` rooms by conversation, join, `/ws/v1/voice` for `rtc` signalling, `voice.*` events |
+| Settings KV | Yes | The graphics settings and the Sound toggle are patched to the game's settings KV on change (debounced) and applied on sign-in, where the platform value wins |
+| Controls | Yes | Board focus (arrows, Home, End), play-the-square (Enter/Space) and the replay stepper are declared as `control.*` in `starhermit.txt`; `loadBindings()` resolves the player's keys on sign-in and keydown routes by `event.code` |
 | Server script | Yes | `server.js` via `starhermit.txt` `server=`; `createSession`, `onPlayerMessage`, `onTick`; `tickRateHz: 1`; per-player docs under the 5 MB budget |
-| Achievements | No | Not declared |
-| Cloud save beyond script state | No | The script's player document is the only persistent record |
-| Spectating / tournaments | No | Replays are participant-only |
+| Achievements | No | Not declared by the script |
+| Cloud save | No | No local progress to keep: Elo, record, games and replays live in the script's documents |
+| Spectating / tournaments / realtime rooms | No | Replays are participant-only |
 
 The client is slug-agnostic and origin-agnostic: in production `/api` and `/ws` are same-origin on
-`<uid>.starhermit.com`; the dev panel can point `Net.base` elsewhere (persisted in `localStorage`).
+`<uid>.starhermit.com`; the dev panel can point the SDK base elsewhere (persisted in `localStorage`).
+New platform strings (sign in, invite link copied) ship in all nine locales (`platform-strings.js`).
 
 ## 13. Technical architecture
 
-**Modules.** `net.js` (tokens, `api()`, `apiBlob()`, `wsUrl()`) → `ui.js` (pure DOM, no game
+**Modules.** `starhermit-sdk.js` (`window.StarHermit`) → `net.js` (dev sign-in, `api()`, `apiBlob()`, `wsUrl()`, control bindings over the SDK) → `ui.js` (pure DOM, no game
 knowledge) → `audio.js` (`Sfx`) → `game.js` (`GameController`, `VoiceController`) → `local.js`
 (`LocalGame`, same public surface: `start/destroy/resign/offerDraw/sendCmd/sendChat/myTurn`) →
 `app.js` (`App`, wiring at the bottom). `server.js` loads first and exposes `chessRules`; its Node
@@ -468,6 +476,11 @@ touch cap at Balanced; `resolve` for Auto vs an explicit preset, per-category ov
 the render-scale clamp (50–200 %), the adaptive/frame-rate defaults and when post-processing is on;
 `withPreset` clears overrides but keeps scale and toggles; every preset defines every category;
 `describe` lists cost and pixels.
+
+**`tests/platform.test.mjs`** (`node --test`): `net.js` over the shipped SDK with a stubbed fetch and
+launch fragment — token claims, fragment stripped, token kept for a tab reload, nickname, 404 → null,
+cloud-save path `game:<slug>` round-trip, settings patch, control bindings (code and synthetic key),
+invite link, sign-out reaching `onAuthLost`; standalone makes zero fetches.
 
 **`tests/rules.mjs`** loads `server.js` exactly as the browser does and checks: perft(1..3) =
 20 / 400 / 8902; castling, en passant and promotion play and score as `O-O`, `exd6`, `b8=Q+`; SAN

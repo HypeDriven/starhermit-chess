@@ -29,7 +29,6 @@ class GameController {
     this.sessionId = sessionId;
     this.destroyed = false;
     this.ws = null;
-    this.wsAttempts = 0;
     this.view = null;         // last server state view
     this.g = null;            // local rules state rebuilt from view.moves
     this.myColor = null;
@@ -39,10 +38,9 @@ class GameController {
     this.selected = null;
     this.cands = [];
     this.finishedShown = false;
-    this.chat = { convId: null, ws: null, pollTimer: null, seen: new Set(), msgs: [], wsOk: false };
+    this.chat = { convId: null, stopPoll: null, seen: new Set(), msgs: [] };
     this.voice = new VoiceController(this);
     this.unTick = null;
-    this._reconnectTimer = null;
   }
 
   async start() {
@@ -57,7 +55,7 @@ class GameController {
     this.unTick = UI.onTick(() => this.tickClock());
 
     try {
-      const s = await Net.api(Net.gamePath(`/sessions/${this.sessionId}`));
+      const s = await SH.getSession(this.sessionId) || {};
       const sessionPlayers = s.players || [];
       const profiles = await Promise.all(sessionPlayers.map(p => App.profileFor(p.userId)));
       sessionPlayers.forEach((p, i) => { this.players[p.userId] = profiles[i].name; });
@@ -72,40 +70,24 @@ class GameController {
   }
 
   // ------------------------------------------------------------- game socket
+  // The SDK's gameplay socket (/ws/v1/games) reconnects with exponential
+  // backoff and the current (renewed) token; every (re)open re-syncs state.
   connect() {
     if (this.destroyed) return;
-    const url = Net.wsUrl('/ws/v1/games', { sessionId: this.sessionId, access_token: Net.token });
-    let ws;
-    try { ws = new WebSocket(url); } catch (e) { this.scheduleReconnect(); return; }
-    this.ws = ws;
-    ws.onopen = () => {
-      this.wsAttempts = 0;
-      $('conn-state').textContent = '';
-      this.sendCmd({ type: 'sync' });
-    };
-    ws.onmessage = (ev) => {
-      let msg;
-      try { msg = JSON.parse(ev.data); } catch (e) { return; }
-      this.onFrame(msg);
-    };
-    ws.onclose = () => { if (this.ws === ws) this.scheduleReconnect(); };
-    ws.onerror = () => { /* close will follow */ };
-  }
-
-  scheduleReconnect() {
-    if (this.destroyed) return;
-    this.ws = null;
-    const delay = Math.min(30000, 1000 * Math.pow(2, this.wsAttempts++));
-    $('conn-state').textContent = 'reconnecting…';
-    this._reconnectTimer = setTimeout(() => this.connect(), delay);
+    this.ws = SH.connect(this.sessionId, {
+      onOpen: () => {
+        $('conn-state').textContent = '';
+        this.sendCmd({ type: 'sync' });
+      },
+      onGame: (data) => this.onFrame({ type: 'game', data }),
+      onError: (error) => this.onFrame({ type: 'error', error }),
+      onPresence: (m) => this.onFrame(m),
+      onClose: () => { if (!this.destroyed) $('conn-state').textContent = 'reconnecting…'; },
+    });
   }
 
   sendCmd(data) {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ type: 'cmd', data }));
-    } else {
-      UI.toast('Not connected — retrying…', 'err');
-    }
+    if (!this.ws || !this.ws.send(data)) UI.toast('Not connected — retrying…', 'err');
   }
 
   onFrame(msg) {
@@ -338,7 +320,7 @@ class GameController {
     this.tickClock();
     // fresh elo after the platform applies the result
     try {
-      const info = await Net.api(Net.gamePath());
+      const info = await SH.getGame();
       const newElo = info && info.me ? info.me.elo : null;
       if (newElo != null) {
         const old = App.lastElo;
@@ -355,62 +337,25 @@ class GameController {
   }
 
   // ------------------------------------------------------------- chat
-  async initChat() {
-    if (!this.chat.convId) return;
-    await this.loadChatHistory();
-    this.connectChatWs();
+  // Session chat: REST + polling (launch tokens cannot use the chat push socket).
+  initChat() {
+    if (!this.chat.convId || this.destroyed) return;
+    this.chat.stopPoll = SH.pollChat(this.chat.convId, (j) => this.onChatPage(j), 5000);
+  }
+
+  onChatPage(j) {
+    if (this.destroyed) return;
+    const arr = Array.isArray(j) ? j : (j && (j.messages || j.items || j.entries)) || [];
+    let fresh = false;
+    for (const raw of arr) fresh = this.addChatMsg(normMsg(raw), false) || fresh;
+    if (fresh) this.chat.msgs.sort((a, b) => (a.at || 0) - (b.at || 0));
+    this.chat.primed = true;   // history is in; anything new from here on is live
+    if (fresh || !this.chat.rendered) { this.chat.rendered = true; this.renderChat(); }
   }
 
   async loadChatHistory() {
     if (!this.chat.convId || this.destroyed) return;
-    try {
-      const j = await Net.api(`/api/v1/chat/conversations/${this.chat.convId}/messages?page=1&pageSize=50`);
-      const arr = Array.isArray(j) ? j : (j && (j.messages || j.items || j.entries)) || [];
-      for (const raw of arr) this.addChatMsg(normMsg(raw), false);
-      this.chat.primed = true;   // history is in; anything new from here on is live
-      this.renderChat();
-    } catch (e) { /* silent; polling may pick it up */ }
-  }
-
-  connectChatWs() {
-    if (this.destroyed) return;
-    let ws;
-    try { ws = new WebSocket(Net.wsUrl('/ws/v1/chat', { access_token: Net.token })); }
-    catch (e) { this.startChatPolling(); return; }
-    this.chat.ws = ws;
-    ws.onopen = () => { this.chat.wsOk = true; this.chat.wsFails = 0; this.stopChatPolling(); };
-    ws.onmessage = (ev) => {
-      let msg;
-      try { msg = JSON.parse(ev.data); } catch (e) { return; }
-      const t = msg.type || msg.event;
-      if (t !== 'new_message' && t !== 'chat.new_message') return;
-      const payload = msg.data || msg.message || msg.payload || msg;
-      const raw = payload.message || payload;
-      const convId = payload.conversationId || (raw && raw.conversationId);
-      if (convId && convId !== this.chat.convId) return;
-      const m = normMsg(raw);
-      if (m && this.addChatMsg(m, true)) this.renderChat();
-    };
-    ws.onclose = () => {
-      if (this.destroyed || this.chat.ws !== ws) return;
-      this.chat.ws = null;
-      this.startChatPolling();               // fall back while the socket is down
-      // Game-scoped tokens are fenced off the chat push socket entirely (it streams all of
-      // the user's conversations) — after repeated immediate failures, settle on polling.
-      this.chat.wsFails = (this.chat.wsFails || 0) + 1;
-      if (this.chat.wsFails <= 2)
-        setTimeout(() => { if (!this.destroyed) this.connectChatWs(); }, 8000);
-    };
-    ws.onerror = () => { /* close follows */ };
-  }
-
-  startChatPolling() {
-    if (this.chat.pollTimer || this.destroyed) return;
-    this.chat.pollTimer = setInterval(() => this.loadChatHistory(), 5000);
-  }
-
-  stopChatPolling() {
-    if (this.chat.pollTimer) { clearInterval(this.chat.pollTimer); this.chat.pollTimer = null; }
+    this.onChatPage(await SH.chatMessages(this.chat.convId));
   }
 
   /** Returns true if the message was new. */
@@ -442,9 +387,7 @@ class GameController {
   async sendChat(text) {
     if (!this.chat.convId || !text.trim()) return;
     try {
-      const j = await Net.api(`/api/v1/chat/conversations/${this.chat.convId}/messages`, {
-        method: 'POST', body: { content: text.trim() },
-      });
+      const j = await SH.sendChat(this.chat.convId, text.trim());
       const m = normMsg(j && (j.message || j));
       if (m && m.content != null) { if (this.addChatMsg(m)) this.renderChat(); }
       else this.loadChatHistory();
@@ -457,10 +400,8 @@ class GameController {
   destroy() {
     this.destroyed = true;
     if (this.unTick) this.unTick();
-    if (this._reconnectTimer) clearTimeout(this._reconnectTimer);
-    if (this.ws) { try { this.ws.close(); } catch (e) { } this.ws = null; }
-    if (this.chat.ws) { try { this.chat.ws.close(); } catch (e) { } this.chat.ws = null; }
-    this.stopChatPolling();
+    if (this.ws) { this.ws.close(); this.ws = null; }
+    if (this.chat.stopPoll) { this.chat.stopPoll(); this.chat.stopPoll = null; }
     this.voice.disable(true);
   }
 }
@@ -495,15 +436,15 @@ class VoiceController {
     try {
       let room = null;
       try {
-        const j = await Net.api('/api/v1/voice/rooms?conversationId=' + encodeURIComponent(convId));
+        const j = await SH.voice.list(convId);
         const arr = Array.isArray(j) ? j : (j && (j.rooms || j.items)) || (j && j.roomId ? [j] : []);
         room = arr[0] || null;
       } catch (e) { if (e.status !== 404) throw e; }
       if (!room) {
-        room = await Net.api('/api/v1/voice/rooms', { method: 'POST', body: { conversationId: convId } });
+        room = await SH.voice.create({ conversationId: convId });
       }
       this.roomId = room.roomId || room.id;
-      await Net.api(`/api/v1/voice/rooms/${this.roomId}/join`, { method: 'POST' });
+      await SH.voice.join(this.roomId);
     } catch (e) {
       UI.toast('Could not join the voice room: ' + e.message, 'err');
       this.stopStream();
@@ -519,7 +460,7 @@ class VoiceController {
   connectWs() {
     if (!this.enabled) return;
     let ws;
-    try { ws = new WebSocket(Net.wsUrl('/ws/v1/voice', { roomId: this.roomId, access_token: Net.token })); }
+    try { ws = new WebSocket(SH.voice.socketUrl(this.roomId)); }
     catch (e) { return; }
     this.ws = ws;
     ws.onmessage = (ev) => {

@@ -233,19 +233,20 @@ const UI = {
     const cells = [...container.children];
     const pos = cells.indexOf(document.activeElement);
     if (pos < 0) return;
-    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+    const act = Net.actionFor(e);   // StarHermit control bindings
+    if (act === 'select') {
       e.preventDefault();
       cells[pos].click();
       return;
     }
     const col = pos % 8, row = (pos - col) / 8;
     let next = -1;
-    if (e.key === 'ArrowRight') next = col < 7 ? pos + 1 : -1;
-    else if (e.key === 'ArrowLeft') next = col > 0 ? pos - 1 : -1;
-    else if (e.key === 'ArrowDown') next = row < 7 ? pos + 8 : -1;
-    else if (e.key === 'ArrowUp') next = row > 0 ? pos - 8 : -1;
-    else if (e.key === 'Home') next = row * 8;
-    else if (e.key === 'End') next = row * 8 + 7;
+    if (act === 'right') next = col < 7 ? pos + 1 : -1;
+    else if (act === 'left') next = col > 0 ? pos - 1 : -1;
+    else if (act === 'down') next = row < 7 ? pos + 8 : -1;
+    else if (act === 'up') next = row > 0 ? pos - 8 : -1;
+    else if (act === 'rowStart') next = row * 8;
+    else if (act === 'rowEnd') next = row * 8 + 7;
     else return;
     e.preventDefault();
     if (next >= 0) cells[next].focus();   // focusin moves the tab stop with it

@@ -1,112 +1,90 @@
-/* net.js — auth, token lifecycle, REST + WebSocket plumbing. */
+/* net.js — auth, token lifecycle, REST + WebSocket plumbing, routed through
+   window.StarHermit (starhermit-sdk.js, loaded and init()ed from index.html
+   before this file). The SDK reads the launch token (#game_token / sign-in
+   #access_token), renews it and owns every platform call; Net keeps the
+   game's original surface (Net.api / gamePath / wsUrl / userId / slug) and
+   the local-development sign-in (paste a user JWT, exchange it for a
+   game-scoped launch token). */
 'use strict';
 
+const SH = window.StarHermit;
+const TOKEN_KEY = 'chess.gameToken';
+
+// Keyboard actions — declared as control.<action> in starhermit.txt. On the
+// board they move focus / play a square; in the replay viewer left/right/
+// rowStart/rowEnd step through the moves.
+const DEFAULT_BINDINGS = {
+  up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'],
+  rowStart: ['Home'], rowEnd: ['End'], select: ['Enter', 'Space'],
+};
+const KEY_FALLBACK = {
+  ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+  Home: 'rowStart', End: 'rowEnd', Enter: 'select', ' ': 'select', Spacebar: 'select',
+};
+
 const Net = {
-  // Empty base = same origin: launched from the platform, the game and the API
-  // share an origin, so calls go to /api/... directly. The dev panel can point
-  // it elsewhere for local development.
-  base: localStorage.getItem('chess.apiBase') || '',
-  token: sessionStorage.getItem('chess.gameToken') || null,
-  userId: null,
-  // The game's slug on the platform, taken from the launch token (game_scope claim)
-  // — never hard-coded, so this client works for any game built from this template.
-  slug: null,
-  _refreshTimer: null,
-  /** Set by app.js — called with a message when auth is lost (401 / refresh failure). */
+  /** Set by app.js — called with a message when auth is lost (refused renewal / 401). */
   onAuthLost: null,
+  bindings: Object.fromEntries(Object.entries(DEFAULT_BINDINGS).map(([k, v]) => [k, v.slice()])),
+  _codeMap: null,
+
+  // Empty base = same origin: launched from the platform, the game and the API
+  // share an origin. The dev panel can point it elsewhere for local development.
+  get base() { return SH.base; },
+  get token() { return SH.token; },
+  get userId() { return SH.userId; },
+  // The game's slug on the platform, from the launch token's game_scope claim
+  // (or the <slug>.starhermit.com host) — never hard-coded.
+  get slug() { return SH.slug; },
 
   setBase(url) {
-    this.base = (url || '').replace(/\/+$/, '');
-    localStorage.setItem('chess.apiBase', this.base);
+    SH.base = (url || '').replace(/\/+$/, '');
+    try { localStorage.setItem('chess.apiBase', SH.base); } catch (e) { /* storage off */ }
   },
 
-  setToken(token) {
-    this.token = token;
-    sessionStorage.setItem('chess.gameToken', token);
-    const claims = Net.decodeJwt(token);
-    this.userId = claims && (claims.sub || claims.userId || claims.uid) || null;
-    if (claims && claims.game_scope) this.slug = claims.game_scope;
-  },
+  setToken(token) { SH.setToken(token); },
 
   clearToken() {
-    this.token = null;
-    this.userId = null;
-    sessionStorage.removeItem('chess.gameToken');
-    if (this._refreshTimer) { clearInterval(this._refreshTimer); this._refreshTimer = null; }
+    try { sessionStorage.removeItem(TOKEN_KEY); } catch (e) { /* ignore */ }
+    SH.signOut('cleared');
   },
 
   /** Path for one of this game's endpoints, e.g. gamePath('/matchmaking'). */
-  gamePath(suffix = '') {
-    return '/api/v1/games/' + encodeURIComponent(this.slug) + suffix;
-  },
+  gamePath(suffix = '') { return SH.gamePath(suffix); },
 
-  decodeJwt(token) {
-    try {
-      const part = token.split('.')[1];
-      const b64 = part.replace(/-/g, '+').replace(/_/g, '/');
-      const json = decodeURIComponent(atob(b64).split('').map(
-        c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
-      return JSON.parse(json);
-    } catch (e) { return null; }
-  },
+  decodeJwt(token) { return SH.decodeJwt(token); },
 
-  /** REST call under the API base. path starts with /api/... Returns parsed JSON (null for 204). */
+  /** REST call under the API base. Returns parsed JSON (null for 204/404). Throws {status, message}. */
   async api(path, opts = {}) {
-    const headers = { ...(opts.headers || {}) };
-    if (this.token) headers['Authorization'] = 'Bearer ' + this.token;
-    let body;
-    if (opts.body !== undefined) {
-      headers['Content-Type'] = 'application/json';
-      body = JSON.stringify(opts.body);
-    }
-    let res;
+    if (!SH.token) throw { status: 401, message: 'Not signed in.' };
     try {
-      res = await fetch(this.base + path, { method: opts.method || 'GET', headers, body });
+      return await SH.api(path, { method: opts.method || 'GET', body: opts.body });
     } catch (e) {
-      throw { status: 0, message: 'Cannot reach the server at ' + this.base };
+      if (e && e.status === 401) { this.clearToken(); throw { status: 401, message: 'Not signed in.' }; }
+      if (e && typeof e.status === 'number') throw e;
+      throw { status: 0, message: 'Cannot reach the server' + (SH.base ? ' at ' + SH.base : '') };
     }
-    if (res.status === 401) {
-      const cb = this.onAuthLost;
-      this.clearToken();
-      if (cb) cb('Your session expired. Paste a user token to continue.');
-      throw { status: 401, message: 'Not signed in.' };
-    }
-    if (res.status === 204) return null;
-    let json = null;
-    try { json = await res.json(); } catch (e) { /* no body */ }
-    if (!res.ok) {
-      const msg = (json && (json.error || json.message || json.detail)) || (res.status + ' ' + res.statusText);
-      throw { status: res.status, message: String(msg), body: json };
-    }
-    return json;
   },
 
   /** Authenticated GET for binary content (e.g. avatars). Returns a Blob, or null if absent. */
   async apiBlob(path) {
-    const headers = {};
-    if (this.token) headers['Authorization'] = 'Bearer ' + this.token;
-    let res;
-    try { res = await fetch(this.base + path, { headers }); }
-    catch (e) { return null; }
-    if (!res.ok) return null;
-    return res.blob();
+    try { return await SH.api(path, { blob: true }); } catch (e) { return null; }
   },
 
   /**
-   * POST launch-token. In the dev panel pass an explicit user JWT and the game
-   * slug to launch; on refresh both are omitted and the current scoped token
-   * (whose game_scope is our slug) is reused.
+   * Local development sign-in: exchange a pasted user JWT for this game's
+   * launch token (POST launch-token), then hand it to the SDK, which renews it.
    */
   async launchToken(userJwt, slug) {
+    if (!userJwt) return SH.refresh();
     const targetSlug = slug || this.slug;
     if (!targetSlug) throw { status: 0, message: 'No game slug — provide one to launch.' };
-    const headers = { 'Authorization': 'Bearer ' + (userJwt || this.token) };
     let res;
     try {
-      res = await fetch(this.base + '/api/v1/games/' + encodeURIComponent(targetSlug) + '/launch-token',
-        { method: 'POST', headers });
+      res = await fetch(SH.base + '/api/v1/games/' + encodeURIComponent(targetSlug) + '/launch-token',
+        { method: 'POST', headers: { 'Authorization': 'Bearer ' + userJwt } });
     } catch (e) {
-      throw { status: 0, message: 'Cannot reach the server' + (this.base ? ' at ' + this.base : '') };
+      throw { status: 0, message: 'Cannot reach the server' + (SH.base ? ' at ' + SH.base : '') };
     }
     let json = null;
     try { json = await res.json(); } catch (e) { /* ignore */ }
@@ -118,25 +96,49 @@ const Net = {
     return json;
   },
 
-  /** Refresh the game-scoped token roughly every 45 minutes (it lives for 60). */
-  startRefresh() {
-    if (this._refreshTimer) clearInterval(this._refreshTimer);
-    this._refreshTimer = setInterval(async () => {
-      try {
-        await this.launchToken();
-      } catch (e) {
-        const cb = this.onAuthLost;
-        this.clearToken();
-        if (cb) cb('Could not refresh the session token. Paste a user token to continue.');
-      }
-    }, 45 * 60 * 1000);
-  },
-
   /** ws(s):// URL for a /ws/v1/... path, derived from the API base (or this origin). */
-  wsUrl(path, params = {}) {
-    const u = new URL(this.base || window.location.origin);
-    const proto = u.protocol === 'https:' ? 'wss:' : 'ws:';
-    const qs = new URLSearchParams(params).toString();
-    return proto + '//' + u.host + path + (qs ? '?' + qs : '');
+  wsUrl(path, params = {}) { return SH.wsUrl(path, params); },
+
+  // ---- controls (StarHermit control bindings)
+  async loadBindings() {
+    try { this.bindings = await SH.loadBindings(DEFAULT_BINDINGS); } catch (e) { /* keep defaults */ }
+    this._codeMap = null;
+    return this.bindings;
+  },
+  /** Action for a keydown (event.code through the bindings; key for synthetic events). */
+  actionFor(e) {
+    if (!this._codeMap) {
+      this._codeMap = {};
+      for (const [a, codes] of Object.entries(this.bindings)) for (const c of codes) this._codeMap[c] = a;
+    }
+    if (e.code) return this._codeMap[e.code] || null;
+    return KEY_FALLBACK[e.key] || null;
   },
 };
+
+if (SH.base === '') {
+  try { SH.base = (localStorage.getItem('chess.apiBase') || '').replace(/\/+$/, ''); } catch (e) { /* storage off */ }
+}
+
+// The token survives a reload of this tab (sessionStorage, never localStorage):
+// the platform strips it from the URL, so a refresh would otherwise sign out.
+SH.on('auth', (a) => {
+  try {
+    if (a.signedIn && SH.token) sessionStorage.setItem(TOKEN_KEY, SH.token);
+    else sessionStorage.removeItem(TOKEN_KEY);
+  } catch (e) { /* storage off */ }
+  if (!a.signedIn && Net.onAuthLost) {
+    Net.onAuthLost(a.reason === 'expired'
+      ? 'Your session expired — sign in again to continue.'
+      : 'Signed out — sign in again to continue.');
+  }
+});
+if (SH.token) {
+  try { sessionStorage.setItem(TOKEN_KEY, SH.token); } catch (e) { /* storage off */ }
+} else {
+  let stored = null;
+  try { stored = sessionStorage.getItem(TOKEN_KEY); } catch (e) { /* storage off */ }
+  const claims = stored ? SH.decodeJwt(stored) : null;
+  if (claims && (!claims.exp || claims.exp * 1000 > Date.now() + 60000)) SH.setToken(stored);
+  else if (stored) { try { sessionStorage.removeItem(TOKEN_KEY); } catch (e) { /* ignore */ } }
+}
