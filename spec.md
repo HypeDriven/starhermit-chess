@@ -247,6 +247,10 @@ Short landscape (≤ 500 px tall): the board column becomes two columns — the 
 so no scrolling is needed between a move and the actions.
 `pointer: coarse` grows buttons, sheet rows (34 px) and cards. Portrait phones get a 120-piece
 starfield instead of 210.
+Large screens (> 1600×1000): `ui-scale.js` sets `--ui-scale` (1 up to a 1600×1000 viewport, then the
+smaller of width/1600 and height/1000, capped at 2.5) and the top bar, views, toasts, modals and FPS meter
+are CSS-`zoom`ed by it (their vh/vw lengths divided by it), so the board, panels and dialogs grow
+proportionally; the starfield, key art and room glow stay full-viewport backdrops.
 
 **Must never be cut off.** All 64 squares with their coordinates, the clock line, the Resign/Offer
 draw buttons, the promotion picker, the game-over card (max 88 % of the board width), the toast stack

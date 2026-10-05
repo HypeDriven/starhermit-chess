@@ -60,6 +60,9 @@ button { font: inherit; }
 }
 /* content sits above the backdrop; toasts (50) and modal (40) already do */
 .topbar, .view { position: relative; z-index: 1; }
+/* Large screens: the DOM UI zooms by --ui-scale (ui-scale.js; 1 up to 1600x1000); vw/vh lengths inside are divided
+   by it. The starfield, key art and room glow are full-viewport backdrops and stay unzoomed. */
+.topbar, .view, .toasts, .modal, .fps-meter { zoom: var(--ui-scale, 1); }
 
 /* ---------------- top bar ---------------- */
 .topbar {
@@ -129,7 +132,7 @@ button { font: inherit; }
 
 /* ---------------- auth ---------------- */
 .auth-card {
-  max-width: 460px; margin: 8vh auto 0;
+  max-width: 460px; margin: calc(8vh / var(--ui-scale, 1)) auto 0;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 28px; box-shadow: var(--shadow);
 }
@@ -230,7 +233,7 @@ table.lb tr.me td { color: var(--brass-hi); }
 
 .board-wrap {
   position: relative;
-  width: min(100%, calc(100vh - 300px), 640px);
+  width: min(100%, calc(100vh / var(--ui-scale, 1) - 300px), 640px);
   margin: 0 auto;
   container-type: inline-size;
 }
@@ -322,7 +325,7 @@ table.lb tr.me td { color: var(--brass-hi); }
 .go-elo { font-family: var(--serif); font-size: 17px; color: var(--brass); font-variant-numeric: tabular-nums; }
 
 /* seats + clock */
-.seat { display: flex; align-items: center; gap: 8px; padding: 6px 2px; max-width: 640px; margin: 0 auto; width: min(100%, calc(100vh - 300px), 640px); }
+.seat { display: flex; align-items: center; gap: 8px; padding: 6px 2px; max-width: 640px; margin: 0 auto; width: min(100%, calc(100vh / var(--ui-scale, 1) - 300px), 640px); }
 .seat-name { font-family: var(--serif); font-size: 17px; }
 .seat-elo { color: var(--brass); font-size: 13px; font-variant-numeric: tabular-nums; }
 .seat-color { color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; }
@@ -331,7 +334,7 @@ table.lb tr.me td { color: var(--brass-hi); }
 .check-flag { color: var(--danger); font-family: var(--serif); font-style: italic; margin-left: auto; }
 
 .clock-card {
-  width: min(100%, calc(100vh - 300px), 640px); margin: 8px auto 0;
+  width: min(100%, calc(100vh / var(--ui-scale, 1) - 300px), 640px); margin: 8px auto 0;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 10px 14px 12px;
 }
@@ -343,14 +346,14 @@ table.lb tr.me td { color: var(--brass-hi); }
 .fuse-fill.urgent { background: var(--danger); }
 
 .banner {
-  width: min(100%, calc(100vh - 300px), 640px); margin: 10px auto 0;
+  width: min(100%, calc(100vh / var(--ui-scale, 1) - 300px), 640px); margin: 10px auto 0;
   display: flex; justify-content: space-between; align-items: center; gap: 10px;
   background: rgba(200, 163, 95, 0.1); border: 1px solid var(--brass);
   border-radius: var(--radius); padding: 8px 14px;
   font-family: var(--serif);
 }
 .game-actions {
-  width: min(100%, calc(100vh - 300px), 640px); margin: 12px auto 0;
+  width: min(100%, calc(100vh / var(--ui-scale, 1) - 300px), 640px); margin: 12px auto 0;
   display: flex; gap: 8px; align-items: center;
 }
 
@@ -404,7 +407,7 @@ table.lb tr.me td { color: var(--brass-hi); }
 .toast {
   background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--brass);
   border-radius: var(--radius); padding: 9px 16px; box-shadow: var(--shadow);
-  font-size: 14px; max-width: 78vw; animation: toast-in 160ms ease;
+  font-size: 14px; max-width: calc(78vw / var(--ui-scale, 1)); animation: toast-in 160ms ease;
 }
 .toast.err { border-left-color: var(--danger); }
 .toast.ok { border-left-color: var(--ok); }
@@ -426,14 +429,14 @@ table.lb tr.me td { color: var(--brass-hi); }
   .view { padding: 14px; }
   /* on landscape phones, also cap the board by viewport height so it stays in reach */
   .board-wrap, .seat, .clock-card, .banner, .game-actions {
-    width: min(100%, 92vw, max(300px, calc(100vh - 230px)));
-    width: min(100%, 92vw, max(300px, calc(100dvh - 230px)));
+    width: min(100%, calc(92vw / var(--ui-scale, 1)), max(300px, calc(100vh / var(--ui-scale, 1) - 230px)));
+    width: min(100%, calc(92vw / var(--ui-scale, 1)), max(300px, calc(100dvh / var(--ui-scale, 1) - 230px)));
   }
   .sheet { max-height: 200px; }
   /* 16px stops iOS Safari from zooming the page when a field gets focus */
   .chat-form input, .field input, .field textarea { font-size: 16px; }
-  .toast { max-width: 92vw; }
-  #modal-body { max-height: 55vh; max-height: 55dvh; }
+  .toast { max-width: calc(92vw / var(--ui-scale, 1)); }
+  #modal-body { max-height: calc(55vh / var(--ui-scale, 1)); max-height: calc(55dvh / var(--ui-scale, 1)); }
 }
 
 @media (max-width: 600px) {
@@ -482,7 +485,7 @@ table.lb tr.me td { color: var(--brass-hi); }
     grid-template-rows: auto auto auto auto 1fr;
     column-gap: 12px; row-gap: 6px; align-items: start;
   }
-  .board-wrap { grid-area: board; width: min(calc(100dvh - 82px), 58vw); margin: 0; }
+  .board-wrap { grid-area: board; width: min(calc(100dvh / var(--ui-scale, 1) - 82px), calc(58vw / var(--ui-scale, 1))); margin: 0; }
   .seat-top { grid-area: top; }
   .seat-bottom { grid-area: bottom; }
   .clock-card { grid-area: clock; }
@@ -557,7 +560,7 @@ table.lb tr.me td { color: var(--brass-hi); }
 .settings { align-items: center; }
 .settings-card {
   max-width: 480px;
-  max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px);
+  max-height: calc(100vh / var(--ui-scale, 1) - 32px); max-height: calc(100dvh / var(--ui-scale, 1) - 32px);
   overflow-y: auto; overscroll-behavior: contain;
   padding: 16px 18px;
 }
@@ -613,5 +616,5 @@ table.lb tr.me td { color: var(--brass-hi); }
 }
 @media (max-height: 500px) and (orientation: landscape) {
   .settings { padding: 8px; }
-  .settings-card { max-height: calc(100dvh - 16px); }
+  .settings-card { max-height: calc(100dvh / var(--ui-scale, 1) - 16px); }
 }
