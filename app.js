@@ -516,7 +516,9 @@ const App = {
   shareInviteLink() {
     const url = SH.inviteLink();
     if (!url) return;
-    navigator.clipboard.writeText(url).then(
+    // navigator.clipboard is undefined on plain http (non-secure context);
+    // a missing API takes the same manual-copy path as a refused write
+    Promise.resolve().then(() => navigator.clipboard.writeText(url)).then(
       () => UI.toast(PT.inviteCopied, 'ok'),
       () => UI.picker('Copy this invite link', (body) => {
         const input = UI.el('input', 'share-url');

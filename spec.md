@@ -169,7 +169,7 @@ legality and game end is the same `chessRules`.
 | Rated matchmaking | Club → **Play** | `POST /matchmaking`; nearest-Elo pairing; polled every 3 s; after 30 s in the queue a **Play against hal** button appears (the 30 s belong to the ticket, and survive a reload) |
 | Rated game vs hal | Matchmaking → **Play against hal** | `POST /sessions/ai`; server-side hal; 24 h clock applies; hal's own Elo is shown on its seat; chat disabled, voice panel hidden |
 | Friend invite | Club → **Invite a friend** | Picker of platform friends (profile nickname + avatar); accepting creates the session immediately |
-| Share link | Club → **Share invite link** | Copies `https://dashboard.starhermit.com/game-invite/<userId>/<slug>`; the dashboard friends the recipient and sends the play invite back |
+| Share link | Club → **Share invite link** | Copies `https://dashboard.starhermit.com/game-invite/<userId>/<slug>`; the dashboard friends the recipient and sends the play invite back. When the clipboard is unavailable (plain http) or refuses, a "Copy this invite link" dialog shows the link in a read-only field to copy by hand |
 | Rejoin | Club → "My games" card | Opens the session; cards show "your move"/"their move" and time left, urgent under 1 h |
 | Replay | Club → "Recent games" card, or **View replay** on the game-over card | Read-only board stepped from the archived move list |
 
