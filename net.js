@@ -128,9 +128,12 @@ SH.on('auth', (a) => {
     else sessionStorage.removeItem(TOKEN_KEY);
   } catch (e) { /* storage off */ }
   if (!a.signedIn && Net.onAuthLost) {
+    // 'expired': renewal was refused — only the launcher (or sign-in) can mint
+    // a new token, so the landing card offers "Back to StarHermit".
+    const PS = window.PlatformStrings;
     Net.onAuthLost(a.reason === 'expired'
-      ? 'Your session expired — sign in again to continue.'
-      : 'Signed out — sign in again to continue.');
+      ? (PS ? PS.platformStrings(navigator.language).sessionExpired : 'Your session expired.')
+      : 'Signed out — sign in again to continue.', a.reason || 'signed-out');
   }
 });
 if (SH.token) {

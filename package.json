@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "npm run test:unit && npm run test:rules && npm run test:e2e",
-    "test:unit": "node --test tests/gfx.test.mjs tests/platform.test.mjs",
+    "test:unit": "node --test tests/gfx.test.mjs tests/platform.test.mjs tests/reconnect.test.mjs",
     "test:rules": "node tests/rules.mjs",
     "test:e2e": "node tests/e2e.mjs"
   },

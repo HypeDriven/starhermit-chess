@@ -10,6 +10,8 @@
     inviteFailed: 'Could not copy the invite link.',
     signedOut: 'Signed out of StarHermit — progress keeps saving on this device.',
     signedInAs: 'Signed in as {name}',
+    sessionExpired: 'Your session expired. Open the game again from StarHermit to keep playing.',
+    relaunch: 'Back to StarHermit',
   };
   const TABLE = {
     'en-US': EN_US,
@@ -21,6 +23,8 @@
       inviteFailed: 'No se pudo copiar el enlace de invitación.',
       signedOut: 'Sesión de StarHermit cerrada: el progreso se sigue guardando en este dispositivo.',
       signedInAs: 'Sesión iniciada como {name}',
+      sessionExpired: 'Tu sesión expiró. Vuelve a abrir el juego desde StarHermit para seguir jugando.',
+      relaunch: 'Volver a StarHermit',
     },
     'es-ES': {
       signIn: 'Iniciar sesión con StarHermit',
@@ -29,6 +33,8 @@
       inviteFailed: 'No se ha podido copiar el enlace de invitación.',
       signedOut: 'Sesión de StarHermit cerrada: el progreso se sigue guardando en este dispositivo.',
       signedInAs: 'Sesión iniciada como {name}',
+      sessionExpired: 'Tu sesión ha caducado. Vuelve a abrir el juego desde StarHermit para seguir jugando.',
+      relaunch: 'Volver a StarHermit',
     },
     'de-DE': {
       signIn: 'Mit StarHermit anmelden',
@@ -37,6 +43,8 @@
       inviteFailed: 'Der Einladungslink konnte nicht kopiert werden.',
       signedOut: 'Von StarHermit abgemeldet – der Fortschritt wird weiter auf diesem Gerät gespeichert.',
       signedInAs: 'Angemeldet als {name}',
+      sessionExpired: 'Deine Sitzung ist abgelaufen. Öffne das Spiel erneut über StarHermit, um weiterzuspielen.',
+      relaunch: 'Zurück zu StarHermit',
     },
     'fr-FR': {
       signIn: 'Se connecter avec StarHermit',
@@ -45,6 +53,8 @@
       inviteFailed: 'Impossible de copier le lien d’invitation.',
       signedOut: 'Déconnecté de StarHermit — la progression reste enregistrée sur cet appareil.',
       signedInAs: 'Connecté en tant que {name}',
+      sessionExpired: 'Votre session a expiré. Rouvrez le jeu depuis StarHermit pour continuer à jouer.',
+      relaunch: 'Retour à StarHermit',
     },
     'fr-CA': {
       signIn: 'Se connecter avec StarHermit',
@@ -53,6 +63,8 @@
       inviteFailed: 'Impossible de copier le lien d’invitation.',
       signedOut: 'Déconnecté de StarHermit — la progression reste enregistrée sur cet appareil.',
       signedInAs: 'Connecté en tant que {name}',
+      sessionExpired: 'Votre session a expiré. Rouvrez le jeu à partir de StarHermit pour continuer à jouer.',
+      relaunch: 'Retour à StarHermit',
     },
     'pt-BR': {
       signIn: 'Entrar com StarHermit',
@@ -61,6 +73,8 @@
       inviteFailed: 'Não foi possível copiar o link de convite.',
       signedOut: 'Você saiu do StarHermit — o progresso continua salvo neste dispositivo.',
       signedInAs: 'Conectado como {name}',
+      sessionExpired: 'Sua sessão expirou. Abra o jogo de novo pelo StarHermit para continuar jogando.',
+      relaunch: 'Voltar ao StarHermit',
     },
     'it-IT': {
       signIn: 'Accedi con StarHermit',
@@ -69,6 +83,8 @@
       inviteFailed: 'Impossibile copiare il link di invito.',
       signedOut: 'Disconnesso da StarHermit: i progressi restano salvati su questo dispositivo.',
       signedInAs: 'Accesso eseguito come {name}',
+      sessionExpired: 'La sessione è scaduta. Riapri il gioco da StarHermit per continuare a giocare.',
+      relaunch: 'Torna a StarHermit',
     },
   };
   const ALIASES = { en: 'en-US', es: 'es-ES', de: 'de-DE', fr: 'fr-FR', pt: 'pt-BR', it: 'it-IT' };

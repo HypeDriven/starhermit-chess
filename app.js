@@ -39,9 +39,9 @@ const App = {
 
   // ------------------------------------------------------------- boot/auth
   init() {
-    Net.onAuthLost = (msg) => {
+    Net.onAuthLost = (msg, reason) => {
       if (App.game) { App.game.destroy(); App.game = null; }
-      App.showAuth(msg);
+      App.showAuth(msg, reason === 'expired');
     };
 
     // StarHermit.init() (index.html) already read #game_token=<jwt> (library
@@ -55,10 +55,14 @@ const App = {
     this.showAuth();
   },
 
-  showAuth(msg) {
+  /** Landing card; `expired` adds "Back to StarHermit" (StarHermit.relaunch()) under the message. */
+  showAuth(msg, expired = false) {
     const box = $('auth-msg');
     box.hidden = !msg;
     if (msg) box.textContent = msg;
+    const relaunch = $('btn-relaunch');
+    relaunch.textContent = PT.relaunch;
+    relaunch.hidden = !expired;
     $('auth-base').value = Net.base;
     if (!$('auth-slug').value) $('auth-slug').value = Net.slug || '';
     // On <slug>.starhermit.com without a token: one-click platform sign-in.
@@ -690,5 +694,6 @@ document.addEventListener('keydown', (e) => {
   else if (act === 'rowEnd') { e.preventDefault(); App.replayStep(Infinity); }
 });
 $('btn-signin').addEventListener('click', () => SH.signIn());
+$('btn-relaunch').addEventListener('click', () => SH.relaunch());
 
 App.init();

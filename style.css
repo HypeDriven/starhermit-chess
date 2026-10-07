@@ -149,6 +149,7 @@ button { font: inherit; }
   resize: vertical;
 }
 .field textarea:focus, .field input:focus { outline: none; border-color: var(--brass); }
+.auth-relaunch { margin: 10px 0 18px; }
 .auth-local { margin-bottom: 18px; }
 .auth-local-hint { color: var(--faint); font-size: 13px; text-align: center; margin: 8px 0 0; }
 .auth-divider {

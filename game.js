@@ -71,7 +71,9 @@ class GameController {
 
   // ------------------------------------------------------------- game socket
   // The SDK's gameplay socket (/ws/v1/games) reconnects with exponential
-  // backoff and the current (renewed) token; every (re)open re-syncs state.
+  // backoff, renewing the launch token before every reconnect; every (re)open
+  // re-syncs state. When renewal is refused the socket stops: the SDK signs
+  // out with reason 'expired' and Net.onAuthLost shows "Back to StarHermit".
   connect() {
     if (this.destroyed) return;
     this.ws = SH.connect(this.sessionId, {
@@ -83,6 +85,11 @@ class GameController {
       onError: (error) => this.onFrame({ type: 'error', error }),
       onPresence: (m) => this.onFrame(m),
       onClose: () => { if (!this.destroyed) $('conn-state').textContent = 'reconnecting…'; },
+      onAuthLost: () => {
+        if (this.destroyed || !Net.onAuthLost) return;
+        // Normally the SDK's auth event got here first and destroyed this view.
+        Net.onAuthLost(window.PlatformStrings.platformStrings(navigator.language).sessionExpired, 'expired');
+      },
     });
   }
 
@@ -471,8 +478,23 @@ class VoiceController {
     ws.onclose = () => {
       if (this.ws !== ws || !this.enabled) return;
       this.ws = null;
-      setTimeout(() => { if (this.enabled) this.connectWs(); }, 3000);
+      this.scheduleReconnect();
     };
+  }
+
+  // A failed reconnect may be an expired token (refused before the upgrade,
+  // reported only as 1006), so every reconnect renews first and builds the URL
+  // from the fresh token; 'retry' waits again, 'relaunch' turns voice off (the
+  // SDK has signed out and the landing card offers "Back to StarHermit").
+  scheduleReconnect() {
+    setTimeout(async () => {
+      if (!this.enabled) return;
+      const r = await SH.renewForReconnect();
+      if (!this.enabled) return;
+      if (r === 'renewed') this.connectWs();
+      else if (r === 'retry') this.scheduleReconnect();
+      else this.disable(true);
+    }, 3000);
   }
 
   send(obj) {

@@ -409,17 +409,17 @@ named methods directly. Standalone (no token) the game makes no platform request
 
 | Platform feature | Used | How |
 |---|---|---|
-| Identity / launch token | Yes | The SDK reads `#game_token=` (launcher, optional `&session_id=` opens that game) or `#access_token=` (sign-in return), strips it, takes the slug from `game_scope` and renews it; the dev panel exchanges a pasted user JWT via `POST /games/{uid}/launch-token` and hands the result to the SDK. A refused renewal or a 401 signs out and returns to the landing card with a message |
+| Identity / launch token | Yes | The SDK reads `#game_token=` (launcher, optional `&session_id=` opens that game) or `#access_token=` (sign-in return), strips it, takes the slug from `game_scope` and renews it; the dev panel exchanges a pasted user JWT via `POST /games/{uid}/launch-token` and hands the result to the SDK. A 401 signs out and returns to the landing card with a message. When renewal is refused (token expired or past the 12 h chain) the landing card reads "Your session expired…" with a **Back to StarHermit** button that calls `StarHermit.relaunch()` (launcher, or sign-in for sign-in launches) |
 | Sign in | Yes | On `<uid>.starhermit.com` without a token the landing card shows **Sign in with StarHermit** (`StarHermit.signIn()`); hidden when signed in and locally |
 | Profiles and avatars | Yes | `StarHermit.profile()` (nickname; usernames never shown) and `avatarUrl()`, cached per session (`App.profileFor`) |
 | Presence | Yes | `presence` frames on the game socket light the opponent's seat lamp; hal is always lit |
-| Sessions | Yes | `mySessions()`, `getSession()`, `startAiSession()`; cap of 20 read from `maxConcurrentSessionsPerPlayer`; the gameplay socket is `StarHermit.connect()` (reconnect with backoff, `sync` on every open) |
+| Sessions | Yes | `mySessions()`, `getSession()`, `startAiSession()`; cap of 20 read from `maxConcurrentSessionsPerPlayer`; the gameplay socket is `StarHermit.connect()` (reconnect with backoff, the launch token renewed before every reconnect, `sync` on every open; `onAuthLost` leads to the expired-session card) |
 | Matchmaking | Yes | `joinQueue()` / ticket polled every 3 s / `cancelMatch()`, ticket resumed across reloads; after 30 s in the queue the menu offers a rated game against hal |
 | Invitations | Yes | `invites()` list with accept/decline, `sendInvite()` from the `friends()` picker, and **Share invite link** copying `StarHermit.inviteLink()` |
 | Leaderboard | Yes (read) | Friends-only top 10 from `leaderboardId`; the platform writes Elo from script results, the client never submits |
 | Replays | Yes | `replays: true` declared; the Recent games panel shows when `getGame().replaysEnabled` is not false; `myReplays()`, `getReplay()`; archived `state.game.moves` re-run through `chessRules` |
 | Chat | Yes | Per-session conversation from `chatConversationId`; `pollChat()` every 5 s and `sendChat()` (launch tokens cannot use the chat push socket) |
-| Voice | Yes (opt-in) | `StarHermit.voice` rooms by conversation, join, `/ws/v1/voice` for `rtc` signalling, `voice.*` events |
+| Voice | Yes (opt-in) | `StarHermit.voice` rooms by conversation, join, `/ws/v1/voice` for `rtc` signalling, `voice.*` events; a dropped voice socket retries every 3 s, each time calling `StarHermit.renewForReconnect()` first and rebuilding the URL from the fresh token (`'retry'` waits again, `'relaunch'` turns voice off) |
 | Settings KV | Yes | The graphics settings and the Sound toggle are patched to the game's settings KV on change (debounced) and applied on sign-in, where the platform value wins |
 | Controls | Yes | Board focus (arrows, Home, End), play-the-square (Enter/Space) and the replay stepper are declared as `control.*` in `starhermit.txt`; `loadBindings()` resolves the player's keys on sign-in and keydown routes by `event.code` |
 | Server script | Yes | `server.js` via `starhermit.txt` `server=`; `createSession`, `onPlayerMessage`, `onTick`; `tickRateHz: 1`; per-player docs under the 5 MB budget |
@@ -429,7 +429,7 @@ named methods directly. Standalone (no token) the game makes no platform request
 
 The client is slug-agnostic and origin-agnostic: in production `/api` and `/ws` are same-origin on
 `<uid>.starhermit.com`; the dev panel can point the SDK base elsewhere (persisted in `localStorage`).
-New platform strings (sign in, invite link copied) ship in all nine locales (`platform-strings.js`).
+New platform strings (sign in, invite link copied, session expired, Back to StarHermit) ship in all nine locales (`platform-strings.js`).
 
 ## 13. Technical architecture
 
