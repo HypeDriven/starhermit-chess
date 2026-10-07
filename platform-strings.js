@@ -12,6 +12,10 @@
     signedInAs: 'Signed in as {name}',
     sessionExpired: 'Your session expired. Open the game again from StarHermit to keep playing.',
     relaunch: 'Back to StarHermit',
+    lbPosting: 'Posting to the leaderboard…',
+    lbRank: 'Leaderboard rank: #{rank}',
+    lbPosted: 'Win posted to the leaderboard.',
+    lbNotPosted: 'Only wins against hal count on the leaderboard.',
   };
   const TABLE = {
     'en-US': EN_US,
@@ -25,6 +29,10 @@
       signedInAs: 'Sesión iniciada como {name}',
       sessionExpired: 'Tu sesión expiró. Vuelve a abrir el juego desde StarHermit para seguir jugando.',
       relaunch: 'Volver a StarHermit',
+      lbPosting: 'Publicando en la clasificación…',
+      lbRank: 'Puesto en la clasificación: #{rank}',
+      lbPosted: 'Victoria publicada en la clasificación.',
+      lbNotPosted: 'Solo las victorias contra hal cuentan en la clasificación.',
     },
     'es-ES': {
       signIn: 'Iniciar sesión con StarHermit',
@@ -35,6 +43,10 @@
       signedInAs: 'Sesión iniciada como {name}',
       sessionExpired: 'Tu sesión ha caducado. Vuelve a abrir el juego desde StarHermit para seguir jugando.',
       relaunch: 'Volver a StarHermit',
+      lbPosting: 'Publicando en la clasificación…',
+      lbRank: 'Puesto en la clasificación: #{rank}',
+      lbPosted: 'Victoria publicada en la clasificación.',
+      lbNotPosted: 'Solo las victorias contra hal cuentan en la clasificación.',
     },
     'de-DE': {
       signIn: 'Mit StarHermit anmelden',
@@ -45,6 +57,10 @@
       signedInAs: 'Angemeldet als {name}',
       sessionExpired: 'Deine Sitzung ist abgelaufen. Öffne das Spiel erneut über StarHermit, um weiterzuspielen.',
       relaunch: 'Zurück zu StarHermit',
+      lbPosting: 'Wird in die Bestenliste eingetragen …',
+      lbRank: 'Platz in der Bestenliste: #{rank}',
+      lbPosted: 'Sieg in die Bestenliste eingetragen.',
+      lbNotPosted: 'Nur Siege gegen hal zählen für die Bestenliste.',
     },
     'fr-FR': {
       signIn: 'Se connecter avec StarHermit',
@@ -55,6 +71,10 @@
       signedInAs: 'Connecté en tant que {name}',
       sessionExpired: 'Votre session a expiré. Rouvrez le jeu depuis StarHermit pour continuer à jouer.',
       relaunch: 'Retour à StarHermit',
+      lbPosting: 'Envoi au classement…',
+      lbRank: 'Rang au classement : #{rank}',
+      lbPosted: 'Victoire inscrite au classement.',
+      lbNotPosted: 'Seules les victoires contre hal comptent pour le classement.',
     },
     'fr-CA': {
       signIn: 'Se connecter avec StarHermit',
@@ -65,6 +85,10 @@
       signedInAs: 'Connecté en tant que {name}',
       sessionExpired: 'Votre session a expiré. Rouvrez le jeu à partir de StarHermit pour continuer à jouer.',
       relaunch: 'Retour à StarHermit',
+      lbPosting: 'Envoi au classement…',
+      lbRank: 'Rang au classement : #{rank}',
+      lbPosted: 'Victoire inscrite au classement.',
+      lbNotPosted: 'Seules les victoires contre hal comptent pour le classement.',
     },
     'pt-BR': {
       signIn: 'Entrar com StarHermit',
@@ -75,6 +99,10 @@
       signedInAs: 'Conectado como {name}',
       sessionExpired: 'Sua sessão expirou. Abra o jogo de novo pelo StarHermit para continuar jogando.',
       relaunch: 'Voltar ao StarHermit',
+      lbPosting: 'Enviando para o ranking…',
+      lbRank: 'Posição no ranking: #{rank}',
+      lbPosted: 'Vitória registrada no ranking.',
+      lbNotPosted: 'Só vitórias contra o hal contam no ranking.',
     },
     'it-IT': {
       signIn: 'Accedi con StarHermit',
@@ -85,6 +113,10 @@
       signedInAs: 'Accesso eseguito come {name}',
       sessionExpired: 'La sessione è scaduta. Riapri il gioco da StarHermit per continuare a giocare.',
       relaunch: 'Torna a StarHermit',
+      lbPosting: 'Invio alla classifica…',
+      lbRank: 'Posizione in classifica: #{rank}',
+      lbPosted: 'Vittoria registrata in classifica.',
+      lbNotPosted: 'Solo le vittorie contro hal contano in classifica.',
     },
   };
   const ALIASES = { en: 'en-US', es: 'es-ES', de: 'de-DE', fr: 'fr-FR', pt: 'pt-BR', it: 'it-IT' };

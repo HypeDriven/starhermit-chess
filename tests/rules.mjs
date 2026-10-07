@@ -194,6 +194,29 @@ check('a game hal ends still publishes ratings and records', () => {
   eq(out.playerStates[hal].wins, 1, 'hal win recorded');
 });
 
+check('a practice win against hal posts to the practice-wins board', () => {
+  const human = 'human-1', hal = 'hal-1';
+  // White (the human) mates with Qd8#; the back rank is sealed by black's own pawns.
+  const g = stateFrom({ a1: 'K', d1: 'Q', g8: 'k', f7: 'p', g7: 'p', h7: 'p' }, 'white');
+  const mk = (data, practiceWins) => ({
+    now: 1, random: 0.5, sessionId: 'sess-pw',
+    players: [{ id: human }, { id: hal, ai: true }],
+    sessionState: { white: human, black: hal, aiId: hal, game: JSON.parse(JSON.stringify(g)),
+      createdAt: 0, deadline: 10, result: null, drawOfferBy: null },
+    playerStates: practiceWins == null ? {} : { [human]: { elo: 1200, wins: 0, losses: 0, draws: 0,
+      practiceWins, lastColorVs: {}, lastColorOrder: [], recentGames: [] } },
+    message: { from: human, data },
+  });
+  const out = GAME.onPlayerMessage(mk({ type: 'move', from: 'd1', to: 'd8' }));
+  eq(out.result && out.result.kind, 'white', 'the human mates');
+  eq(out.scores['practice-wins'][human], 1, 'first practice win scores 1');
+  eq(out.playerStates[human].practiceWins, 1, 'practice wins kept in the player doc');
+  const again = GAME.onPlayerMessage(mk({ type: 'move', from: 'd1', to: 'd8' }, 4));
+  eq(again.scores['practice-wins'][human], 5, 'the running total is posted');
+  const lost = GAME.onPlayerMessage(mk({ type: 'resign' }));
+  eq(Object.keys(lost.scores).length, 0, 'a loss posts nothing');
+});
+
 check('resignation, draw agreement and the move deadline end a game', () => {
   const a = 'p-a', b = 'p-b';
   const mk = (msgFrom, data) => ({

@@ -322,7 +322,9 @@ class GameController {
     };
     $('go-reason').textContent = reasons[result.reason] || result.reason || '';
     $('go-elo').textContent = '';
+    $('go-lb').hidden = true;
     $('game-over').hidden = false;
+    if (this.view && this.view.ai) this.showPracticeRank(iWon);
     Sfx.forResult(result.kind, this.myColor);
     this.tickClock();
     // fresh elo after the platform applies the result
@@ -341,6 +343,28 @@ class GameController {
         App.updateEloChip(newElo);
       }
     } catch (e) { /* menu will refresh anyway */ }
+  }
+
+  /**
+   * Practice games against hal: a win adds to the practice-wins leaderboard
+   * (posted by server.js); show the player's rank once the board has it.
+   */
+  async showPracticeRank(iWon) {
+    const line = $('go-lb');
+    const PS = window.PlatformStrings;
+    const PT = PS.platformStrings(navigator.language);
+    if (!SH.signedIn) return;
+    line.hidden = false;
+    if (!iWon) { line.textContent = PT.lbNotPosted; return; }
+    line.textContent = PT.lbPosting;
+    let mine = null;
+    for (let i = 0; i < 8 && !mine && !this.destroyed; i++) {
+      if (i) await new Promise(r => setTimeout(r, 1500));
+      const r = await SH.leaderboard('practice-wins', { pageSize: 100 }).catch(() => null);
+      mine = r && (r.items || []).find(e => e.userId === SH.userId);
+    }
+    if (this.destroyed) return;
+    line.textContent = mine ? PS.fmtPlatform(PT.lbRank, { rank: mine.rank }) : PT.lbPosted;
   }
 
   // ------------------------------------------------------------- chat

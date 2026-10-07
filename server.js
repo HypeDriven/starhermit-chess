@@ -472,6 +472,7 @@ function defaultPlayerDoc() {
   return {
     elo: ELO_START,
     wins: 0, losses: 0, draws: 0,
+    practiceWins: 0,        // wins against hal — the practice-wins leaderboard
     // last color played against each opponent, for strict alternation
     lastColorVs: {},        // opponentId -> 'white' | 'black'
     lastColorOrder: [],     // LRU of opponentIds so the map stays bounded
@@ -578,9 +579,23 @@ function finishGame(ctx, s, kind, reason) {
 
   syncSummary(s);
 
+  // A practice win against hal counts on the game's own practice-wins board
+  // (leaderboards.json): the human's running total of wins against hal.
+  var scores = null;
+  if (s.aiId && kind !== 'draw') {
+    var winnerId = kind === 'white' ? s.white : s.black;
+    if (winnerId !== s.aiId) {
+      var wDoc = winnerId === s.white ? whiteDoc : blackDoc;
+      wDoc.practiceWins = (wDoc.practiceWins || 0) + 1;
+      scores = { 'practice-wins': {} };
+      scores['practice-wins'][winnerId] = wDoc.practiceWins;
+    }
+  }
+
   return {
     playerStates: updates,
     eloUpdates: elo,
+    scores: scores,
     // Persisted as the session's result record and surfaced in replay listings —
     // rich enough for a client to show "who won, why, and the rating change".
     result: {
@@ -647,6 +662,7 @@ function aiReply(ctx, s, out) {
     out.playerStates = out.playerStates || {};
     for (var pid in fin.playerStates) out.playerStates[pid] = fin.playerStates[pid];
     out.eloUpdates = fin.eloUpdates;
+    if (fin.scores) out.scores = fin.scores;
     out.result = fin.result;
     out.broadcast.push({ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } });
   }
@@ -783,6 +799,7 @@ globalThis.game = {
         var fin = finishGame(ctx, s, res.gameOver.kind, res.gameOver.reason);
         out.playerStates = fin.playerStates;
         out.eloUpdates = fin.eloUpdates;
+        if (fin.scores) out.scores = fin.scores;
         out.result = fin.result;
         out.broadcast.push({ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } });
       } else {
@@ -797,6 +814,7 @@ globalThis.game = {
       return {
         ok: true, sessionState: s,
         playerStates: fin2.playerStates, eloUpdates: fin2.eloUpdates, result: fin2.result,
+        scores: fin2.scores || {},
         broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } }],
       };
     }
@@ -813,6 +831,7 @@ globalThis.game = {
         return {
           ok: true, sessionState: s,
           playerStates: fin3.playerStates, eloUpdates: fin3.eloUpdates, result: fin3.result,
+          scores: fin3.scores || {},
           broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } }],
         };
       }
@@ -830,6 +849,7 @@ globalThis.game = {
       return {
         ok: true, sessionState: s,
         playerStates: fin4.playerStates, eloUpdates: fin4.eloUpdates, result: fin4.result,
+        scores: fin4.scores || {},
         broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } }],
       };
     }
@@ -866,6 +886,7 @@ globalThis.game = {
     return {
       ok: true, sessionState: s,
       playerStates: fin.playerStates, eloUpdates: fin.eloUpdates, result: fin.result,
+      scores: fin.scores || {},
       broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } }],
     };
   },

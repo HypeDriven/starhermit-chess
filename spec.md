@@ -26,6 +26,7 @@ needs no sign-in at all.
 | `starhermit.txt` | Platform manifest: `name`, `launch=index.html`, `owner`, `server=server.js`, `cover=coverart.png`. No slug key: the platform assigns a uid |
 | `index.html` | All four screens as `<section class="view">` plus shared chrome (toasts, modal, top bar, landing key art) |
 | `server.js` | The authoritative game script (rules, clock, Elo, colours, hal) run by the platform; also loaded by the browser as `globalThis.chessRules`; doubles as a local static server under Node |
+| `leaderboards.json` | The game's own leaderboard (`practice-wins`), created by the owner tooling; `server.js` posts to it via `scores` |
 | `app.js` | Boot/auth, the club menu (matchmaking, sessions, leaderboard, invites, replays), the replay viewer, view switching |
 | `game.js` | `GameController` (game socket, board interaction, chat) and `VoiceController` (WebRTC voice) |
 | `local.js` | `LocalGame`: the offline practice game against hal, same rules and same greedy AI, no platform |
@@ -131,6 +132,8 @@ relayed.
 **Move clock** (`game.onTick`, `tickRateHz: 1`): when `now ≥ deadline` on an active game, the side
 to move loses on time (`timeout`) — unless no move has ever been played, in which case the game is a
 draw (`timeout-no-moves`). Both outcomes are rated.
+
+**Practice wins**: every game against hal that the human wins (by any reason) adds one to the human's `practiceWins` and posts the new total to the `practice-wins` board through the returned `scores`.
 
 **Colours** (`game.createSession`): first meeting of a pair is decided by the host-supplied
 `ctx.random < 0.5`; every later game between the same two alternates, remembered per player in
@@ -417,6 +420,7 @@ named methods directly. Standalone (no token) the game makes no platform request
 | Matchmaking | Yes | `joinQueue()` / ticket polled every 3 s / `cancelMatch()`, ticket resumed across reloads; after 30 s in the queue the menu offers a rated game against hal |
 | Invitations | Yes | `invites()` list with accept/decline, `sendInvite()` from the `friends()` picker, and **Share invite link** copying `StarHermit.inviteLink()` |
 | Leaderboard | Yes (read) | Friends-only top 10 from `leaderboardId`; the platform writes Elo from script results, the client never submits |
+| Practice-wins board | Yes | `leaderboards.json` declares `practice-wins` ("Wins against hal", integer, higher is better, 1–1,000,000). When the human wins a rated game against hal, `finishGame` bumps `practiceWins` in their player doc and returns it in `scores`. On that game's result card a signed-in player sees "Leaderboard rank: #N" (read via `StarHermit.leaderboard('practice-wins')`); after a loss or draw against hal the card reads "Only wins against hal count on the leaderboard." Human-vs-human and offline games show no line. These four strings live in `platform-strings.js` in all nine locales |
 | Replays | Yes | `replays: true` declared; the Recent games panel shows when `getGame().replaysEnabled` is not false; `myReplays()`, `getReplay()`; archived `state.game.moves` re-run through `chessRules` |
 | Chat | Yes | Per-session conversation from `chatConversationId`; `pollChat()` every 5 s and `sendChat()` (launch tokens cannot use the chat push socket) |
 | Voice | Yes (opt-in) | `StarHermit.voice` rooms by conversation, join, `/ws/v1/voice` for `rtc` signalling, `voice.*` events; a dropped voice socket retries every 3 s, each time calling `StarHermit.renewForReconnect()` first and rebuilding the URL from the fresh token (`'retry'` waits again, `'relaunch'` turns voice off) |
