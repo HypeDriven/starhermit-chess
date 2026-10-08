@@ -246,8 +246,14 @@ const App = {
    * queued must come back up in the searching state, not on the Play button.
    * Returns true when a queued ticket was found and the UI resumed.
    */
-  async resumeMatchmaking() {
+  async resumeMatchmaking(force) {
     if (this._mmTimer) return true;
+    // GET /matchmaking is a 404 with no ticket, which the browser logs as a
+    // console error: only ask when this device queued (startMatchmaking keeps
+    // the marker until the ticket resolves).
+    let saved = null;
+    try { saved = localStorage.getItem(this.matchmakingStorageKey()); } catch (e) { /* ignore */ }
+    if (!saved && !force) return false;
     let r = null;
     try { r = await Net.api(Net.gamePath('/matchmaking')); }
     catch (e) { return false; } // 404: not queued
@@ -272,7 +278,7 @@ const App = {
       if (e.status === 409) {
         // Possibly "already queued" (e.g. a race with resume): reflect the
         // queue instead of erroring if that's what this is.
-        if (await this.resumeMatchmaking()) return;
+        if (await this.resumeMatchmaking(true)) return;
         UI.toast('Cannot queue: ' + e.message, 'err');
       } else if (e.status !== 401) UI.toast(e.message, 'err');
     }
