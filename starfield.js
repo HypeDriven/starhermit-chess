@@ -425,8 +425,8 @@ function render(dt, rescale) {
     w.postKey = key;
     buildPost(wpx, hpx);
   }
-  if (w.composer) w.composer.render(dt);
-  else w.renderer.render(w.scene, w.camera);
+  if (w.composer) (globalThis.GameOptions ? globalThis.GameOptions.draw(w.composer.renderer, () => w.composer.render(dt)) : w.composer.render(dt));
+  else (globalThis.GameOptions ? globalThis.GameOptions.draw(w.renderer, () => w.renderer.render(w.scene, w.camera)) : w.renderer.render(w.scene, w.camera));
 }
 
 function updateMotes(dt) {
