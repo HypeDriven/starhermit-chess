@@ -2,6 +2,12 @@
 'use strict';
 
 const $ = (id) => document.getElementById(id);
+// Localization (i18n.js): T() translates an English source string; N() only
+// marks a key that is translated later (tables, server messages).
+const T = (key, vars) => (window.CHI18N ? window.CHI18N.T(key, vars) : String(key));
+const N = (key) => key;
+/** Text that may be a string or a thunk re-evaluated on a language change. */
+const txt = (v) => (typeof v === 'function' ? v() : v);
 
 const UI = {
   // ----------------------------------------------------------- dom helpers
@@ -37,20 +43,31 @@ const UI = {
   _modalResolve: null,
 
   /** Confirm dialog. Returns Promise<boolean>. */
-  confirm(text, okLabel = 'OK', danger = false) {
+  // text/okLabel may be thunks so an open dialog follows a language change.
+  confirm(text, okLabel = () => T('OK'), danger = false) {
     return new Promise((resolve) => {
       UI._closeModal(false);
       UI._modalResolve = resolve;
-      $('modal-text').textContent = text;
+      UI._modalText = { text, ok: okLabel, cancel: () => T('Cancel') };
       UI.clear($('modal-body'));
       const ok = $('modal-ok');
-      ok.textContent = okLabel;
       ok.className = 'btn ' + (danger ? 'btn-danger' : 'btn-primary');
       ok.hidden = false;
-      $('modal-cancel').textContent = 'Cancel';
+      UI.relocalizeModal();
       $('modal').hidden = false;
       ok.focus();
     });
+  },
+
+  _modalText: null,
+  /** Re-apply the open dialog's text in the current language. */
+  relocalizeModal() {
+    const m = UI._modalText;
+    if (!m) return;
+    $('modal-text').textContent = txt(m.text);
+    if (m.ok) $('modal-ok').textContent = txt(m.ok);
+    $('modal-cancel').textContent = txt(m.cancel);
+    if (m.body) m.body();
   },
 
   /** Modal with custom body content (e.g. a picker). Resolves null on cancel. */
@@ -58,42 +75,77 @@ const UI = {
     return new Promise((resolve) => {
       UI._closeModal(null);
       UI._modalResolve = resolve;
-      $('modal-text').textContent = text;
       const body = $('modal-body');
-      UI.clear(body);
-      buildBody(body, (value) => UI._closeModal(value));
+      const build = () => { UI.clear(body); buildBody(body, (value) => UI._closeModal(value)); };
+      UI._modalText = { text, ok: null, cancel: () => T('Close'), body: build };
       $('modal-ok').hidden = true;
-      $('modal-cancel').textContent = 'Close';
+      $('modal-text').textContent = txt(text);
+      $('modal-cancel').textContent = T('Close');
+      build();
       $('modal').hidden = false;
     });
   },
 
   _closeModal(value) {
     $('modal').hidden = true;
+    UI._modalText = null;
     const r = UI._modalResolve;
     UI._modalResolve = null;
     if (r) r(value);
   },
 
   // ----------------------------------------------------------- time
+  /** Current game language (BCP 47) for dates and times. */
+  locale() { return (window.CHI18N && window.CHI18N.lang) || undefined; },
+
   fmtLeft(ms) {
-    if (ms <= 0) return '0m';
+    if (ms <= 0) return T('{m}m', { m: 0 });
     const h = Math.floor(ms / 3600000);
     const m = Math.floor((ms % 3600000) / 60000);
-    if (h > 0) return h + 'h ' + String(m).padStart(2, '0') + 'm';
-    if (m > 0) return m + 'm';
-    return '<1m';
+    if (h > 0) return T('{h}h {m}m', { h, m: String(m).padStart(2, '0') });
+    if (m > 0) return T('{m}m', { m });
+    return T('< 1m');
   },
+
+  /** "{time} left" for a deadline countdown. */
+  fmtRemaining(ms) { return T('{time} left', { time: UI.fmtLeft(ms) }); },
 
   fmtDate(ms) {
     if (!ms) return '';
     const d = new Date(ms);
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return d.toLocaleDateString(UI.locale(), { month: 'short', day: 'numeric' });
   },
 
   fmtTime(ms) {
     const d = new Date(ms);
-    return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleTimeString(UI.locale(), { hour: '2-digit', minute: '2-digit' });
+  },
+
+  /** Colour name for a side ('white' / 'black'). */
+  colorName(color) { return color === 'black' ? T('black') : T('white'); },
+
+  /** Why a game ended, e.g. "by checkmate". */
+  reasonText(reason) {
+    const reasons = {
+      'checkmate': N('by checkmate'), 'stalemate': N('by stalemate'),
+      'threefold-repetition': N('by threefold repetition'), 'fifty-move-rule': N('by the fifty-move rule'),
+      'insufficient-material': N('insufficient material'), 'resignation': N('by resignation'),
+      'agreement': N('by agreement'), 'timeout': N('on time'), 'timeout-no-moves': N('no moves were played'),
+      'abandoned': N('abandoned'),
+    };
+    return reasons[reason] ? T(reasons[reason]) : (reason || '');
+  },
+
+  /** Messages the rules script (server.js) sends back, translated when known. */
+  ruleMessage(msg) {
+    const known = [
+      N('Malformed square.'), N('Invalid promotion piece.'), N('Promotion piece required (q, r, b or n).'),
+      N('Illegal move.'), N('No such session.'), N('You are not a player in this game.'), N('Game is over.'),
+      N('Not your turn.'), N('Draw already offered.'), N('No draw offer to accept.'), N('No draw offer to decline.'),
+      N('Command rejected.'),
+    ];
+    const s = String(msg || '');
+    return known.includes(s) ? T(s) : s;
   },
 
   // ----------------------------------------------------------- ticker (1s)
@@ -191,7 +243,7 @@ const UI = {
     const box = $('promo-picker');
     UI.clear(box);
     box.setAttribute('role', 'dialog');
-    box.setAttribute('aria-label', 'Choose a promotion piece');
+    box.setAttribute('aria-label', T('Choose a promotion piece'));
     const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); close(); } };
     const onBackdrop = (e) => { if (e.target === box) close(); };
     function close() {
@@ -203,8 +255,8 @@ const UI = {
       const b = UI.el('button');
       // the piece as it will look on the board, in my colour
       b.appendChild(UI.piece(color === 'white' ? p.toUpperCase() : p));
-      b.title = { q: 'Queen', r: 'Rook', n: 'Knight', b: 'Bishop' }[p];
-      b.setAttribute('aria-label', b.title);
+      b.dataset.piece = p;
+      UI.labelPromo(b);
       b.addEventListener('click', () => { close(); pick(p); });
       box.appendChild(b);
     }
@@ -214,14 +266,32 @@ const UI = {
     box.firstChild.focus();
   },
 
+  PROMO_NAME: { q: N('Queen'), r: N('Rook'), n: N('Knight'), b: N('Bishop') },
+  labelPromo(b) {
+    b.title = T(UI.PROMO_NAME[b.dataset.piece]);
+    b.setAttribute('aria-label', b.title);
+  },
+  /** Re-label an open promotion picker after a language change. */
+  relocalizePromo() {
+    const box = $('promo-picker');
+    if (box.hidden) return;
+    box.setAttribute('aria-label', T('Choose a promotion piece'));
+    box.querySelectorAll('button[data-piece]').forEach(UI.labelPromo);
+  },
+
   // ----------------------------------------------------------- board
-  PIECE_NAME: { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' },
+  PIECE_NAME: {
+    P: N('{square}, white pawn'), N: N('{square}, white knight'), B: N('{square}, white bishop'),
+    R: N('{square}, white rook'), Q: N('{square}, white queen'), K: N('{square}, white king'),
+    p: N('{square}, black pawn'), n: N('{square}, black knight'), b: N('{square}, black bishop'),
+    r: N('{square}, black rook'), q: N('{square}, black queen'), k: N('{square}, black king'),
+  },
 
   /** "e4, white pawn" / "e4, empty" — what a screen reader reads for a square. */
   squareLabel(i, p) {
-    const name = globalThis.chessRules.algebraic(i);
-    if (p === '.') return name + ', empty';
-    return name + ', ' + (p === p.toUpperCase() ? 'white ' : 'black ') + UI.PIECE_NAME[p.toLowerCase()];
+    const square = globalThis.chessRules.algebraic(i);
+    if (p === '.') return T('{square}, empty', { square });
+    return T(UI.PIECE_NAME[p], { square });
   },
 
   /**
@@ -336,7 +406,7 @@ const UI = {
   renderSheet(container, moves, opts = {}) {
     UI.clear(container);
     if (!moves.length) {
-      container.appendChild(UI.el('p', 'empty', 'No moves yet.'));
+      container.appendChild(UI.el('p', 'empty', T('No moves yet.')));
       return;
     }
     for (let i = 0; i < moves.length; i += 2) {

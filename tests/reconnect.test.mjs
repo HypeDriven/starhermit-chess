@@ -4,6 +4,9 @@
 // (GameController.connect) and the game-managed voice socket
 // (VoiceController): 'renewed' reopens with the new token, 'retry' never
 // reopens the old URL, 'relaunch' stops and shows "Back to StarHermit".
+// Pending terms consent ends the game like auth loss (landing card with
+// "Back to StarHermit"); a session that is no longer active ends the loop
+// with a visible note.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -32,10 +35,12 @@ function boot() {
   const timers = [];
   const sockets = [];
   let renewal = () => resp(200, { token: T2 });
+  let session = () => resp(200, { sessionId: 's1', status: 'active' });
   const renewCalls = [];
   const fetchStub = async (url, init = {}) => {
     const path = String(url);
     if (path === `/api/v1/games/${SLUG}/launch-token`) { renewCalls.push(path); return renewal(); }
+    if (path === `/api/v1/games/${SLUG}/sessions/s1`) return session();
     return resp(404, null);
   };
   class WS {
@@ -66,10 +71,13 @@ function boot() {
   win.PlatformStrings = ps.self.PlatformStrings;
   const toasts = [];
   const UI = new Proxy({ toast: (m) => toasts.push(m), onTick: () => () => {} }, { get: (t, k) => t[k] || (() => {}) });
-  const code = src('net.js') + '\n' + src('game.js') + '\n' + src('app.js').replace(/\nApp\.init\(\);\s*$/, '\n') +
+  const code = src('net.js') + '\n' + src('game.js') + '\n' + src('app.js').replace(/\nApp\.init\(\);\s*$/, '\n').replace(/\ndocument\.addEventListener\('ch-language'[^\n]*\n/, '\n') +
     '\nreturn { Net, App, GameController, VoiceController };';
-  const mod = new Function('window', 'document', 'navigator', 'WebSocket', 'setTimeout', 'UI', '$', 'Sfx', code)(
-    win, globalThis.document, { language: 'en-US' }, WS, setT, UI, (id) => globalThis.document.getElementById(id), { play() {} });
+  // ui.js's i18n helpers (English: no CHI18N in this harness).
+  const T = (k, vars) => String(k).replace(/\{(\w+)\}/g, (m, n) => (vars && n in vars ? vars[n] : m));
+  const txt = (v) => (typeof v === 'function' ? v() : v);
+  const mod = new Function('window', 'document', 'navigator', 'WebSocket', 'setTimeout', 'UI', '$', 'Sfx', 'T', 'N', 'txt', code)(
+    win, globalThis.document, { language: 'en-US' }, WS, setT, UI, (id) => globalThis.document.getElementById(id), { play() {} }, T, (k) => k, txt);
   mod.App.enterClub = () => {};
   mod.App.init();                         // wires Net.onAuthLost exactly as in the page
   const flush = async () => {
@@ -82,12 +90,15 @@ function boot() {
   return {
     sdk, mod, sockets, renewCalls, els, toasts, flush, timers,
     setRenewal(fn) { renewal = fn; },
+    setSession(fn) { session = fn; },
     get relaunched() { return relaunched; },
   };
 }
 
-function relaunchShown(env) {
-  return env.els['btn-relaunch'] && !env.els['btn-relaunch'].hidden && env.els['auth-msg'].textContent === 'Your session expired. Open the game again from StarHermit to keep playing.';
+const EXPIRED = 'Your session expired. Open the game again from StarHermit to keep playing.';
+const TERMS = 'StarHermit needs you to accept its updated terms. Open the game again from StarHermit to review them and keep playing.';
+function relaunchShown(env, msg = EXPIRED) {
+  return env.els['btn-relaunch'] && !env.els['btn-relaunch'].hidden && env.els['auth-msg'].textContent === msg;
 }
 
 test('game socket: reconnect renews first and opens with the new token', async () => {
@@ -148,9 +159,57 @@ test('voice socket: renews before reopening; retry waits; relaunch turns voice o
   assert.equal(env.sockets.length, 2, "'retry' does not reopen the old URL");
   assert.ok(v.enabled, 'voice keeps trying after a transient renewal failure');
 
-  env.setRenewal(() => resp(403, null));
+  env.setRenewal(() => resp(403, {}));
   await env.flush();
   assert.equal(env.sockets.length, 2);
   assert.equal(v.enabled, false, "'relaunch' turns voice off");
   assert.ok(relaunchShown(env), 'landing card shows the expired message and Back to StarHermit');
+});
+
+test('game socket: terms consent required ends the game like auth loss', async () => {
+  const env = boot();
+  const g = new env.mod.GameController('s1');
+  env.mod.App.game = g;
+  g.connect();
+  env.setRenewal(() => resp(403, { error: 'terms_acceptance_required' }));
+  env.sockets[0].onclose({ code: 1006 });
+  await env.flush();
+  assert.equal(env.sockets.length, 1, 'no reconnect without consent');
+  assert.equal(env.mod.App.game, null, 'the game view is torn down');
+  assert.ok(relaunchShown(env, TERMS), 'landing card shows the terms message and Back to StarHermit');
+  await env.flush();
+  assert.equal(env.sockets.length, 1);
+});
+
+test('game socket: an unavailable session ends the reconnect loop with a visible note', async () => {
+  const env = boot();
+  const g = new env.mod.GameController('s1');
+  env.mod.App.game = g;
+  g.connect();
+  env.setSession(() => resp(200, { sessionId: 's1', status: 'finished' }));
+  env.sockets[0].onclose({ code: 1006 });
+  await env.flush();
+  assert.equal(env.sockets.length, 1, 'no reopen for a finished session');
+  assert.equal(env.els['conn-state'].textContent, 'connection closed');
+  assert.ok(env.toasts.some((t) => /no longer available/.test(t)), 'a toast explains it');
+  assert.equal(env.mod.App.game, g, 'the board stays up so the player can read it');
+  await env.flush();
+  assert.equal(env.sockets.length, 1, 'the loop stays ended');
+});
+
+test('voice socket: terms consent required turns voice off and shows the landing card', async () => {
+  const env = boot();
+  const g = new env.mod.GameController('s1');
+  env.mod.App.game = g;
+  const v = g.voice;
+  v.enabled = true;
+  v.roomId = 'room-1';
+  v.connectWs();
+  env.setRenewal(() => resp(403, { error: 'terms_acceptance_required' }));
+  env.sockets[0].onclose({ code: 1006 });
+  await env.flush();
+  assert.equal(env.sockets.length, 1);
+  assert.equal(v.enabled, false);
+  assert.equal(env.mod.App.game, null);
+  assert.ok(relaunchShown(env, TERMS));
 });

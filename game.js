@@ -41,16 +41,27 @@ class GameController {
     this.chat = { convId: null, stopPoll: null, seen: new Set(), msgs: [] };
     this.voice = new VoiceController(this);
     this.unTick = null;
+    this.connState = N('connecting…');   // English key of the scoresheet's connection note ('' = none)
+    this.result = null;                  // shown game-over result (re-rendered on a language change)
+    this.newElo = null;
+    this.eloDelta = null;
+    this.lbLine = null;                  // practice-wins line: () => text
+  }
+
+  /** The connection note under the scoresheet heading. */
+  setConnState(key) {
+    this.connState = key;
+    $('conn-state').textContent = key ? T(key) : '';
   }
 
   async start() {
     $('game-over').hidden = true;
     $('draw-banner').hidden = true;
     $('promo-picker').hidden = true;
-    $('conn-state').textContent = 'connecting…';
+    this.setConnState(N('connecting…'));
     UI.clear($('movesheet'));
     UI.clear($('chat-msgs'));
-    $('chat-msgs').appendChild(UI.el('p', 'empty', 'Say hello.'));
+    $('chat-msgs').appendChild(UI.el('p', 'empty', T('Say hello.')));
     UI.renderBoard($('game-board'), R().START_BOARD, {});
     this.unTick = UI.onTick(() => this.tickClock());
 
@@ -62,7 +73,7 @@ class GameController {
       this.oppId = sessionPlayers.map(p => p.userId).find(id => id !== Net.userId) || null;
       this.chat.convId = s.chatConversationId || null;
     } catch (e) {
-      if (e.status !== 401) UI.toast(e.message, 'err');
+      if (e.status !== 401) UI.toast(UI.ruleMessage(e.message), 'err');
     }
     if (this.destroyed) return;
     this.connect();
@@ -74,31 +85,49 @@ class GameController {
   // backoff, renewing the launch token before every reconnect; every (re)open
   // re-syncs state. When renewal is refused the socket stops: the SDK signs
   // out with reason 'expired' and Net.onAuthLost shows "Back to StarHermit".
+  // Pending terms consent ends the game view the same way (the platform has
+  // to collect it); a session that is gone or no longer active stops the
+  // loop with a visible note instead of retrying forever.
   connect() {
     if (this.destroyed) return;
     this.ws = SH.connect(this.sessionId, {
       onOpen: () => {
-        $('conn-state').textContent = '';
+        this.setConnState('');
         this.sendCmd({ type: 'sync' });
       },
       onGame: (data) => this.onFrame({ type: 'game', data }),
       onError: (error) => this.onFrame({ type: 'error', error }),
       onPresence: (m) => this.onFrame(m),
-      onClose: () => { if (!this.destroyed) $('conn-state').textContent = 'reconnecting…'; },
+      onClose: () => { if (!this.destroyed && !this.unavailable) this.setConnState(N('reconnecting…')); },
       onAuthLost: () => {
         if (this.destroyed || !Net.onAuthLost) return;
         // Normally the SDK's auth event got here first and destroyed this view.
-        Net.onAuthLost(window.PlatformStrings.platformStrings(navigator.language).sessionExpired, 'expired');
+        Net.onAuthLost(() => Net.platformText().sessionExpired, 'expired');
       },
+      onTermsRequired: () => {
+        if (this.destroyed || !Net.onAuthLost) return;
+        Net.onAuthLost(() => Net.platformText().termsRequired, 'expired');
+      },
+      onUnavailable: () => this.onUnavailable(),
     });
   }
 
+  /** The SDK ended the reconnect loop: the session is gone, finished elsewhere or on another build. */
+  onUnavailable() {
+    if (this.destroyed) return;
+    this.unavailable = true;
+    this.setConnState(N('connection closed'));
+    UI.toast(T('This game is no longer available — back to the club for your other games.'), 'err');
+  }
+
   sendCmd(data) {
-    if (!this.ws || !this.ws.send(data)) UI.toast('Not connected — retrying…', 'err');
+    if (!this.ws || !this.ws.send(data)) {
+      UI.toast(this.unavailable ? T('This game is no longer available — back to the club for your other games.') : T('Not connected — retrying…'), 'err');
+    }
   }
 
   onFrame(msg) {
-    if (msg.type === 'error') { Sfx.play('illegal'); UI.toast(msg.error || 'Command rejected.', 'err'); return; }
+    if (msg.type === 'error') { Sfx.play('illegal'); UI.toast(UI.ruleMessage(msg.error || 'Command rejected.'), 'err'); return; }
     if (msg.type === 'presence') {
       if (msg.userId === this.oppId) {
         this.oppOnline = !!msg.online;
@@ -117,11 +146,11 @@ class GameController {
         break;
       case 'draw-offered':
         if (this.view) { this.view.drawOfferBy = d.by; this.render(); }
-        if (d.by !== this.myColor) { Sfx.play('drawOffer'); UI.toast(this.nameOf(this.oppId) + ' offers a draw.'); }
+        if (d.by !== this.myColor) { Sfx.play('drawOffer'); UI.toast(T('{name} offers a draw.', { name: this.nameOf(this.oppId) })); }
         break;
       case 'draw-declined':
         if (this.view) { this.view.drawOfferBy = null; this.render(); }
-        if (d.by !== this.myColor) UI.toast('Draw declined.');
+        if (d.by !== this.myColor) UI.toast(T('Draw declined.'));
         break;
       case 'game-over':
         this.setView({ ...d.view, result: d.result });
@@ -184,22 +213,22 @@ class GameController {
     const myColorName = this.myColor || 'white';
     const oppColorName = myColorName === 'white' ? 'black' : 'white';
     const ratings = v.ratings || {};
-    $('g-me-name').textContent = 'You — ' + this.nameOf(meId);
-    $('g-me-elo').textContent = ratings[myColorName] != null ? 'Elo ' + ratings[myColorName] : '';
-    $('g-me-color').textContent = myColorName;
+    $('g-me-name').textContent = T('You — {name}', { name: this.nameOf(meId) });
+    $('g-me-elo').textContent = ratings[myColorName] != null ? T('Elo {n}', { n: ratings[myColorName] }) : '';
+    $('g-me-color').textContent = UI.colorName(myColorName);
     $('g-opp-name').textContent = this.nameOf(this.oppId);
-    $('g-opp-elo').textContent = ratings[oppColorName] != null ? 'Elo ' + ratings[oppColorName] : '';
-    $('g-opp-color').textContent = oppColorName;
+    $('g-opp-elo').textContent = ratings[oppColorName] != null ? T('Elo {n}', { n: ratings[oppColorName] }) : '';
+    $('g-opp-color').textContent = UI.colorName(oppColorName);
     $('g-check').hidden = !(check && v.turn === this.myColor);
 
     // hal is always "online", never talks, and never joins voice
     const vsAi = !!v.ai;
     if (vsAi) {
       $('chat-input').disabled = true;
-      $('chat-input').placeholder = "hal doesn't chat.";
+      $('chat-input').placeholder = T("hal doesn't chat.");
     } else {
       $('chat-input').disabled = false;
-      $('chat-input').placeholder = 'Message your opponent';
+      $('chat-input').placeholder = T('Message your opponent');
     }
     this.applyPresence();
     $('voice-panel').hidden = vsAi;
@@ -220,9 +249,8 @@ class GameController {
     const vsAi = !!(this.view && this.view.ai);
     const on = vsAi || this.oppOnline;
     dot.classList.toggle('on', on);
-    const label = vsAi ? 'AI opponent' : (this.oppOnline ? 'online' : 'offline');
-    dot.title = label;
-    dot.setAttribute('aria-label', 'Opponent ' + label);
+    dot.title = vsAi ? T('AI opponent') : (this.oppOnline ? T('online') : T('offline'));
+    dot.setAttribute('aria-label', vsAi ? T('Opponent: AI') : (this.oppOnline ? T('Opponent online') : T('Opponent offline')));
   }
 
   renderDrawBanner() {
@@ -232,8 +260,8 @@ class GameController {
     banner.hidden = false;
     const mine = v.drawOfferBy === this.myColor;
     $('draw-text').textContent = mine
-      ? 'Draw offered — waiting for ' + this.nameOf(this.oppId)
-      : this.nameOf(this.oppId) + ' offers a draw';
+      ? T('Draw offered — waiting for {name}', { name: this.nameOf(this.oppId) })
+      : T('{name} offers a draw', { name: this.nameOf(this.oppId) });
     $('draw-accept').hidden = mine;
     $('draw-decline').hidden = mine;
   }
@@ -243,15 +271,15 @@ class GameController {
     const turnEl = $('g-turn'), clockEl = $('g-clock'), fuse = $('g-fuse');
     if (!v) { turnEl.textContent = '—'; clockEl.textContent = ''; return; }
     if (v.status !== 'active') {
-      turnEl.textContent = 'Game over';
+      turnEl.textContent = T('Game over');
       clockEl.textContent = '';
       fuse.style.width = '0%';
       return;
     }
     const left = (v.deadline || 0) - Date.now();
     const urgent = left < 3600000;
-    turnEl.textContent = v.turn === this.myColor ? 'Your move' : this.nameOf(this.oppId) + ' to move';
-    clockEl.textContent = UI.fmtLeft(left) + ' left';
+    turnEl.textContent = v.turn === this.myColor ? T('Your move') : T('{name} to move', { name: this.nameOf(this.oppId) });
+    clockEl.textContent = UI.fmtRemaining(left);
     clockEl.classList.toggle('urgent', urgent);
     fuse.style.width = Math.max(0, Math.min(100, (left / 86400000) * 100)) + '%';
     fuse.classList.toggle('urgent', urgent);
@@ -300,28 +328,36 @@ class GameController {
   }
 
   async resign() {
-    if (await UI.confirm('Resign this game?', 'Resign', true)) this.sendCmd({ type: 'resign' });
+    if (await UI.confirm(() => T('Resign this game?'), () => T('Resign'), true)) this.sendCmd({ type: 'resign' });
   }
 
   async offerDraw() {
-    if (await UI.confirm('Offer a draw to ' + this.nameOf(this.oppId) + '?', 'Offer draw')) {
+    if (await UI.confirm(() => T('Offer a draw to {name}?', { name: this.nameOf(this.oppId) }), () => T('Offer draw'))) {
       this.sendCmd({ type: 'offer-draw' });
     }
   }
 
   // ------------------------------------------------------------- game over
-  async showGameOver(result) {
+  /** Game-over card text (also re-applied on a language change). */
+  renderGameOver() {
+    const result = this.result;
+    if (!result) return;
     const iWon = result.kind === this.myColor;
     const drew = result.kind === 'draw';
-    $('go-title').textContent = drew ? 'Drawn' : (iWon ? 'You won' : 'You lost');
-    const reasons = {
-      'checkmate': 'by checkmate', 'stalemate': 'by stalemate',
-      'threefold-repetition': 'by threefold repetition', 'fifty-move-rule': 'by the fifty-move rule',
-      'insufficient-material': 'insufficient material', 'resignation': 'by resignation',
-      'agreement': 'by agreement', 'timeout': 'on time', 'timeout-no-moves': 'no moves were played',
-    };
-    $('go-reason').textContent = reasons[result.reason] || result.reason || '';
-    $('go-elo').textContent = '';
+    $('go-title').textContent = drew ? T('Drawn') : (iWon ? T('You won') : T('You lost'));
+    $('go-reason').textContent = UI.reasonText(result.reason);
+    $('go-elo').textContent = this.newElo == null ? ''
+      : (this.eloDelta ? T('Rating: {elo} ({delta})', { elo: this.newElo, delta: (this.eloDelta > 0 ? '+' : '') + this.eloDelta })
+        : T('Rating: {elo}', { elo: this.newElo }));
+    if (this.lbLine) $('go-lb').textContent = this.lbLine();
+  }
+
+  async showGameOver(result) {
+    const iWon = result.kind === this.myColor;
+    this.result = result;
+    this.newElo = null;
+    this.lbLine = null;
+    this.renderGameOver();
     $('go-lb').hidden = true;
     $('game-over').hidden = false;
     if (this.view && this.view.ai) this.showPracticeRank(iWon);
@@ -333,12 +369,9 @@ class GameController {
       const newElo = info && info.me ? info.me.elo : null;
       if (newElo != null) {
         const old = App.lastElo;
-        let deltaTxt = '';
-        if (old != null && newElo !== old) {
-          const d = newElo - old;
-          deltaTxt = ' (' + (d > 0 ? '+' : '') + d + ')';
-        }
-        $('go-elo').textContent = 'Rating: ' + newElo + deltaTxt;
+        this.eloDelta = old != null && newElo !== old ? newElo - old : null;
+        this.newElo = newElo;
+        this.renderGameOver();
         App.lastElo = newElo;
         App.updateEloChip(newElo);
       }
@@ -352,11 +385,11 @@ class GameController {
   async showPracticeRank(iWon) {
     const line = $('go-lb');
     const PS = window.PlatformStrings;
-    const PT = PS.platformStrings(navigator.language);
+    const show = (fn) => { this.lbLine = fn; line.textContent = fn(); };
     if (!SH.signedIn) return;
     line.hidden = false;
-    if (!iWon) { line.textContent = PT.lbNotPosted; return; }
-    line.textContent = PT.lbPosting;
+    if (!iWon) { show(() => Net.platformText().lbNotPosted); return; }
+    show(() => Net.platformText().lbPosting);
     let mine = null;
     for (let i = 0; i < 8 && !mine && !this.destroyed; i++) {
       if (i) await new Promise(r => setTimeout(r, 1500));
@@ -364,7 +397,7 @@ class GameController {
       mine = r && (r.items || []).find(e => e.userId === SH.userId);
     }
     if (this.destroyed) return;
-    line.textContent = mine ? PS.fmtPlatform(PT.lbRank, { rank: mine.rank }) : PT.lbPosted;
+    show(mine ? () => PS.fmtPlatform(Net.platformText().lbRank, { rank: mine.rank }) : () => Net.platformText().lbPosted);
   }
 
   // ------------------------------------------------------------- chat
@@ -404,7 +437,7 @@ class GameController {
   renderChat() {
     const box = $('chat-msgs');
     UI.clear(box);
-    if (!this.chat.msgs.length) { box.appendChild(UI.el('p', 'empty', 'Say hello.')); return; }
+    if (!this.chat.msgs.length) { box.appendChild(UI.el('p', 'empty', T('Say hello.'))); return; }
     for (const m of this.chat.msgs) {
       const div = UI.el('div', 'msg' + (m.senderId === Net.userId ? ' mine' : ''));
       const meta = UI.el('span', 'msg-meta', this.nameOf(m.senderId) + ' · ' + UI.fmtTime(m.at));
@@ -423,8 +456,18 @@ class GameController {
       if (m && m.content != null) { if (this.addChatMsg(m)) this.renderChat(); }
       else this.loadChatHistory();
     } catch (e) {
-      UI.toast('Message not sent: ' + e.message, 'err');
+      UI.toast(T('Message not sent: {error}', { error: e.message }), 'err');
     }
+  }
+
+  /** Re-render every visible string after a language change (no reconnect, no refetch). */
+  relocalize() {
+    $('conn-state').textContent = this.connState ? T(this.connState) : '';
+    if (this.view) this.render();
+    else $('chat-input').placeholder = T('Message your opponent');
+    this.renderChat();
+    this.renderGameOver();
+    this.voice.renderUi();
   }
 
   // ------------------------------------------------------------- teardown
@@ -457,11 +500,11 @@ class VoiceController {
 
   async enable() {
     const convId = this.game.chat.convId;
-    if (!convId) { UI.toast('Voice needs the session chat — try again shortly.', 'err'); return; }
+    if (!convId) { UI.toast(T('Voice needs the session chat — try again shortly.'), 'err'); return; }
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (e) {
-      UI.toast('Microphone access was refused — voice stays off.', 'err');
+      UI.toast(T('Microphone access was refused — voice stays off.'), 'err');
       return;
     }
     try {
@@ -477,7 +520,7 @@ class VoiceController {
       this.roomId = room.roomId || room.id;
       await SH.voice.join(this.roomId);
     } catch (e) {
-      UI.toast('Could not join the voice room: ' + e.message, 'err');
+      UI.toast(T('Could not join the voice room: {error}', { error: e.message }), 'err');
       this.stopStream();
       return;
     }
@@ -510,6 +553,8 @@ class VoiceController {
   // reported only as 1006), so every reconnect renews first and builds the URL
   // from the fresh token; 'retry' waits again, 'relaunch' turns voice off (the
   // SDK has signed out and the landing card offers "Back to StarHermit").
+  // 'terms-required' is treated as auth loss too: voice stops and the landing
+  // card asks the player to reopen the game from StarHermit.
   scheduleReconnect() {
     setTimeout(async () => {
       if (!this.enabled) return;
@@ -517,7 +562,10 @@ class VoiceController {
       if (!this.enabled) return;
       if (r === 'renewed') this.connectWs();
       else if (r === 'retry') this.scheduleReconnect();
-      else this.disable(true);
+      else {
+        this.disable(true);
+        if (r === 'terms-required' && Net.onAuthLost) Net.onAuthLost(() => Net.platformText().termsRequired, 'expired');
+      }
     }, 3000);
   }
 
@@ -682,21 +730,21 @@ class VoiceController {
 
   renderUi() {
     const btn = $('btn-voice');
-    btn.textContent = this.enabled ? 'Disable voice' : 'Enable voice';
+    btn.textContent = this.enabled ? T('Disable voice') : T('Enable voice');
     btn.classList.toggle('on', this.enabled);
     $('voice-body').hidden = !this.enabled;
     if (!this.enabled) return;
-    $('btn-mute').textContent = this.muted ? 'Unmute' : 'Mute';
+    $('btn-mute').textContent = this.muted ? T('Unmute') : T('Mute');
     $('btn-mute').classList.toggle('on', this.muted);
     const peersBox = $('voice-peers');
     UI.clear(peersBox);
-    const me = UI.el('span', 'vpeer' + (this.speakingSelf ? ' speaking' : '') + (this.muted ? ' muted' : ''), 'You');
+    const me = UI.el('span', 'vpeer' + (this.speakingSelf ? ' speaking' : '') + (this.muted ? ' muted' : ''), T('You'));
     peersBox.appendChild(me);
     for (const [id, peer] of this.peers) {
       const el = UI.el('span', 'vpeer' + (peer.speaking ? ' speaking' : '') + (peer.muted ? ' muted' : ''),
         this.game.nameOf(id));
       peersBox.appendChild(el);
     }
-    $('voice-status').textContent = this.peers.size === 0 ? 'Waiting for opponent to enable voice' : '';
+    $('voice-status').textContent = this.peers.size === 0 ? T('Waiting for opponent to enable voice') : '';
   }
 }

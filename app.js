@@ -2,7 +2,7 @@
    invites) and the replay viewer. Views are plain sections toggled here. */
 'use strict';
 
-const PT = window.PlatformStrings.platformStrings(navigator.language); // StarHermit UI strings
+const PT = () => Net.platformText(); // StarHermit UI strings in the game's language
 
 const App = {
   info: null,            // GET /games/<slug> payload
@@ -34,7 +34,8 @@ const App = {
     const chip = $('top-elo');
     if (elo == null) { chip.hidden = true; return; }
     chip.hidden = false;
-    chip.textContent = 'Elo ' + elo;
+    chip.dataset.elo = elo;
+    chip.textContent = T('Elo {n}', { n: elo });
   },
 
   // ------------------------------------------------------------- boot/auth
@@ -55,40 +56,49 @@ const App = {
     this.showAuth();
   },
 
-  /** Landing card; `expired` adds "Back to StarHermit" (StarHermit.relaunch()) under the message. */
+  /**
+   * Landing card; `expired` adds "Back to StarHermit" (StarHermit.relaunch()) under the message.
+   * `msg` may be a thunk so the message follows a language change.
+   */
   showAuth(msg, expired = false) {
-    const box = $('auth-msg');
-    box.hidden = !msg;
-    if (msg) box.textContent = msg;
-    const relaunch = $('btn-relaunch');
-    relaunch.textContent = PT.relaunch;
-    relaunch.hidden = !expired;
+    this._auth = { msg, expired };
+    this.renderAuthText();
     $('auth-base').value = Net.base;
     if (!$('auth-slug').value) $('auth-slug').value = Net.slug || '';
     // On <slug>.starhermit.com without a token: one-click platform sign-in.
-    const signIn = $('btn-signin');
-    signIn.textContent = PT.signIn;
-    signIn.hidden = !SH.canSignIn();
+    $('btn-signin').hidden = !SH.canSignIn();
     this.updateEloChip(null);
     this.showView('auth');
+  },
+
+  renderAuthText() {
+    const { msg, expired } = this._auth || {};
+    const text = txt(msg);
+    const box = $('auth-msg');
+    box.hidden = !text;
+    if (text) box.textContent = text;
+    const relaunch = $('btn-relaunch');
+    relaunch.textContent = PT().relaunch;
+    relaunch.hidden = !expired;
+    $('btn-signin').textContent = PT().signIn;
   },
 
   async authSubmit() {
     const jwt = $('auth-jwt').value.trim();
     const base = $('auth-base').value.trim(); // blank = same origin
     const slug = $('auth-slug').value.trim();
-    if (!jwt) { this.showAuth('Paste a user token first.'); return; }
-    if (!slug) { this.showAuth('Enter the game slug to launch.'); return; }
+    if (!jwt) { this.showAuth(() => T('Paste a user token first.')); return; }
+    if (!slug) { this.showAuth(() => T('Enter the game slug to launch.')); return; }
     Net.setBase(base);
     const btn = $('auth-go');
-    btn.disabled = true; btn.textContent = 'Signing in…';
+    btn.disabled = true; btn.textContent = T('Signing in…');
     try {
       await Net.launchToken(jwt, slug);
       this.enterClub();
     } catch (e) {
       this.showAuth(e.message);
     } finally {
-      btn.disabled = false; btn.textContent = 'Enter the club';
+      btn.disabled = false; btn.textContent = T('Enter the club');
     }
   },
 
@@ -136,7 +146,7 @@ const App = {
       UI.clear(body);
       const elo = UI.el('div', 'rating-elo', String(me.elo != null ? me.elo : '—'));
       const rec = UI.el('div', 'rating-rec',
-        (me.wins || 0) + ' won · ' + (me.losses || 0) + ' lost · ' + (me.draws || 0) + ' drawn');
+        T('{wins} won · {losses} lost · {draws} drawn', { wins: me.wins || 0, losses: me.losses || 0, draws: me.draws || 0 }));
       body.appendChild(elo);
       body.appendChild(rec);
     } catch (e) {
@@ -150,16 +160,16 @@ const App = {
     try {
       sessions = await SH.mySessions();
     } catch (e) {
-      if (e.status !== 401) $('sessions-list').replaceChildren(UI.el('p', 'empty', 'Could not load games — ' + e.message));
+      if (e.status !== 401) $('sessions-list').replaceChildren(UI.el('p', 'empty', T('Could not load games — {error}', { error: e.message })));
       return;
     }
     const active = sessions.filter(s => s.status === 'active');
     const cap = (this.info && this.info.maxConcurrentSessionsPerPlayer) || 20;
-    $('sessions-count').textContent = active.length + ' of ' + cap + ' seats';
+    $('sessions-count').textContent = T('{n} of {cap} seats', { n: active.length, cap });
     const list = $('sessions-list');
     UI.clear(list);
     if (!active.length) {
-      list.appendChild(UI.el('p', 'empty', 'No games yet — hit Play, or invite a friend.'));
+      list.appendChild(UI.el('p', 'empty', T('No games yet — hit Play, or invite a friend.')));
       return;
     }
     active.sort((a, b) => (b.myTurn === true) - (a.myTurn === true) || (a.deadline || 0) - (b.deadline || 0));
@@ -177,7 +187,7 @@ const App = {
       card.appendChild(sub);
       card.appendChild(UI.el('span', 'spacer'));
       const turn = UI.el('span', 'card-turn' + (s.myTurn === true ? ' mine' : ''),
-        s.myTurn === true ? 'your move' : 'their move');
+        s.myTurn === true ? T('your move') : T('their move'));
       card.appendChild(turn);
       card.addEventListener('click', () => this.openGame(s.sessionId));
       list.appendChild(card);
@@ -190,9 +200,9 @@ const App = {
       const dl = Number(el.dataset.deadline);
       if (!dl) { el.textContent = ''; return; }
       const left = dl - Date.now();
-      const whose = el.dataset.myturn ? 'your move' : 'their move';
+      const whose = el.dataset.myturn ? T('your move') : T('their move');
       UI.clear(el);
-      const span = UI.el('span', left < 3600000 ? 'urgent' : null, UI.fmtLeft(left) + ' left');
+      const span = UI.el('span', left < 3600000 ? 'urgent' : null, UI.fmtRemaining(left));
       el.appendChild(document.createTextNode(whose + ' — '));
       el.appendChild(span);
     });
@@ -279,7 +289,7 @@ const App = {
         // Possibly "already queued" (e.g. a race with resume): reflect the
         // queue instead of erroring if that's what this is.
         if (await this.resumeMatchmaking(true)) return;
-        UI.toast('Cannot queue: ' + e.message, 'err');
+        UI.toast(T('Cannot queue: {error}', { error: e.message }), 'err');
       } else if (e.status !== 401) UI.toast(e.message, 'err');
     }
   },
@@ -290,7 +300,7 @@ const App = {
       if (r && r.status === 'matched' && r.sessionId) {
         this.stopMatchmakingUi(false);
         this.forgetMatchmaking();
-        UI.toast('Opponent found — good luck.', 'ok');
+        UI.toast(T('Opponent found — good luck.'), 'ok');
         Sfx.play('matchFound');
         this.openGame(r.sessionId);
       } else if (!r || (r.status && r.status !== 'queued')) {
@@ -330,7 +340,7 @@ const App = {
       const r = await SH.startAiSession();
       if (r && r.sessionId) this.openGame(r.sessionId);
     } catch (e) {
-      UI.toast('Could not start a game against hal: ' + e.message, 'err');
+      UI.toast(T('Could not start a game against hal: {error}', { error: e.message }), 'err');
     }
   },
 
@@ -343,19 +353,19 @@ const App = {
       const entries = (j && (j.entries || j.items)) || (Array.isArray(j) ? j : []);
       const profiles = await Promise.all(entries.map(e => this.profileFor(e.userId)));
       UI.clear(holder);
-      if (!entries.length) { holder.appendChild(UI.el('p', 'empty', 'No rated friends yet.')); return; }
+      if (!entries.length) { holder.appendChild(UI.el('p', 'empty', T('No rated friends yet.'))); return; }
       const table = UI.el('table', 'lb');
       for (let i = 0; i < entries.length; i++) {
         const e = entries[i];
-        const tr = UI.el('tr', e.userId === Net.userId ? 'me' : null);
-        tr.appendChild(UI.el('td', 'lb-rank', String(e.rank != null ? e.rank : '')));
-        tr.appendChild(UI.el('td', null, profiles[i].name));
-        tr.appendChild(UI.el('td', 'lb-score', String(e.score)));
-        table.appendChild(tr);
+        const row = UI.el('tr', e.userId === Net.userId ? 'me' : null);
+        row.appendChild(UI.el('td', 'lb-rank', String(e.rank != null ? e.rank : '')));
+        row.appendChild(UI.el('td', null, profiles[i].name));
+        row.appendChild(UI.el('td', 'lb-score', String(e.score)));
+        table.appendChild(row);
       }
       holder.appendChild(table);
     } catch (e) {
-      if (e.status !== 401) holder.replaceChildren(UI.el('p', 'empty', 'Table unavailable.'));
+      if (e.status !== 401) holder.replaceChildren(UI.el('p', 'empty', T('Table unavailable.')));
     }
   },
 
@@ -366,12 +376,12 @@ const App = {
     try {
       replays = await SH.myReplays(10);
     } catch (e) {
-      if (e.status !== 401) list.replaceChildren(UI.el('p', 'empty', 'No archive available.'));
+      if (e.status !== 401) list.replaceChildren(UI.el('p', 'empty', T('No archive available.')));
       return;
     }
     UI.clear(list);
     if (!replays.length) {
-      list.appendChild(UI.el('p', 'empty', 'Finished games will be filed here.'));
+      list.appendChild(UI.el('p', 'empty', T('Finished games will be filed here.')));
       return;
     }
     replays.sort((a, b) => (b.finishedAt || 0) - (a.finishedAt || 0));
@@ -389,9 +399,9 @@ const App = {
       const card = UI.el('button', 'card');
       const name = UI.el('span', 'card-name', oppName);
       const kind = r.result ? r.result.kind : null;
-      const resTxt = kind === 'draw' ? 'draw' : (kind ? kind + ' won' : '');
+      const resTxt = kind === 'draw' ? T('draw') : (kind === 'white' ? T('White won') : (kind === 'black' ? T('Black won') : ''));
       const sub = UI.el('span', 'card-sub',
-        [resTxt, r.result && r.result.reason, UI.fmtDate(r.finishedAt)].filter(Boolean).join(' · '));
+        [resTxt, r.result && UI.reasonText(r.result.reason), UI.fmtDate(r.finishedAt)].filter(Boolean).join(' · '));
       card.appendChild(name);
       card.appendChild(sub);
       card.appendChild(UI.el('span', 'spacer'));
@@ -416,13 +426,13 @@ const App = {
    * accepted as a fallback: player-facing UI must display profile nicknames.
    */
   profileFor(userId) {
-    if (!userId) return Promise.resolve({ name: 'Player', avatarUrl: null });
+    if (!userId) return Promise.resolve({ name: T('Player'), avatarUrl: null });
     if (!this._profiles.has(userId)) {
       this._profiles.set(userId, (async () => {
         // SDK: nickname first, 'Player <id>' fallback; avatar as an object URL.
         const p = await SH.profile(userId);
         const avatarUrl = await SH.avatarUrl(userId);
-        return { name: (p && p.displayName) || 'Player ' + String(userId).slice(0, 6), avatarUrl };
+        return { name: (p && p.displayName) || T('Player {id}', { id: String(userId).slice(0, 6) }), avatarUrl };
       })());
     }
     return this._profiles.get(userId);
@@ -443,23 +453,23 @@ const App = {
     const list = $('invites-list');
     UI.clear(list);
     if (!incoming.length && !outgoing.length) {
-      list.appendChild(UI.el('p', 'empty', 'No invitations.'));
+      list.appendChild(UI.el('p', 'empty', T('No invitations.')));
       return;
     }
     incoming.forEach((inv, i) => {
       const card = UI.el('div', 'card card-static');
       card.appendChild(UI.avatar(inProfs[i]));
       card.appendChild(UI.el('span', 'card-name', inProfs[i].name));
-      card.appendChild(UI.el('span', 'card-sub', 'invites you to a game'));
+      card.appendChild(UI.el('span', 'card-sub', T('invites you to a game')));
       card.appendChild(UI.el('span', 'spacer'));
-      const acc = UI.el('button', 'btn btn-small btn-primary', 'Accept');
+      const acc = UI.el('button', 'btn btn-small btn-primary', T('Accept'));
       acc.addEventListener('click', async () => {
         try {
           const r = await SH.acceptInvite(inv.inviteId);
           if (r && r.sessionId) this.openGame(r.sessionId);
-        } catch (e) { UI.toast('Could not accept: ' + e.message, 'err'); this.loadInvites(); }
+        } catch (e) { UI.toast(T('Could not accept: {error}', { error: e.message }), 'err'); this.loadInvites(); }
       });
-      const dec = UI.el('button', 'btn btn-small', 'Decline');
+      const dec = UI.el('button', 'btn btn-small', T('Decline'));
       dec.addEventListener('click', async () => {
         await SH.declineInvite(inv.inviteId);
         this.loadInvites();
@@ -472,7 +482,7 @@ const App = {
       const card = UI.el('div', 'card card-static');
       card.appendChild(UI.avatar(outProfs[i]));
       card.appendChild(UI.el('span', 'card-name', outProfs[i].name));
-      card.appendChild(UI.el('span', 'card-sub', 'invited — waiting'));
+      card.appendChild(UI.el('span', 'card-sub', T('invited — waiting')));
       list.appendChild(card);
     });
   },
@@ -483,14 +493,14 @@ const App = {
       const j = await SH.friends();
       friends = Array.isArray(j) ? j : (j && (j.friends || j.items)) || [];
     } catch (e) {
-      UI.toast('Could not load friends: ' + e.message, 'err');
+      UI.toast(T('Could not load friends: {error}', { error: e.message }), 'err');
       return;
     }
     const profiles = await Promise.all(
       friends.map(f => this.profileFor(f.userId || f.id)));
-    await UI.picker('Invite a friend to a game', (body, close) => {
+    await UI.picker(() => T('Invite a friend to a game'), (body, close) => {
       if (!friends.length) {
-        body.appendChild(UI.el('p', 'empty', 'No friends on the platform yet.'));
+        body.appendChild(UI.el('p', 'empty', T('No friends on the platform yet.')));
         return;
       }
       friends.forEach((f, i) => {
@@ -499,15 +509,15 @@ const App = {
         card.appendChild(UI.avatar(profiles[i]));
         card.appendChild(UI.el('span', 'card-name', profiles[i].name));
         card.appendChild(UI.el('span', 'spacer'));
-        card.appendChild(UI.el('span', 'card-sub', 'Invite'));
+        card.appendChild(UI.el('span', 'card-sub', T('Invite')));
         card.addEventListener('click', async () => {
           close(null);
           try {
             await SH.sendInvite(id);
-            UI.toast('Invitation sent to ' + profiles[i].name + '.', 'ok');
+            UI.toast(T('Invitation sent to {name}.', { name: profiles[i].name }), 'ok');
             this.loadInvites();
           } catch (e) {
-            UI.toast('Could not invite: ' + e.message, 'err');
+            UI.toast(T('Could not invite: {error}', { error: e.message }), 'err');
           }
         });
         body.appendChild(card);
@@ -529,8 +539,8 @@ const App = {
     // navigator.clipboard is undefined on plain http (non-secure context);
     // a missing API takes the same manual-copy path as a refused write
     Promise.resolve().then(() => navigator.clipboard.writeText(url)).then(
-      () => UI.toast(PT.inviteCopied, 'ok'),
-      () => UI.picker('Copy this invite link', (body) => {
+      () => UI.toast(PT().inviteCopied, 'ok'),
+      () => UI.picker(() => T('Copy this invite link'), (body) => {
         const input = UI.el('input', 'share-url');
         input.value = url;
         input.readOnly = true;
@@ -567,7 +577,7 @@ const App = {
   async openReplay(sessionId) {
     const raw = await SH.getReplay(sessionId);
     if (!raw) {
-      UI.toast('Could not open the replay.', 'err');
+      UI.toast(T('Could not open the replay.'), 'err');
       return;
     }
     // The platform archives the script-owned session state verbatim under `state`;
@@ -607,22 +617,52 @@ const App = {
     const botId = flipped ? data.black : data.white;
     const topId = flipped ? data.white : data.black;
     $('r-bot-name').textContent = names[botId] || '?';
-    $('r-bot-color').textContent = flipped ? 'black' : 'white';
     $('r-top-name').textContent = names[topId] || '?';
-    $('r-top-color').textContent = flipped ? 'white' : 'black';
-
-    const res = data.result || {};
-    const winnerName = res.kind === 'white' ? names[data.white] : (res.kind === 'black' ? names[data.black] : null);
-    $('r-result').textContent = res.kind
-      ? (res.kind === 'draw' ? 'Drawn' : (winnerName || res.kind) + ' won') + ' — ' + (res.reason || '')
-      : 'In progress';
     $('r-elo').textContent = eloAfter
       ? (data.players || []).map(p => (names[p.userId] || '?') + ' ' + (eloAfter[p.userId] != null ? eloAfter[p.userId] : '—')).join(' · ')
       : '';
+    this.renderReplayText();
 
     this.showView('replay');
     this._onLeave = () => { this.replay = null; };
     this.renderReplay();
+  },
+
+  /** Replay header text that depends on the language. */
+  renderReplayText() {
+    const rp = this.replay;
+    if (!rp) return;
+    const { data, names, flipped } = rp;
+    $('r-bot-color').textContent = UI.colorName(flipped ? 'black' : 'white');
+    $('r-top-color').textContent = UI.colorName(flipped ? 'white' : 'black');
+    const res = data.result || {};
+    const winnerName = res.kind === 'white' ? names[data.white] : (res.kind === 'black' ? names[data.black] : null);
+    $('r-result').textContent = res.kind
+      ? (res.kind === 'draw' ? T('Drawn') : T('{name} won', { name: winnerName || UI.colorName(res.kind) })) + ' — ' + UI.reasonText(res.reason)
+      : T('In progress');
+  },
+
+  // ------------------------------------------------------------- language
+  /**
+   * The game language changed (Settings › Language, or the account preference
+   * arriving): re-render every visible string in place. A game keeps its
+   * socket and position; the menu re-renders from a REST refresh.
+   */
+  onLanguage() {
+    const chip = $('top-elo');
+    if (!chip.hidden && chip.dataset.elo) chip.textContent = T('Elo {n}', { n: chip.dataset.elo });
+    this.renderAuthText();
+    if (!$('auth-go').disabled) $('auth-go').textContent = T('Enter the club');
+    UI.relocalizeModal();
+    UI.relocalizePromo();
+    if (this.game) this.game.relocalize();
+    if (this.currentView === 'menu') {
+      this.loadGameInfo().then(() => this.loadLeaderboard());
+      this.loadSessions();
+      this.loadReplays();
+      this.loadInvites();
+    }
+    if (this.replay) { this.renderReplayText(); this.renderReplay(); }
   },
 
   renderReplay() {
@@ -701,5 +741,6 @@ document.addEventListener('keydown', (e) => {
 });
 $('btn-signin').addEventListener('click', () => SH.signIn());
 $('btn-relaunch').addEventListener('click', () => SH.relaunch());
+document.addEventListener('ch-language', () => App.onLanguage());
 
 App.init();

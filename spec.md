@@ -36,13 +36,16 @@ needs no sign-in at all.
 | `starfield.js` | Menu backdrop: drifting instanced 3D chess pieces (three.js, lazy-loaded, WebGL optional), its lighting, dust motes and post-processing chain |
 | `gfx.js` | Pure graphics quality model: presets, categories, `detectPreset`, `resolve`, `presetTier`, `withPreset`, `describe` |
 | `graphics.js` | Live graphics settings store: GPU detection, `chess.graphics` persistence, `data-gfx-*` attributes on `<html>`, frame-rate readout, subscribers |
-| `settings.js` | The Settings panel (top-bar gear button) and its Graphics section; its strings in the nine target locales |
+| `settings.js` | The Settings panel (top-bar gear button) and its Graphics section; its strings in the nine target locales, following the game language |
+| `sh-language.js` | Shared StarHermit language resolver (`StarHermitLanguage`): explicit choice → account preference → browser → en-US; registers `window.GameLanguage` |
+| `strings.js`, `i18n.js` | Translation tables for the whole UI (English keys) and the runtime (`CHI18N`: `T()`, static-markup translation, `ch-language` event) |
+| `platform-strings.js` | StarHermit platform strings (sign in, invite copied, session expired, terms required, Back to StarHermit, practice-board lines) in the nine locales |
 | `style.css` | The whole look: palette tokens, board, panels, responsive rules |
 | `assets/` | `key-art.webp` (landing backdrop), `chess-pieces.glb` (starfield geometry) |
 | `sfx/` | 14 Opus clips, `manifest.txt` (canonical table), `manifest.json` (generator binding), `manifest.md` (generated) |
 | `coverart.png`, `icon.png`, `favicon.svg` | Library tile, favicon/wordmark mark |
 | `vendor/` | three.js r176 (`three@0.176.0`) build, `GLTFLoader`, `BufferGeometryUtils`, and `addons/` (post-processing passes, their shaders, `RoomEnvironment`) of the same release, imported as `three/addons/…` (MIT, `vendor/ATTRIBUTION.md`) |
-| `tests/` | `gfx.test.mjs` (quality model, `node --test`), `platform.test.mjs` (net.js over the SDK, `node --test`), `rules.mjs` (rules + script entry points), `e2e.mjs` (headless Chrome playthrough). Dev only, never shipped |
+| `tests/` | `gfx.test.mjs` (quality model, `node --test`), `platform.test.mjs` (net.js over the SDK, `node --test`), `reconnect.test.mjs` (socket renewal, terms and unavailable sessions), `i18n.test.mjs` (translation coverage), `rules.mjs` (rules + script entry points), `e2e.mjs` (headless Chrome playthrough, with `starhermit-e2e.mjs` API stubs). Dev only, never shipped |
 | `API.md`, `README.md` | The platform contract the client speaks; repo readme |
 
 ## 2. Vision and design pillars
@@ -363,24 +366,41 @@ speaking and mute indicators per peer; it is not mixed with effects.
 
 ## 10. Localization
 
-**Ships today: English only** (`<html lang="en">`; US spelling in copy, e.g. "color" is not used
-in UI text, "Practice" and "Scoresheet" are). Strings live inline: markup copy in `index.html`,
-dynamic copy as literals in `app.js`, `game.js`, `local.js` and `ui.js` (result reasons in
-`showGameOver` / `LocalGame.finish`, toasts, seat labels, square labels in `UI.squareLabel`). Dates
-and times already follow the browser locale (`toLocaleDateString(undefined, …)`,
-`toLocaleTimeString`). Chess notation (SAN, `O-O`) is locale-invariant by design.
+Nine locales ship for the whole UI: **en-US, en-GB, es-419, es-ES, de-DE, fr-FR, fr-CA, pt-BR, it-IT**.
 
-The one exception is the Settings panel: `settings.js` carries its strings (title, Close, the
-Graphics section, every control label, tier name, summary word and the post-processing note) in all
-nine target locales, picked by `pickLocale(navigator.languages)` (exact tag first, then language:
-`en-GB` for GB/IE/AU/NZ/ZA/IN English, `es-ES` only for Spain, `fr-CA` only for Canada, else en-US,
-es-419, fr-FR, pt-BR, de-DE, it-IT), and sets `lang` on the panel. en-US and en-GB differ in
-"Color"/"Colour grade".
-
-The product target for the whole UI is en-US, en-GB, es-419, es-ES, de-DE, fr-FR, fr-CA, pt-BR and it-IT, chosen from
-`navigator.languages` with a persisted override; German and French strings need ~30 % width
-allowance on buttons ("Offer draw", "Enter the club") and the seat/colour labels. Outside the
-Settings panel none of this is implemented — see [Design intent](#design-intent-not-yet-implemented).
+- **Tables.** `strings.js` holds every player-facing string keyed by its English text: one row per key
+  with es-419, de-DE, fr-FR, pt-BR and it-IT, plus en-GB, es-ES and fr-CA tables that list only their
+  differences (they fall back to en-US, es-419 and fr-FR). `i18n.js` (`window.CHI18N`) translates the
+  static markup of `index.html` in place (text nodes and `aria-label`/`title`/`placeholder`; the
+  wordmark, the token/slug fields and the Settings panel are skipped) and gives the code `T()`. Dynamic
+  copy in `app.js`, `game.js`, `local.js`, `ui.js`, `net.js` and `audio.js` goes through `T()`: menu
+  cards and counts, seats and colour names, the clock line and countdown units, result reasons, toasts,
+  modal and picker text, voice labels, the rules script's refusal messages (`UI.ruleMessage`), square
+  labels for screen readers ("e4, weißer Bauer") and promotion piece names. Dates and times use the game
+  language (`toLocaleDateString(CHI18N.lang, …)`). Chess notation (SAN, `O-O`, square names) and the
+  names StarHermit, hal and Elo are locale-invariant. The Settings panel's Graphics strings stay in
+  `settings.js` and the platform strings in `platform-strings.js` (both nine locales); both read the
+  game language instead of the browser's.
+- **Language setting.** Settings → **Language → Game language** (rendered by `game-options.js` from the
+  `sh-language.js` instance, in the Settings panel reachable from the landing card, the club menu, a game
+  and the replay viewer) offers **Automatic — <resolved language>** plus the nine locales by native name,
+  with a status line (Saved to account / Saved on this device / Account sync unavailable). It is the only
+  language selector.
+- **Resolution.** Explicit game choice → for Automatic, the StarHermit account's `preferredLanguage`
+  (`GET /api/v1/me/language`, signed in only) → `navigator.languages` → `en-US`, mapped to the nearest
+  shipped locale (`es-MX → es-419`, `en-AU → en-GB`, `pt-PT → pt-BR`). The choice (`auto` or a locale)
+  is stored per player in `localStorage['chess.language.<user|guest>']` and, signed in, in the per-player
+  settings key `ui.language` as `{ choice }`; the game never writes the platform preference. `?lang=`
+  forces a locale for the page load (QA links) and hides the selector.
+- **Live switching.** A change sets `<html lang>`, re-applies the static markup and fires `ch-language`.
+  `App.onLanguage` then re-renders in place: the landing card message, the Elo chip, an open modal or
+  promotion picker, the current game (`GameController.relocalize` / `LocalGame.relocalize`: board labels,
+  seats, clock, draw banner, scoresheet note, chat, voice panel, game-over card), the replay header and
+  board, and the club menu (its panels are re-fetched over REST). The game socket stays open and the
+  position, clock and move list are untouched; `settings.js` re-labels the open panel and `audio.js` the
+  Sound button. Toasts already on screen keep their language.
+- **Expansion.** Buttons wrap inside their flex cells, seat and colour labels are short, and the German
+  and French copy fits at 390 px wide (checked by the e2e language step and screenshots).
 
 ## 11. Accessibility
 
@@ -412,28 +432,30 @@ named methods directly. Standalone (no token) the game makes no platform request
 
 | Platform feature | Used | How |
 |---|---|---|
-| Identity / launch token | Yes | The SDK reads `#game_token=` (launcher, optional `&session_id=` opens that game) or `#access_token=` (sign-in return), strips it, takes the slug from `game_scope` and renews it; the dev panel exchanges a pasted user JWT via `POST /games/{uid}/launch-token` and hands the result to the SDK. A 401 signs out and returns to the landing card with a message. When renewal is refused (token expired or past the 12 h chain) the landing card reads "Your session expired…" with a **Back to StarHermit** button that calls `StarHermit.relaunch()` (launcher, or sign-in for sign-in launches) |
+| Identity / launch token | Yes | The SDK reads `#game_token=` (launcher, optional `&session_id=` opens that game) or `#access_token=` (sign-in return), strips it, takes the slug from `game_scope` and renews it; the dev panel exchanges a pasted user JWT via `POST /games/{uid}/launch-token` and hands the result to the SDK. A 401 signs out and returns to the landing card with a message. When renewal is refused (token expired or past the 12 h chain) the landing card reads "Your session expired…" with a **Back to StarHermit** button that calls `StarHermit.relaunch()` (launcher, or sign-in for sign-in launches). When a socket reconnect finds that the player must first accept updated StarHermit terms (`'terms-required'` / `onTermsRequired`), the game view closes the same way and the card reads "StarHermit needs you to accept its updated terms…" with **Back to StarHermit** |
 | Sign in | Yes | On `<uid>.starhermit.com` without a token the landing card shows **Sign in with StarHermit** (`StarHermit.signIn()`); hidden when signed in and locally |
 | Profiles and avatars | Yes | `StarHermit.profile()` (nickname; usernames never shown) and `avatarUrl()`, cached per session (`App.profileFor`) |
 | Presence | Yes | `presence` frames on the game socket light the opponent's seat lamp; hal is always lit |
-| Sessions | Yes | `mySessions()`, `getSession()`, `startAiSession()`; cap of 20 read from `maxConcurrentSessionsPerPlayer`; the gameplay socket is `StarHermit.connect()` (reconnect with backoff, the launch token renewed before every reconnect, `sync` on every open; `onAuthLost` leads to the expired-session card) |
+| Sessions | Yes | `mySessions()`, `getSession()`, `startAiSession()`; cap of 20 read from `maxConcurrentSessionsPerPlayer`; the gameplay socket is `StarHermit.connect()` (reconnect with backoff, the launch token renewed and the session checked over REST before every reconnect, `sync` on every open; `onAuthLost` leads to the expired-session card, `onTermsRequired` to the terms card; `onUnavailable` — the session is gone, finished or on another build — ends the reconnect loop, the scoresheet note reads "connection closed" and a toast says the game is no longer available, with the board left in view) |
 | Matchmaking | Yes | `joinQueue()` / ticket polled every 3 s / `cancelMatch()`, ticket resumed across reloads on the device that queued (no ticket probe otherwise, since an idle `GET /matchmaking` is a logged 404); after 30 s in the queue the menu offers a rated game against hal |
 | Invitations | Yes | `invites()` list with accept/decline, `sendInvite()` from the `friends()` picker, and **Share invite link** copying `StarHermit.inviteLink()` |
 | Leaderboard | Yes (read) | Friends-only top 10 from `leaderboardId`; the platform writes Elo from script results, the client never submits |
 | Practice-wins board | Yes | `leaderboards.json` declares `practice-wins` ("Wins against hal", integer, higher is better, 1–1,000,000). When the human wins a rated game against hal, `finishGame` bumps `practiceWins` in their player doc and returns it in `scores`. On that game's result card a signed-in player sees "Leaderboard rank: #N" (read via `StarHermit.leaderboard('practice-wins')`); after a loss or draw against hal the card reads "Only wins against hal count on the leaderboard." Human-vs-human and offline games show no line. These four strings live in `platform-strings.js` in all nine locales |
 | Replays | Yes | `replays: true` declared; the Recent games panel shows when `getGame().replaysEnabled` is not false; `myReplays()`, `getReplay()`; archived `state.game.moves` re-run through `chessRules` |
 | Chat | Yes | Per-session conversation from `chatConversationId`; `pollChat()` every 5 s and `sendChat()` (launch tokens cannot use the chat push socket) |
-| Voice | Yes (opt-in) | `StarHermit.voice` rooms by conversation, join, `/ws/v1/voice` for `rtc` signalling, `voice.*` events; a dropped voice socket retries every 3 s, each time calling `StarHermit.renewForReconnect()` first and rebuilding the URL from the fresh token (`'retry'` waits again, `'relaunch'` turns voice off) |
-| Settings KV | Yes | The graphics settings and the Sound toggle are patched to the game's settings KV on change (debounced) and applied on sign-in, where the platform value wins |
+| Voice | Yes (opt-in) | `StarHermit.voice` rooms by conversation, join, `/ws/v1/voice` for `rtc` signalling, `voice.*` events; a dropped voice socket retries every 3 s, each time calling `StarHermit.renewForReconnect()` first and rebuilding the URL from the fresh token (`'retry'` waits again, `'relaunch'` turns voice off, `'terms-required'` turns voice off and shows the terms card) |
+| Settings KV | Yes | The graphics settings and the Sound toggle are patched to the game's settings KV on change (debounced) and applied on sign-in, where the platform value wins; the language choice is `ui.language` (§10) |
+| Language preference | Yes (read) | `GET /api/v1/me/language` feeds Automatic (§10); never written |
+| Reports | Yes | Settings → **Report a problem** (signed in only, from `game-options.js`) files a bug report through `StarHermit.reportBug` with a small non-personal context (viewport, language, FPS cap, audio limit); uncaught errors are filed as crash reports through `StarHermit.captureCrashes` (SDK-capped) |
 | Controls | Yes | Board focus (arrows, Home, End), play-the-square (Enter/Space) and the replay stepper are declared as `control.*` in `starhermit.txt`; `loadBindings()` resolves the player's keys on sign-in and keydown routes by `event.code` |
 | Server script | Yes | `server.js` via `starhermit.txt` `server=`; `createSession`, `onPlayerMessage`, `onTick`; `tickRateHz: 1`; per-player docs under the 5 MB budget |
 | Achievements | No | Not declared by the script |
-| Cloud save | No | No local progress to keep: Elo, record, games and replays live in the script's documents |
+| Cloud save | No | No local progress to keep: Elo, record, games and replays live in the script's documents, so there are no cloud-save conflicts to merge |
 | Spectating / tournaments / realtime rooms | No | Replays are participant-only |
 
 The client is slug-agnostic and origin-agnostic: in production `/api` and `/ws` are same-origin on
 `<uid>.starhermit.com`; the dev panel can point the SDK base elsewhere (persisted in `localStorage`).
-New platform strings (sign in, invite link copied, session expired, Back to StarHermit) ship in all nine locales (`platform-strings.js`).
+Platform strings (sign in, invite link copied, session expired, terms required, Back to StarHermit) ship in all nine locales (`platform-strings.js`) and follow the game language.
 
 ## 13. Technical architecture
 
@@ -452,7 +474,7 @@ random. Offline practice uses `Math.random` and `Date.now()` and is not reproduc
 
 **Persistence.** `sessionStorage`: `chess.gameToken`. `localStorage`: `chess.apiBase`,
 `chess.matchmaking.<slug>.<userId>` (ticket id + queued-at, so the 30 s hal offer survives a reload),
-`chess.muted`, `chess.graphics` (graphics settings JSON: `preset`, `render_scale`, `adaptive`,
+`chess.muted`, `chess.language.<user|guest>` (language choice), `chess.graphics` (graphics settings JSON: `preset`, `render_scale`, `adaptive`,
 `show_fps` and any per-category overrides). Server-side: per-player document (Elo, record, `lastColorVs` LRU 200,
 `recentGames` 30) and the session document with its `summary` (turn, deadline, status, move count)
 that the platform reads for the games list.
@@ -490,6 +512,19 @@ launch fragment — token claims, fragment stripped, token kept for a tab reload
 cloud-save path `game:<slug>` round-trip, settings patch, control bindings (code and synthetic key),
 invite link, sign-out reaching `onAuthLost`; standalone makes zero fetches.
 
+**`tests/reconnect.test.mjs`** (`node --test`): `net.js` + `game.js` + `app.js` over the SDK with a
+stub WebSocket — a game-socket reconnect renews first and opens with the new token; `'retry'` never
+reopens the old URL and `'relaunch'` shows the expired card; the voice socket renews, waits and turns
+off the same way; terms consent required (game or voice socket) closes the game and shows the terms
+card with Back to StarHermit; a session that is no longer active ends the loop with "connection closed"
+and a toast.
+
+**`tests/i18n.test.mjs`** (`node --test`): every English key used in `index.html` and the client code
+is translated in every full locale with matching `{placeholders}`, no table entry is unused, en-GB /
+es-ES / fr-CA tables exist; every player-facing rules-script message is listed for translation; the
+locale follows `sh-language.js` and switches live; the platform strings and the Settings panel cover
+the nine locales.
+
 **`tests/rules.mjs`** loads `server.js` exactly as the browser does and checks: perft(1..3) =
 20 / 400 / 8902; castling, en passant and promotion play and score as `O-O`, `exd6`, `b8=Q+`; SAN
 disambiguation by file, rank and square; threefold repetition counts the opening position; fool's
@@ -508,7 +543,12 @@ practice game opens with 64 squares,
 opponent "hal", chat disabled → 4 (desktop) / 2 (mobile) move pairs by clicking, scoresheet count
 equals moves → one move played from the keyboard alone with focus preserved across the re-render →
 draw offer opens the modal and hal declines → resign through the modal shows "You lost / by
-resignation" → back to the landing screen. Zero console errors or warnings (WebGL driver noise
+resignation" → back to the landing screen → (desktop and mobile) **Language**: signed in through a
+stubbed StarHermit API whose account language is fr-CA, the club menu and a practice game opened from
+it are French; in Settings the Language selector's first option reads "Automatique — Français
+(Canada)"; choosing Italiano re-renders the panel, board labels, seats, clock and buttons in Italian
+with the game unchanged and saves `ui.language`; **Report a problem** posts to `/reports`; no control
+spills past the viewport; Automatic restores French and Club returns to the French menu. Zero console errors or warnings (WebGL driver noise
 filtered). The menu is shown with `App.showView('menu')` for the starfield check, since the real
 route needs a platform sign-in.
 
@@ -540,11 +580,10 @@ route needs a platform sign-in.
 
 ## 16. Known limitations
 
-- English only; no locale switch (§10).
 - The chat push socket is closed to game-scoped tokens, so opponent messages arrive on a 5 s poll.
 - Opponent moves and check are not announced to screen readers as they happen; the user must
   re-read the board. The `Check` flag is visible text but not a live region.
-- Only the Settings panel is localized (nine locales from `navigator.languages`); the rest of the UI is English, so a German browser shows a German panel in an English page.
+- The cover tile bakes an English title into the image, and server-side refusal messages outside the known list are shown as sent.
 - The 3D starfield is only on the club menu, which needs a platform sign-in; offline players see the Graphics settings through board and room detail only.
 - `--faint` text is below AA contrast at 12–13 px.
 - On a 300 px-wide board (the narrowest allowed) squares are 37 px, under the 44 px touch guideline.
@@ -555,12 +594,9 @@ route needs a platform sign-in.
 - The e2e test covers the offline path and every screen reachable without a server; matchmaking,
   invites, chat, voice and replays need a running platform and are verified by `rules.mjs` at the
   script level only.
-- The cover tile bakes an English title into the image.
 
 ## Design intent not yet implemented
 
-- Localization into the nine target locales with a `navigator.languages` default and a persisted
-  override; strings would move out of the markup and literals into a table.
 - An `aria-live` announcement of each move ("hal plays Nf3", "Check") and of game end.
 - A per-user toggle for the starfield's motion (it already holds still under `prefers-reduced-motion`).
 - A short "How to play" note on the landing card for players new to chess itself.

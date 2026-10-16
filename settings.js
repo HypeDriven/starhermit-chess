@@ -1,7 +1,9 @@
 // settings.js — the Settings panel (top-bar button on every screen) and its Graphics section.
 // Controls are built here from gfx.js so the panel always matches the quality model; every
 // change goes through graphics.js, applies immediately and persists. Strings for this panel
-// ship in the nine target locales (STRINGS below), chosen from navigator.languages.
+// ship in the nine target locales (STRINGS below) and follow the game language (i18n.js:
+// Settings › Language, the StarHermit account preference, then navigator.languages);
+// a language change re-labels the open panel in place.
 
 import { Graphics } from './graphics.js';
 import { PRESETS, CATEGORIES, PARTICLE_COUNT, presetTier } from './gfx.js';
@@ -127,8 +129,11 @@ export function pickLocale(langs) {
   return 'en-US';
 }
 
-const locale = pickLocale(navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]);
-const T = STRINGS[locale];
+// The game's one language source (i18n.js → sh-language.js); pickLocale only without it.
+const gameLocale = () => (window.CHI18N ? window.CHI18N.lang
+  : pickLocale(navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]));
+let locale = gameLocale();
+let T = STRINGS[locale] || STRINGS['en-US'];
 const fill = (s, map) => s.replace(/\{(\w+)\}/g, (_, k) => map[k]);
 
 const $ = (id) => document.getElementById(id);
@@ -144,14 +149,14 @@ function option(value, label) {
   return o;
 }
 
-function row(labelText, control, id) {
+function row(key, control, id) {
   const wrap = document.createElement('div');
   wrap.className = control.type === 'checkbox' ? 'set-row set-toggle' : 'set-row';
-  const label = document.createElement('label');
-  label.className = 'set-label';
-  label.htmlFor = id;
-  label.textContent = labelText;
-  wrap.append(label, control);
+  const lab = document.createElement('label');
+  lab.className = 'set-label';
+  lab.htmlFor = id;
+  lab.dataset.setLabel = key;
+  wrap.append(lab, control);
   return wrap;
 }
 
@@ -165,8 +170,8 @@ function toggle(id, key) {
   return input;
 }
 
-// Build the controls once; refresh() re-labels and re-selects them from the live state.
-function build() {
+/** Panel chrome and control labels in the current language. */
+function label() {
   panel.setAttribute('lang', locale);
   $('settings-title').textContent = T.settings;
   $('settings-close').textContent = T.close;
@@ -174,14 +179,26 @@ function build() {
   $('settings-hint').textContent = T.hint;
   openBtn.querySelector('.btn-label').textContent = T.settings;
   openBtn.setAttribute('aria-label', T.settings);
+  for (const n of body.querySelectorAll('[data-set-label]')) n.textContent = labelText(n.dataset.setLabel);
+  for (const p of PRESETS) $('gfx-preset').querySelector(`option[value="${p}"]`).textContent = T.tier[p];
+  for (const [cat, tiers] of Object.entries(CATEGORIES)) {
+    for (const t of tiers) $('gfx-cat-' + cat).querySelector(`option[value="${t}"]`).textContent = T.tier[t];
+  }
+}
 
+function labelText(key) {
+  return key.startsWith('cat.') ? T.cat[key.slice(4)] : T[key];
+}
+
+// Build the controls once; refresh() re-labels and re-selects them from the live state.
+function build() {
   const preset = document.createElement('select');
   preset.id = 'gfx-preset';
   preset.className = 'set-select';
   preset.dataset.gfx = 'preset';
-  preset.append(option('auto', ''), ...PRESETS.map((p) => option(p, T.tier[p])));
+  preset.append(option('auto', ''), ...PRESETS.map((p) => option(p, '')));
   preset.addEventListener('change', () => Graphics.setPreset(preset.value));
-  body.append(row(T.quality, preset, 'gfx-preset'));
+  body.append(row('quality', preset, 'gfx-preset'));
 
   const scaleWrap = document.createElement('div');
   scaleWrap.className = 'set-range';
@@ -194,20 +211,21 @@ function build() {
   scale.addEventListener('input', () => { out.textContent = scale.value + '%'; });
   scale.addEventListener('change', () => Graphics.set({ render_scale: Number(scale.value) / 100 === 1 ? null : Number(scale.value) / 100 }));
   scaleWrap.append(scale, out);
-  body.append(row(T.renderScale, scaleWrap, 'gfx-scale'));
+  body.append(row('renderScale', scaleWrap, 'gfx-scale'));
 
   for (const [cat, tiers] of Object.entries(CATEGORIES)) {
     const sel = document.createElement('select');
     sel.id = 'gfx-cat-' + cat;
     sel.className = 'set-select';
     sel.dataset.gfxCat = cat;
-    sel.append(option('preset', ''), ...tiers.map((t) => option(t, T.tier[t])));
+    sel.append(option('preset', ''), ...tiers.map((t) => option(t, '')));
     sel.addEventListener('change', () => Graphics.set({ [cat]: sel.value }));
-    body.append(row(T.cat[cat], sel, sel.id));
+    body.append(row('cat.' + cat, sel, sel.id));
   }
 
-  body.append(row(T.adaptive, toggle('gfx-adaptive', 'adaptive'), 'gfx-adaptive'));
-  body.append(row(T.showFps, toggle('gfx-fps', 'show_fps'), 'gfx-fps'));
+  body.append(row('adaptive', toggle('gfx-adaptive', 'adaptive'), 'gfx-adaptive'));
+  body.append(row('showFps', toggle('gfx-fps', 'show_fps'), 'gfx-fps'));
+  label();
 }
 
 function refresh() {
@@ -266,6 +284,12 @@ function close() {
 }
 
 build();
+document.addEventListener('ch-language', () => {
+  locale = gameLocale();
+  T = STRINGS[locale] || STRINGS['en-US'];
+  label();
+  if (!panel.hidden) refresh();
+});
 Graphics.subscribe((r, why) => {
   if (panel.hidden) return;
   if (why === 'info') summary(); else refresh();

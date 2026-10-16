@@ -24,28 +24,38 @@ class LocalGame {
     $('draw-banner').hidden = true;
     $('promo-picker').hidden = true;
     $('go-replay').hidden = true;   // replays are archived by the platform
-    $('conn-state').textContent = 'offline practice';
-
     $('g-opp-dot').classList.add('on');
-    $('g-opp-dot').title = 'AI opponent';
-    $('g-opp-dot').setAttribute('aria-label', 'Opponent AI opponent');
     $('g-opp-name').textContent = 'hal';
     $('g-opp-elo').textContent = '';
-    $('g-opp-color').textContent = this.myColor === 'white' ? 'black' : 'white';
-    $('g-me-name').textContent = 'You';
     $('g-me-elo').textContent = '';
-    $('g-me-color').textContent = this.myColor;
-
     // hal doesn't chat, and voice needs the platform
     $('chat-input').disabled = true;
-    $('chat-input').placeholder = "hal doesn't chat.";
     $('voice-panel').hidden = true;
-    UI.clear($('chat-msgs'));
-    $('chat-msgs').appendChild(UI.el('p', 'empty', 'Practice game — no chat.'));
+    this.renderSeats();
 
     this.unTick = UI.onTick(() => this.tickClock());
     this.render();
     if (this.g.turn !== this.myColor) this.scheduleAi();
+  }
+
+  /** Seat labels, connection note and chat placeholder in the current language. */
+  renderSeats() {
+    $('conn-state').textContent = T('offline practice');
+    $('g-opp-dot').title = T('AI opponent');
+    $('g-opp-dot').setAttribute('aria-label', T('Opponent: AI'));
+    $('g-opp-color').textContent = UI.colorName(this.myColor === 'white' ? 'black' : 'white');
+    $('g-me-name').textContent = T('You');
+    $('g-me-color').textContent = UI.colorName(this.myColor);
+    $('chat-input').placeholder = T("hal doesn't chat.");
+    UI.clear($('chat-msgs'));
+    $('chat-msgs').appendChild(UI.el('p', 'empty', T('Practice game — no chat.')));
+  }
+
+  /** Re-render every visible string after a language change; the game carries on. */
+  relocalize() {
+    this.renderSeats();
+    this.render();
+    this.renderGameOver();
   }
 
   myTurn() {
@@ -78,12 +88,12 @@ class LocalGame {
   tickClock() {
     const turnEl = $('g-turn'), clockEl = $('g-clock'), fuse = $('g-fuse');
     if (this.status !== 'active') {
-      turnEl.textContent = 'Game over';
+      turnEl.textContent = T('Game over');
       clockEl.textContent = '';
       fuse.style.width = '0%';
       return;
     }
-    turnEl.textContent = this.g.turn === this.myColor ? 'Your move' : 'hal to move';
+    turnEl.textContent = this.g.turn === this.myColor ? T('Your move') : T('{name} to move', { name: 'hal' });
     clockEl.textContent = '';        // no 24h deadline offline
     clockEl.classList.remove('urgent');
     fuse.style.width = '100%';
@@ -121,7 +131,7 @@ class LocalGame {
     this.cands = [];
     if (!res.ok) {
       Sfx.play('illegal');
-      UI.toast(res.error || 'Illegal move.', 'err');
+      UI.toast(UI.ruleMessage(res.error || 'Illegal move.'), 'err');
       this.render();
       return;
     }
@@ -159,7 +169,7 @@ class LocalGame {
   // ------------------------------------------------------------- commands
   async resign() {
     if (this.status !== 'active') return;
-    if (await UI.confirm('Resign this game?', 'Resign', true)) {
+    if (await UI.confirm(() => T('Resign this game?'), () => T('Resign'), true)) {
       this.finish({ kind: this.myColor === 'white' ? 'black' : 'white', reason: 'resignation' });
     }
   }
@@ -167,8 +177,8 @@ class LocalGame {
   async offerDraw() {
     if (this.status !== 'active') return;
     // hal declines instantly here exactly as the server script does online
-    if (await UI.confirm('Offer a draw to hal?', 'Offer draw')) {
-      UI.toast('hal declines the draw.');
+    if (await UI.confirm(() => T('Offer a draw to {name}?', { name: 'hal' }), () => T('Offer draw'))) {
+      UI.toast(T('hal declines the draw.'));
     }
   }
 
@@ -181,19 +191,18 @@ class LocalGame {
     this.result = gameOver;
     clearTimeout(this._aiTimer);
     this.render();
-    const drew = gameOver.kind === 'draw';
-    const iWon = gameOver.kind === this.myColor;
-    const reasons = {
-      'checkmate': 'by checkmate', 'stalemate': 'by stalemate',
-      'threefold-repetition': 'by threefold repetition', 'fifty-move-rule': 'by the fifty-move rule',
-      'insufficient-material': 'insufficient material', 'resignation': 'by resignation',
-      'agreement': 'by agreement',
-    };
-    $('go-title').textContent = drew ? 'Drawn' : (iWon ? 'You won' : 'You lost');
-    $('go-reason').textContent = reasons[gameOver.reason] || gameOver.reason || '';
-    $('go-elo').textContent = '';
+    this.renderGameOver();
     $('game-over').hidden = false;
     Sfx.forResult(gameOver.kind, this.myColor);
+  }
+
+  renderGameOver() {
+    const r = this.result;
+    if (!r) return;
+    const iWon = r.kind === this.myColor;
+    $('go-title').textContent = r.kind === 'draw' ? T('Drawn') : (iWon ? T('You won') : T('You lost'));
+    $('go-reason').textContent = UI.reasonText(r.reason);
+    $('go-elo').textContent = '';
   }
 
   destroy() {

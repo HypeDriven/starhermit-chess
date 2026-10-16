@@ -21,6 +21,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
+import { stubStarHermit, launchToken } from './starhermit-e2e.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MIME = {
@@ -206,6 +207,72 @@ async function graphicsPass(page, label) {
   await page.waitForSelector('#starfield', { state: 'hidden' });
 }
 
+/** Signed in through a stubbed StarHermit API whose account language is fr-CA: Automatic
+ *  resolves to it; switching to Italian mid-game re-renders the club, board, seats and the
+ *  Settings panel in place (no restart), saves ui.language; Report a problem posts /reports. */
+async function languagePass(page, label) {
+  const calls = await stubStarHermit(page, { preferredLanguage: 'fr-CA' });
+  await page.goto('about:blank');
+  await page.goto(`${BASE}/index.html#game_token=${launchToken()}`, { waitUntil: 'load' });
+  await page.waitForSelector('#view-menu.active', { timeout: 15000 });
+  await page.waitForFunction(() => document.documentElement.lang === 'fr-CA' &&
+    document.getElementById('btn-play').textContent === 'Jouer' &&
+    document.querySelector('#view-menu h2').textContent === 'Mes parties');
+  await page.click('#btn-practice');
+  await page.waitForSelector('#view-game.active');
+  await page.waitForFunction(() => App.game && App.game.status === 'active' &&
+    document.getElementById('btn-resign').textContent === 'Abandonner' &&
+    document.getElementById('conn-state').textContent === 'entraînement hors ligne');
+  const before = await page.evaluate(() => App.game.myColor + ':' + App.game.moves.length);
+  await page.click('#btn-settings');
+  await page.waitForSelector('#settings:not([hidden])');
+  if ((await page.textContent('#settings-title')) !== 'Paramètres') throw new Error('settings not French');
+  const choice = page.locator('[data-game-language="choice"]');
+  if (await choice.count() !== 1) throw new Error('expected exactly one language selector');
+  await choice.scrollIntoViewIfNeeded();
+  const auto = await choice.locator('option').first().textContent();
+  if (auto !== 'Automatique — Français (Canada)') throw new Error('Automatic label not resolved: ' + auto);
+  await choice.selectOption('it-IT');
+  await page.waitForFunction(() => document.documentElement.lang === 'it-IT' &&
+    document.getElementById('settings-title').textContent === 'Impostazioni' &&
+    document.getElementById('settings-graphics-title').textContent === 'Grafica' &&
+    document.getElementById('btn-resign').textContent === 'Abbandona' &&
+    document.getElementById('btn-draw').textContent === 'Proponi patta' &&
+    document.getElementById('conn-state').textContent === 'allenamento offline' &&
+    document.getElementById('g-me-name').textContent === 'Tu' &&
+    /^(bianco|nero)$/.test(document.getElementById('g-me-color').textContent) &&
+    /^Tocca a /.test(document.getElementById('g-turn').textContent) &&
+    / (bianco|nero|bianca|nera|vuota)$/.test(document.querySelector('#game-board .sq').getAttribute('aria-label')) &&
+    document.getElementById('btn-sound').textContent.startsWith('Audio'));
+  await page.waitForFunction(() => /Salvato/.test(document.querySelector('[data-game-language="status"]')?.textContent || ''));
+  if (calls.settings['ui.language']?.choice !== 'it-IT') throw new Error('ui.language not saved: ' + JSON.stringify(calls.settings));
+  const report = page.locator('[data-game-report="title"]');
+  await report.scrollIntoViewIfNeeded();
+  await report.fill('Test report');
+  await page.click('[data-game-report="send"]');
+  await page.waitForFunction(() => /Grazie/.test(document.querySelector('[data-game-report="status"]').textContent));
+  if (!calls.reports?.[0] || calls.reports[0].kind !== 'bug') throw new Error('report not posted');
+  const spill = await page.evaluate(() => {
+    const w = document.documentElement.clientWidth;
+    return [...document.querySelectorAll('#settings select, #settings input, #settings button, #settings textarea')]
+      .filter((n) => n.offsetParent && n.getBoundingClientRect().right > w + 1).map((n) => n.outerHTML.slice(0, 60));
+  });
+  if (spill.length) throw new Error('settings controls cut off: ' + spill.join(','));
+  await page.screenshot({ path: SHOT('language', label) });
+  await choice.selectOption('auto');
+  await page.waitForFunction(() => document.documentElement.lang === 'fr-CA' && document.getElementById('btn-resign').textContent === 'Abandonner');
+  await page.locator('#settings-close').scrollIntoViewIfNeeded();
+  await page.click('#settings-close');
+  await page.waitForSelector('#settings', { state: 'hidden' });
+  const after = await page.evaluate(() => App.game.myColor + ':' + App.game.moves.length);
+  if (after !== before) throw new Error(`game changed during the language switch: ${before} → ${after}`);
+  await page.click('#btn-back');
+  await page.waitForSelector('#view-menu.active');
+  await page.waitForFunction(() => document.querySelector('#view-menu h2').textContent === 'Mes parties');
+  await page.goto('about:blank');
+  await page.unroute(/\/api\/v1\//);
+}
+
 async function runPass(label, contextOpts, movePairs) {
   const context = await browser.newContext(contextOpts);
   const page = await context.newPage();
@@ -300,6 +367,11 @@ async function runPass(label, contextOpts, movePairs) {
       await page.click('#go-menu');
       await page.waitForSelector('#view-auth.active');
     });
+
+    if (label !== 'landscape') {
+      await step('Language: Automatic follows the StarHermit preference; live switch mid-game; ui.language; report a problem',
+        () => languagePass(page, label));
+    }
   } finally {
     if (errors.length) {
       await context.close();

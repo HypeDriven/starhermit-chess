@@ -16,6 +16,7 @@
 <script src="browser-guard.js"></script>
 <script src="starhermit-sdk.js"></script>
 <script>StarHermit.init();</script>
+<script src="sh-language.js"></script>
 </head>
 <body>
 
@@ -27,7 +28,7 @@
 <img id="auth-art" class="auth-art" src="assets/key-art.webp" alt="" aria-hidden="true" onerror="this.hidden=true;this.dataset.failed=1">
 
 <header class="topbar">
-  <div class="wordmark"><img class="mark" src="icon.png" alt=""> <span class="wm-text">StarHermit Chess</span></div>
+  <div class="wordmark"><img class="mark" src="icon.png" alt=""> <span class="wm-text" data-i18n-skip>StarHermit Chess</span></div>
   <div class="topbar-right">
     <span id="top-elo" class="elo-chip" hidden></span>
     <button id="btn-sound" class="btn btn-small" type="button" aria-pressed="true" title="Toggle sound effects">Sound on</button>
@@ -50,11 +51,11 @@
     <button id="btn-signin" class="btn btn-primary btn-wide" hidden>Sign in with StarHermit</button>
     <label class="field">
       <span class="field-label">User token (JWT)</span>
-      <textarea id="auth-jwt" rows="4" spellcheck="false" placeholder="eyJhbGciOi&hellip;"></textarea>
+      <textarea id="auth-jwt" rows="4" spellcheck="false" data-i18n-skip placeholder="eyJhbGciOi&hellip;"></textarea>
     </label>
     <label class="field">
       <span class="field-label">Game slug</span>
-      <input id="auth-slug" type="text" spellcheck="false" placeholder="chess">
+      <input id="auth-slug" type="text" spellcheck="false" placeholder="chess" data-i18n-skip>
     </label>
     <label class="field">
       <span class="field-label">API base URL <span class="field-hint">(blank = same origin)</span></span>
@@ -236,8 +237,9 @@
   </div>
 </div>
 
-<!-- Settings panel (settings.js builds the Graphics controls from gfx.js) -->
-<div id="settings" class="modal settings" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
+<!-- Settings panel (settings.js builds the Graphics controls from gfx.js and labels them;
+     game-options.js adds Sound, Language and Report a problem) -->
+<div id="settings" class="modal settings" data-i18n-skip hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
   <div class="modal-card settings-card">
     <div class="settings-head">
       <h2 id="settings-title">Settings</h2>
@@ -253,6 +255,8 @@
   </div>
 </div>
 
+<script src="strings.js"></script>
+<script src="i18n.js"></script>
 <script src="server.js"></script>
 <script src="platform-strings.js"></script>
 <script src="net.js"></script>

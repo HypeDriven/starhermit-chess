@@ -22,9 +22,19 @@ const KEY_FALLBACK = {
   Home: 'rowStart', End: 'rowEnd', Enter: 'select', ' ': 'select', Spacebar: 'select',
 };
 
+// T() lives in ui.js (loaded after this file); these run only at call time.
+const tr = (key, vars) => (window.CHI18N ? window.CHI18N.T(key, vars) : String(key).replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars ? vars[k] : m)));
+const unreachable = () => (SH.base ? tr('Cannot reach the server at {base}', { base: SH.base }) : tr('Cannot reach the server'));
+
 const Net = {
-  /** Set by app.js — called with a message when auth is lost (refused renewal / 401). */
+  /** Set by app.js — called with a message thunk (re-read on a language change) when auth is lost. */
   onAuthLost: null,
+
+  /** StarHermit platform strings (platform-strings.js) in the game's current language. */
+  platformText() {
+    const lang = (window.CHI18N && window.CHI18N.lang) || navigator.language;
+    return window.PlatformStrings.platformStrings(lang);
+  },
   bindings: Object.fromEntries(Object.entries(DEFAULT_BINDINGS).map(([k, v]) => [k, v.slice()])),
   _codeMap: null,
 
@@ -56,13 +66,13 @@ const Net = {
 
   /** REST call under the API base. Returns parsed JSON (null for 204/404). Throws {status, message}. */
   async api(path, opts = {}) {
-    if (!SH.token) throw { status: 401, message: 'Not signed in.' };
+    if (!SH.token) throw { status: 401, message: tr('Not signed in.') };
     try {
       return await SH.api(path, { method: opts.method || 'GET', body: opts.body });
     } catch (e) {
-      if (e && e.status === 401) { this.clearToken(); throw { status: 401, message: 'Not signed in.' }; }
+      if (e && e.status === 401) { this.clearToken(); throw { status: 401, message: tr('Not signed in.') }; }
       if (e && typeof e.status === 'number') throw e;
-      throw { status: 0, message: 'Cannot reach the server' + (SH.base ? ' at ' + SH.base : '') };
+      throw { status: 0, message: unreachable() };
     }
   },
 
@@ -78,18 +88,18 @@ const Net = {
   async launchToken(userJwt, slug) {
     if (!userJwt) return SH.refresh();
     const targetSlug = slug || this.slug;
-    if (!targetSlug) throw { status: 0, message: 'No game slug — provide one to launch.' };
+    if (!targetSlug) throw { status: 0, message: tr('No game slug — provide one to launch.') };
     let res;
     try {
       res = await fetch(SH.base + '/api/v1/games/' + encodeURIComponent(targetSlug) + '/launch-token',
         { method: 'POST', headers: { 'Authorization': 'Bearer ' + userJwt } });
     } catch (e) {
-      throw { status: 0, message: 'Cannot reach the server' + (SH.base ? ' at ' + SH.base : '') };
+      throw { status: 0, message: unreachable() };
     }
     let json = null;
     try { json = await res.json(); } catch (e) { /* ignore */ }
     if (!res.ok || !json || !json.token) {
-      const msg = (json && (json.error || json.message)) || ('Token request failed (' + res.status + ')');
+      const msg = (json && (json.error || json.message)) || tr('Token request failed ({status})', { status: res.status });
       throw { status: res.status, message: String(msg) };
     }
     this.setToken(json.token);
@@ -130,10 +140,9 @@ SH.on('auth', (a) => {
   if (!a.signedIn && Net.onAuthLost) {
     // 'expired': renewal was refused — only the launcher (or sign-in) can mint
     // a new token, so the landing card offers "Back to StarHermit".
-    const PS = window.PlatformStrings;
     Net.onAuthLost(a.reason === 'expired'
-      ? (PS ? PS.platformStrings(navigator.language).sessionExpired : 'Your session expired.')
-      : 'Signed out — sign in again to continue.', a.reason || 'signed-out');
+      ? () => (window.PlatformStrings ? Net.platformText().sessionExpired : tr('Your session expired.'))
+      : () => tr('Signed out — sign in again to continue.'), a.reason || 'signed-out');
   }
 });
 if (SH.token) {

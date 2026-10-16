@@ -72,10 +72,11 @@ const Sfx = {
   renderButton() {
     const b = this._btn;
     if (!b) return;
-    b.textContent = this.muted ? 'Sound off' : 'Sound on';
+    b.textContent = this.muted ? T('Sound off') : T('Sound on');
     b.setAttribute('aria-pressed', this.muted ? 'false' : 'true');
     b.classList.toggle('on', !this.muted);
   },
 };
 
 Sfx.init();
+document.addEventListener('ch-language', () => Sfx.renderButton());
