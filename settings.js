@@ -6,7 +6,7 @@
 // a language change re-labels the open panel in place.
 
 import { Graphics } from './graphics.js';
-import { PRESETS, CATEGORIES, PARTICLE_COUNT, presetTier } from './gfx.js';
+import { PRESETS, CATEGORIES, presetTier } from './gfx.js';
 
 const STRINGS = {
   'en-US': {
@@ -15,7 +15,7 @@ const STRINGS = {
     adaptive: 'Adaptive resolution', showFps: 'Show frame rate',
     hint: 'The 3D backdrop plays behind the club menu; board detail applies everywhere.',
     postNote: 'Post-processing is unavailable on this device, so the backdrop renders without it.',
-    unknownGpu: 'unknown GPU', motes: '{n} motes', noAa: 'no anti-aliasing',
+    unknownGpu: 'unknown GPU', level: 'Level {n}', motes: '{n} motes', noAa: 'no anti-aliasing',
     tier: { low: 'Low', balanced: 'Balanced', high: 'High', ultra: 'Ultra', off: 'Off', on: 'On', plain: 'Plain', detailed: 'Detailed', fxaa: 'FXAA', smaa: 'SMAA', msaa: 'MSAA' },
     cat: { bloom: 'Bloom', grade: 'Color grade', antialias: 'Anti-aliasing', reflections: 'Reflections', particles: 'Dust motes', detail: 'Board and room detail' },
     word: { reflections: 'reflections', bloom: 'bloom', grade: 'color grade' },
@@ -26,7 +26,7 @@ const STRINGS = {
     adaptive: 'Adaptive resolution', showFps: 'Show frame rate',
     hint: 'The 3D backdrop plays behind the club menu; board detail applies everywhere.',
     postNote: 'Post-processing is unavailable on this device, so the backdrop renders without it.',
-    unknownGpu: 'unknown GPU', motes: '{n} motes', noAa: 'no anti-aliasing',
+    unknownGpu: 'unknown GPU', level: 'Level {n}', motes: '{n} motes', noAa: 'no anti-aliasing',
     tier: { low: 'Low', balanced: 'Balanced', high: 'High', ultra: 'Ultra', off: 'Off', on: 'On', plain: 'Plain', detailed: 'Detailed', fxaa: 'FXAA', smaa: 'SMAA', msaa: 'MSAA' },
     cat: { bloom: 'Bloom', grade: 'Colour grade', antialias: 'Anti-aliasing', reflections: 'Reflections', particles: 'Dust motes', detail: 'Board and room detail' },
     word: { reflections: 'reflections', bloom: 'bloom', grade: 'colour grade' },
@@ -37,7 +37,7 @@ const STRINGS = {
     adaptive: 'Resolución adaptativa', showFps: 'Mostrar fotogramas por segundo',
     hint: 'El fondo 3D aparece detrás del menú del club; el detalle del tablero se aplica en todas partes.',
     postNote: 'El posprocesado no está disponible en este dispositivo, así que el fondo se muestra sin él.',
-    unknownGpu: 'GPU desconocida', motes: '{n} motas', noAa: 'sin antialiasing',
+    unknownGpu: 'GPU desconocida', level: 'Nivel {n}', motes: '{n} motas', noAa: 'sin antialiasing',
     tier: { low: 'Baja', balanced: 'Equilibrada', high: 'Alta', ultra: 'Ultra', off: 'No', on: 'Sí', plain: 'Simple', detailed: 'Detallado', fxaa: 'FXAA', smaa: 'SMAA', msaa: 'MSAA' },
     cat: { bloom: 'Resplandor', grade: 'Corrección de color', antialias: 'Antialiasing', reflections: 'Reflejos', particles: 'Motas de polvo', detail: 'Detalle del tablero y la sala' },
     word: { reflections: 'reflejos', bloom: 'resplandor', grade: 'corrección de color' },
@@ -48,7 +48,7 @@ const STRINGS = {
     adaptive: 'Resolución adaptativa', showFps: 'Mostrar fotogramas por segundo',
     hint: 'El fondo 3D se ve detrás del menú del club; el detalle del tablero se aplica en todas partes.',
     postNote: 'El posprocesado no está disponible en este dispositivo, así que el fondo se muestra sin él.',
-    unknownGpu: 'GPU desconocida', motes: '{n} motas', noAa: 'sin antialiasing',
+    unknownGpu: 'GPU desconocida', level: 'Nivel {n}', motes: '{n} motas', noAa: 'sin antialiasing',
     tier: { low: 'Baja', balanced: 'Equilibrada', high: 'Alta', ultra: 'Ultra', off: 'No', on: 'Sí', plain: 'Sencillo', detailed: 'Detallado', fxaa: 'FXAA', smaa: 'SMAA', msaa: 'MSAA' },
     cat: { bloom: 'Resplandor', grade: 'Corrección de color', antialias: 'Antialiasing', reflections: 'Reflejos', particles: 'Motas de polvo', detail: 'Detalle del tablero y la sala' },
     word: { reflections: 'reflejos', bloom: 'resplandor', grade: 'corrección de color' },
@@ -59,7 +59,7 @@ const STRINGS = {
     adaptive: 'Adaptive Auflösung', showFps: 'Bildrate anzeigen',
     hint: 'Der 3D-Hintergrund läuft hinter dem Clubmenü; Brettdetails gelten überall.',
     postNote: 'Nachbearbeitung ist auf diesem Gerät nicht verfügbar, der Hintergrund wird ohne sie gezeichnet.',
-    unknownGpu: 'unbekannte GPU', motes: '{n} Staubkörner', noAa: 'keine Kantenglättung',
+    unknownGpu: 'unbekannte GPU', level: 'Stufe {n}', motes: '{n} Staubkörner', noAa: 'keine Kantenglättung',
     tier: { low: 'Niedrig', balanced: 'Ausgewogen', high: 'Hoch', ultra: 'Ultra', off: 'Aus', on: 'An', plain: 'Schlicht', detailed: 'Detailliert', fxaa: 'FXAA', smaa: 'SMAA', msaa: 'MSAA' },
     cat: { bloom: 'Bloom', grade: 'Farbkorrektur', antialias: 'Kantenglättung', reflections: 'Spiegelungen', particles: 'Staubkörner', detail: 'Details von Brett und Raum' },
     word: { reflections: 'Spiegelungen', bloom: 'Bloom', grade: 'Farbkorrektur' },
@@ -70,7 +70,7 @@ const STRINGS = {
     adaptive: 'Résolution adaptative', showFps: 'Afficher la fréquence d’images',
     hint: 'Le décor 3D s’anime derrière le menu du club ; le détail de l’échiquier s’applique partout.',
     postNote: 'Le post-traitement n’est pas disponible sur cet appareil ; le décor s’affiche sans.',
-    unknownGpu: 'GPU inconnu', motes: '{n} grains de poussière', noAa: 'sans anticrénelage',
+    unknownGpu: 'GPU inconnu', level: 'Niveau {n}', motes: '{n} grains de poussière', noAa: 'sans anticrénelage',
     tier: { low: 'Faible', balanced: 'Équilibrée', high: 'Élevée', ultra: 'Ultra', off: 'Non', on: 'Oui', plain: 'Simple', detailed: 'Détaillé', fxaa: 'FXAA', smaa: 'SMAA', msaa: 'MSAA' },
     cat: { bloom: 'Halo lumineux', grade: 'Étalonnage', antialias: 'Anticrénelage', reflections: 'Reflets', particles: 'Poussière', detail: 'Détail de l’échiquier et de la salle' },
     word: { reflections: 'reflets', bloom: 'halo', grade: 'étalonnage' },
@@ -81,7 +81,7 @@ const STRINGS = {
     adaptive: 'Résolution adaptative', showFps: 'Afficher la fréquence d’images',
     hint: 'Le décor 3D s’anime derrière le menu du club; le détail de l’échiquier s’applique partout.',
     postNote: 'Le post-traitement n’est pas offert sur cet appareil; le décor s’affiche sans.',
-    unknownGpu: 'GPU inconnu', motes: '{n} grains de poussière', noAa: 'sans anticrénelage',
+    unknownGpu: 'GPU inconnu', level: 'Niveau {n}', motes: '{n} grains de poussière', noAa: 'sans anticrénelage',
     tier: { low: 'Faible', balanced: 'Équilibrée', high: 'Élevée', ultra: 'Ultra', off: 'Non', on: 'Oui', plain: 'Simple', detailed: 'Détaillé', fxaa: 'FXAA', smaa: 'SMAA', msaa: 'MSAA' },
     cat: { bloom: 'Halo lumineux', grade: 'Étalonnage', antialias: 'Anticrénelage', reflections: 'Reflets', particles: 'Poussière', detail: 'Détail de l’échiquier et de la salle' },
     word: { reflections: 'reflets', bloom: 'halo', grade: 'étalonnage' },
@@ -92,7 +92,7 @@ const STRINGS = {
     adaptive: 'Resolução adaptável', showFps: 'Mostrar taxa de quadros',
     hint: 'O fundo 3D aparece atrás do menu do clube; o detalhe do tabuleiro vale em todas as telas.',
     postNote: 'O pós-processamento não está disponível neste dispositivo, então o fundo é exibido sem ele.',
-    unknownGpu: 'GPU desconhecida', motes: '{n} partículas', noAa: 'sem antisserrilhado',
+    unknownGpu: 'GPU desconhecida', level: 'Nível {n}', motes: '{n} partículas', noAa: 'sem antisserrilhado',
     tier: { low: 'Baixa', balanced: 'Equilibrada', high: 'Alta', ultra: 'Ultra', off: 'Não', on: 'Sim', plain: 'Simples', detailed: 'Detalhado', fxaa: 'FXAA', smaa: 'SMAA', msaa: 'MSAA' },
     cat: { bloom: 'Brilho', grade: 'Correção de cor', antialias: 'Antisserrilhado', reflections: 'Reflexos', particles: 'Partículas de poeira', detail: 'Detalhe do tabuleiro e da sala' },
     word: { reflections: 'reflexos', bloom: 'brilho', grade: 'correção de cor' },
@@ -103,7 +103,7 @@ const STRINGS = {
     adaptive: 'Risoluzione adattiva', showFps: 'Mostra frequenza fotogrammi',
     hint: 'Lo sfondo 3D scorre dietro il menu del circolo; il dettaglio della scacchiera vale ovunque.',
     postNote: 'La post-elaborazione non è disponibile su questo dispositivo, quindi lo sfondo viene mostrato senza.',
-    unknownGpu: 'GPU sconosciuta', motes: '{n} granelli', noAa: 'senza antialiasing',
+    unknownGpu: 'GPU sconosciuta', level: 'Livello {n}', motes: '{n} granelli', noAa: 'senza antialiasing',
     tier: { low: 'Bassa', balanced: 'Bilanciata', high: 'Alta', ultra: 'Ultra', off: 'No', on: 'Sì', plain: 'Semplice', detailed: 'Dettagliato', fxaa: 'FXAA', smaa: 'SMAA', msaa: 'MSAA' },
     cat: { bloom: 'Bagliore', grade: 'Correzione colore', antialias: 'Antialiasing', reflections: 'Riflessi', particles: 'Granelli di polvere', detail: 'Dettaglio di scacchiera e sala' },
     word: { reflections: 'riflessi', bloom: 'bagliore', grade: 'correzione colore' },
@@ -256,10 +256,10 @@ function summary() {
     r.reflections === 'on' ? T.word.reflections : null,
     r.bloom === 'on' ? T.word.bloom : null,
     r.grade === 'on' ? T.word.grade : null,
-    r.particles === 'off' ? null : fill(T.motes, { n: PARTICLE_COUNT[r.particles] }),
+    r.particles === 'off' || !r.budget.motes ? null : fill(T.motes, { n: r.budget.motes }),
     r.antialias === 'off' ? T.noAa : T.tier[r.antialias],
   ].filter(Boolean).join(', ');
-  $('gfx-summary').textContent = `${Graphics.gpu || T.unknownGpu} · ${cost} · ${px[0]}×${px[1]} px`;
+  $('gfx-summary').textContent = `${Graphics.gpu || T.unknownGpu} · ${fill(T.level, { n: Graphics.level })} · ${cost} · ${px[0]}×${px[1]} px`;
   $('gfx-post-note').textContent = T.postNote;
   $('gfx-post-note').hidden = !Graphics.info.postFailed;
   panel.dataset.gfxPreset = r.preset;

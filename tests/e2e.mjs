@@ -166,6 +166,7 @@ async function graphicsPass(page, label) {
   await page.selectOption('#gfx-preset', 'high');
   await page.waitForFunction(() => document.documentElement.dataset.gfxPreset === 'high' && document.documentElement.dataset.gfxDetail === 'detailed');
   if (!/bloom/.test(await page.textContent('#gfx-summary'))) throw new Error('High summary should list bloom');
+  if (!/ · Level 0 · /.test(await page.textContent('#gfx-summary'))) throw new Error(`summary lacks the hardware level: ${await page.textContent('#gfx-summary')}`);
   const fromPreset = await page.locator('#gfx-cat-bloom option[value="preset"]').textContent();
   if (!/On/.test(fromPreset)) throw new Error(`bloom "From preset" label should say On, got "${fromPreset}"`);
   // one override: bloom off

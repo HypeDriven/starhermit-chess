@@ -19,7 +19,7 @@
    writes to the console (QA treats console output as a failure). */
 
 import { Graphics } from './graphics.js';
-import { PARTICLE_COUNT } from './gfx.js';
+import { MAX_PIECES, MAX_MOTES } from './gfx.js';
 
 const menu = document.getElementById('view-menu');
 let canvas = document.getElementById('starfield');
@@ -186,6 +186,11 @@ async function build() {
       ivory: new THREE.MeshStandardMaterial({ color: 0xd9c9a3, roughness: 0.55, metalness: 0.1 }),
       walnut: new THREE.MeshStandardMaterial({ color: 0x6a4d36, roughness: 0.6, metalness: 0.1 }),
     },
+    // Low budget: per-pixel Lambert, no PBR specular.
+    lambert: {
+      ivory: new THREE.MeshLambertMaterial({ color: 0xd9c9a3 }),
+      walnut: new THREE.MeshLambertMaterial({ color: 0x6a4d36 }),
+    },
     lacquer: {
       ivory: new THREE.MeshPhysicalMaterial({ color: 0xd9c59c, roughness: 0.45, metalness: 0.0, clearcoat: 0.55, clearcoatRoughness: 0.2, sheen: 0.3, sheenColor: 0xfff1d6 }),
       walnut: new THREE.MeshPhysicalMaterial({ color: 0x573a28, roughness: 0.5, metalness: 0.0, clearcoat: 0.9, clearcoatRoughness: 0.1 }),
@@ -197,20 +202,21 @@ async function build() {
   const names = Object.keys(WEIGHTS).filter((n) => pieces[n]);
   const weightSum = names.reduce((s, n) => s + WEIGHTS[n], 0);
   for (const name of names) {
-    const perColor = Math.max(1, Math.round((TOTAL * WEIGHTS[name]) / weightSum / 2));
+    const perColor = (TOTAL * WEIGHTS[name]) / weightSum / 2;
+    const maxCount = Math.max(1, Math.round(perColor * MAX_PIECES)); // buffers for the largest budget
     for (const tone of ['ivory', 'walnut']) {
-      const mesh = new THREE.InstancedMesh(pieces[name].geometry, materials.plain[tone], perColor);
+      const mesh = new THREE.InstancedMesh(pieces[name].geometry, materials.plain[tone], maxCount);
       mesh.frustumCulled = false;
       scene.add(mesh);
       const starList = [];
-      for (let i = 0; i < perColor; i++) starList.push(spawn(THREE, true));
-      groups.push({ mesh, tone, preMatrix: pieces[name].preMatrix, starList });
+      for (let i = 0; i < maxCount; i++) starList.push(spawn(THREE, true));
+      groups.push({ mesh, tone, perColor, preMatrix: pieces[name].preMatrix, starList });
     }
   }
 
   // Dust motes: additive HDR points (bright enough for the bloom threshold) with per-mote
   // twinkle and distance fade written into the vertex colours each frame.
-  const moteMax = PARTICLE_COUNT.high;
+  const moteMax = MAX_MOTES;
   const motePos = new Float32Array(moteMax * 3);
   const moteCol = new Float32Array(moteMax * 3);
   const moteGeo = new THREE.BufferGeometry();
@@ -287,9 +293,13 @@ function applySettings(q) {
   }
   w.scene.environment = lacquer ? w.envTex : null;
   w.scene.environmentIntensity = 0.42;
-  for (const g of w.groups) g.mesh.material = w.materials[lacquer && w.envTex ? 'lacquer' : 'plain'][g.tone];
+  const set = lacquer && w.envTex ? 'lacquer' : q.budget.material === 'lambert' ? 'lambert' : 'plain';
+  for (const g of w.groups) {
+    g.mesh.material = w.materials[set][g.tone];
+    g.mesh.count = Math.max(1, Math.round(g.perColor * q.budget.pieces)); // piece budget per preset
+  }
 
-  const n = PARTICLE_COUNT[q.particles] || 0;
+  const n = q.budget.motes;
   w.motes.visible = n > 0;
   w.motes.geometry.setDrawRange(0, n);
 
@@ -316,6 +326,16 @@ function spawn(THREE, anywhere, star) {
 
 // ---------------------------------------------------------------- post chain
 
+
+// Run a post pass at a fraction of the frame (per-preset budget). EffectComposer sizes every pass to the
+// full frame in addPass/setSize, so the pass's own setSize is wrapped to apply the scale.
+function atScale(pass, k) {
+  if (!(k > 0 && k < 1)) return pass;
+  const setSize = pass.setSize.bind(pass);
+  pass.setSize = (w, h) => setSize(Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k)));
+  return pass;
+}
+
 function buildPost(wpx, hpx) {
   const w = world, q = w.q, P = w.post;
   w.composer?.dispose();
@@ -336,7 +356,7 @@ function buildPost(wpx, hpx) {
     composer.setSize(wpx, hpx);
     composer.addPass(new P.RenderPass(w.scene, w.camera));
     // High threshold: only clearcoat glints and the dust motes bloom.
-    if (q.bloom === 'on') composer.addPass(new P.UnrealBloomPass(new THREE.Vector2(wpx, hpx), 0.45, 0.5, 0.9));
+    if (q.bloom === 'on') composer.addPass(atScale(new P.UnrealBloomPass(new THREE.Vector2(wpx, hpx), 0.45, 0.5, 0.9), q.budget.bloomRes));
     if (q.grade === 'on') composer.addPass(new P.ShaderPass(GradeShader));
     composer.addPass(new P.OutputPass());
     if (q.antialias === 'smaa') {
@@ -394,7 +414,7 @@ function render(dt, rescale) {
   const w = world;
   w.time += dt;
   for (const g of w.groups) {
-    for (let i = 0; i < g.starList.length; i++) {
+    for (let i = 0; i < g.mesh.count; i++) {
       const s = g.starList[i];
       s.z += s.speed * dt;
       if (s.z > -1.5) spawn(w.THREE, false, s);

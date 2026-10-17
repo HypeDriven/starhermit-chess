@@ -34,7 +34,7 @@ needs no sign-in at all.
 | `net.js` | The game's platform layer over `starhermit-sdk.js`: dev sign-in, REST/WebSocket helpers, control bindings |
 | `audio.js` | `Sfx`: clip-per-event sound effects from `sfx/manifest.json`, mute toggle |
 | `starfield.js` | Menu backdrop: drifting instanced 3D chess pieces (three.js, lazy-loaded, WebGL optional), its lighting, dust motes and post-processing chain |
-| `gfx.js` | Pure graphics quality model: presets, categories, `detectPreset`, `resolve`, `presetTier`, `withPreset`, `describe` |
+| `gfx.js` | Pure graphics quality model: presets, categories, per-preset `BUDGETS`, hardware-level `detectLevel`/`detectPreset`, `resolve`, `presetTier`, `withPreset`, `describe` |
 | `graphics.js` | Live graphics settings store: GPU detection, `chess.graphics` persistence, `data-gfx-*` attributes on `<html>`, frame-rate readout, subscribers |
 | `settings.js` | The Settings panel (top-bar gear button) and its Graphics section; its strings in the nine target locales, following the game language |
 | `sh-language.js` | Shared StarHermit language resolver (`StarHermitLanguage`): explicit choice → account preference → browser → en-US; registers `window.GameLanguage` |
@@ -300,7 +300,7 @@ fill, the brass-lamp key light and a cool rim light from behind the field, with 
 light far up-left; its fog colour is the inverse-ACES of `--bg`, so distant pieces melt into the page
 colour on every path. Optional effects: reflections (a `RoomEnvironment` PMREM as the scene
 environment, with the pieces switched to clearcoated `MeshPhysicalMaterial` lacquer), dust motes
-(70 or 180 additive HDR points drifting in the lamp light), bloom limited to clearcoat glints and motes
+(additive HDR points drifting in the lamp light; count per preset, below), bloom limited to clearcoat glints and motes
 (threshold 0.9), a colour grade (saturation, warm highlights / cool shadows, mid-tone S-curve) with
 vignette, and FXAA, SMAA or MSAA anti-aliasing. Post-processing (`EffectComposer`: RenderPass → bloom →
 grade → OutputPass → SMAA/FXAA, half-float target, 4× multisampled for MSAA) is built only when an
@@ -310,18 +310,54 @@ and inner shadow over the squares, fine wood grain (crossing directions on light
 second soft piece shadow, lifted paper cards and a breathing lamp-light glow over the room (off on the
 menu, which has its own). Markers (selection, dots, last move, check glow) and coordinates are
 unchanged and sit above the grain. The top-bar **Settings** panel's **Graphics** section offers a
-quality preset (Auto, chosen from the WebGL unmasked renderer string: software renderers such as
-SwiftShader or llvmpipe get Low, discrete GPUs and Apple M-series get High, others Balanced, and
-touch devices are capped at Balanced; Low; Balanced; High; Ultra), a render scale (50–200 % of the
-preset's; the pixel ratio is min(device ratio, 1.5) × preset scale × adaptive scale), a per-effect
+quality preset (Auto, chosen from the StarHermit hardware level, below; Low; Balanced; High; Ultra), a
+render scale (50–200 % of the preset's; the pixel ratio is min(device ratio, preset DPR cap) × preset
+scale × adaptive scale), a per-effect
 override for bloom, colour grade, anti-aliasing, reflections, dust motes and board/room detail
 ("From preset (…)" by default; choosing a preset clears overrides), adaptive resolution (every
 90 frames: average above 26 ms steps the scale down 0.1 to a floor of 0.6, below 14 ms back up
-0.05), a frame-rate readout (bottom-right, any screen), and a summary "GPU · cost · W×H px". Changes
+0.05), a frame-rate readout (bottom-right, any screen), and a summary "GPU · Level N · cost · W×H px" ("Level" localized). Changes
 apply immediately (switching canvas MSAA swaps in a fresh canvas) and persist in `chess.graphics`; if
 the post chain cannot be built the starfield renders without it and the panel says so. `<html>`
 carries `data-gfx-preset`, `data-gfx-auto` and `data-gfx-detail`, and the canvas `data-gfx-preset`.
 Shadows and ambient occlusion are not offered: the pieces float in a void with nothing to receive them.
+
+**Hardware-level detection.** `gpu-level.js` (shared StarHermit copy, `window.StarHermitGpu`, loaded
+before `settings.js`) rates the unmasked renderer on the StarHermit hardware level 0–20 (0 = Galaxy S20 /
+Intel UHD or weaker and every software renderer such as SwiftShader or llvmpipe, 20 = RTX 5090, each level
+≈ 1.23×; laptop parts two levels below desktop; phones, tablets and ≤ 4 GB machines capped at 9).
+`gfx.js` maps it with `presetForLevel(level, { low: 0, balanced: 4, high: 10, ultra: 17 })`, so Auto
+picks Ultra on strong GPUs; adaptive resolution still steps down when slow.
+
+**Per-preset budgets** for the starfield (`BUDGETS` / `budgetFor` in `gfx.js`; each preset holds 60 FPS
+on the weakest GPU Auto gives it — Low at level 0, Balanced 4, High 10, Ultra 17). Counts are tuned at
+the floor level and scale up within the preset on faster GPUs (`StarHermitGpu.scaleBudget`, ≤ 4×, never
+below the floor). Instance buffers are allocated for 2.4× the base field, so preset changes only change
+the drawn count and the material set.
+
+| Budget | Low | Balanced | High | Ultra |
+|---|---|---|---|---|
+| Device-pixel-ratio cap · render scale | 1 · 1 | 1.5 · 0.9 | 2 · 1 | 2 · 1.34 |
+| Unlacquered piece material (Reflections off) | Lambert | Standard | Standard | Standard |
+| Drifting pieces (× base field of 120 small screens / 210) | 0.6× | 1× | 1.3× | 1.6× |
+| Dust motes (Particles tier caps: off 0, low 70) | off | 70 | 180 | 260 |
+| Bloom resolution | — | ½ | ½ | full |
+
+Phones and tablets pace Auto FPS at half the display refresh rate ("Auto (half refresh rate)") and
+start at 16 simultaneous sounds (shared `game-options.js`).
+
+**Benchmark** (`node tools/gfx-bench.mjs chess`; hook `tests/gfx-bench.mjs` picks the preset in the
+Settings panel, then signs in through the stubbed StarHermit API used by `tests/e2e.mjs` so the real
+club menu and its starfield are on screen — the board itself is DOM). Measured 2026-10-17 (AMD Radeon
+iGPU level 2 GPU time projected to the preset's floor level; RTX 5090 CPU time):
+
+- Desktop 1920×1080: FAIL low (GPU p90 11.69 ms → ≈ 17.69 ms at level 0, CPU 0.50 ms); PASS balanced
+  (18.19 → ≈ 12.02 ms at level 4, CPU 0.80 ms); PASS high (23.12 → ≈ 4.41 ms at level 10, CPU 1.30 ms);
+  PASS ultra (44.43 → ≈ 1.99 ms at level 17, CPU 0.70 ms).
+- Mobile 390×844 @3×: FAIL low (11.30 → ≈ 17.09 ms, CPU 0.50 ms); PASS balanced (14.61 → ≈ 9.66 ms at
+  level 4, CPU 0.70 ms).
+- Low sits at the benchmark's floor on this machine: a blank page that only clears a full-window WebGL
+  canvas measures 8–11 ms p90 desktop (≈ 12–17 ms at level 0) and 13–15 ms in the mobile profile.
 
 **Hero.** The board. Everything else is paper and brass around it; on the landing screen the hero is
 the key art (a lamp-lit board in a club library) that the real board then echoes.
@@ -481,10 +517,10 @@ that the platform reads for the games list.
 
 **Performance budgets.** No build, ~3,000 lines of client JS, one 0.37 MB model and 43 KB of key art.
 The board re-renders 64 nodes with cloned SVG prototypes on every state change (sub-millisecond).
-The starfield caps the base device pixel ratio at 1.5 (Ultra's 1.34× scale reaches 2), uses one
-`InstancedMesh` per piece type and colour (120 or 210 instances), clamps frame delta at 100 ms, stops
+The starfield caps the base device pixel ratio per preset (Low 1, Balanced 1.5, High/Ultra 2), uses one
+`InstancedMesh` per piece type and colour (drawn count per preset budget), clamps frame delta at 100 ms, stops
 its loop the moment the menu is not the active view, and adapts its resolution when frames are slow.
-Low costs the same as before the graphics upgrade (direct draw, canvas MSAA, no post, no motes). Server invocations stay far under the 250 ms CPU / 32 MB sandbox limits: perft(3)
+Low draws directly (canvas MSAA, no post, no motes, Lambert pieces, 0.6× field). Server invocations stay far under the 250 ms CPU / 32 MB sandbox limits: perft(3)
 of the full generator runs in the tests in well under a second.
 
 **How the e2e test drives the real UI.** `tests/e2e.mjs` starts its own static server (on `PORT` if
@@ -500,9 +536,9 @@ touch (and 844×361 landscape), fails on any `pageerror`, console error or conso
 needs a working headless Chrome; on WSL with a stale WSLg display it hangs on the first frame, so run
 it as `env -u DISPLAY -u WAYLAND_DISPLAY npm test` there.
 
-**`tests/gfx.test.mjs`** (`node --test`): `detectPreset` on SwiftShader, llvmpipe, Microsoft Basic
-Render, NVIDIA, Radeon RX, Apple M, Intel UHD, Radeon Graphics, Adreno and empty strings, plus the
-touch cap at Balanced; `resolve` for Auto vs an explicit preset, per-category overrides, invalid values,
+**`tests/gfx.test.mjs`** (`node --test`): hardware level → preset on SwiftShader, llvmpipe, Radeon
+Graphics and Intel UHD (Low), Iris Xe (Balanced), GTX 1070 (High), RTX 4080/5090 (Ultra) and empty
+strings, plus the phone cap at Balanced; the per-preset budget table and its level scaling; `resolve` for Auto vs an explicit preset, per-category overrides, invalid values,
 the render-scale clamp (50–200 %), the adaptive/frame-rate defaults and when post-processing is on;
 `withPreset` clears overrides but keeps scale and toggles; every preset defines every category;
 `describe` lists cost and pixels.

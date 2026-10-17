@@ -3,7 +3,7 @@
 // data attributes (`data-gfx-preset`, `data-gfx-detail` on <html>, which style.css keys the
 // board/room detail off) and to subscribers (the menu starfield, the settings panel).
 
-import { resolve, detectPreset, withPreset } from './gfx.js';
+import { resolve, detectLevel, presetForLevel, withPreset } from './gfx.js';
 
 const KEY = 'chess.graphics';
 const listeners = new Set();
@@ -38,9 +38,13 @@ function detectGpu() {
 const mobile = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 const gpu = detectGpu();
 
+// StarHermit hardware level (gpu-level.js) → Auto preset; SwiftShader = level 0 → Low, phones cap at Balanced.
+const level = detectLevel(gpu, window.StarHermitGpu ? window.StarHermitGpu.detectSystem() : { mobile });
+
 export const Graphics = {
   gpu,
-  detected: detectPreset(gpu, { mobile }),
+  level,
+  detected: presetForLevel(level),
   saved: load(),
   resolved: null,
   // What the starfield last reported: canvas pixels, post-processing failure, adaptive scale.
@@ -48,8 +52,8 @@ export const Graphics = {
 
   get reducedMotion() { return !!(reducedQuery && reducedQuery.matches); },
 
-  /** Base device pixel ratio for WebGL: capped at 1.5 (the pre-upgrade starfield's cap). */
-  basePixelRatio() { return Math.min(window.devicePixelRatio || 1, 1.5); },
+  /** Base device pixel ratio for WebGL, capped by the preset budget (Low 1, Balanced 1.5, High/Ultra 2). */
+  basePixelRatio() { return Math.min(window.devicePixelRatio || 1, (this.resolved && this.resolved.budget.dprCap) || 1.5); },
 
   subscribe(fn) { listeners.add(fn); fn(this.resolved, 'settings'); return () => listeners.delete(fn); },
 
@@ -77,7 +81,7 @@ export const Graphics = {
   },
 
   _apply() {
-    const r = this.resolved = resolve(this.saved, this.detected);
+    const r = this.resolved = resolve(this.saved, this.detected, this.level);
     const root = document.documentElement;
     root.dataset.gfxPreset = r.preset;
     root.dataset.gfxAuto = r.auto ? '1' : '0';
