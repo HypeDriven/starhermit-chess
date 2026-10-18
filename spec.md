@@ -348,16 +348,20 @@ start at 16 simultaneous sounds (shared `game-options.js`).
 
 **Benchmark** (`node tools/gfx-bench.mjs chess`; hook `tests/gfx-bench.mjs` picks the preset in the
 Settings panel, then signs in through the stubbed StarHermit API used by `tests/e2e.mjs` so the real
-club menu and its starfield are on screen — the board itself is DOM). Measured 2026-10-17 (AMD Radeon
-iGPU level 2 GPU time projected to the preset's floor level; RTX 5090 CPU time):
+club menu and its starfield are on screen — the board itself is DOM). Measured 2026-10-18 with the final
+gate (AMD Radeon iGPU level 2 GPU time minus the same page and preset re-recorded with every WebGL draw
+call skipped, percentile for percentile, projected to the preset's floor level: typical p50 ≤ 12 ms,
+slow p90 ≤ 14 ms; RTX 5090 CPU p90 ≤ 6 ms):
 
-- Desktop 1920×1080: FAIL low (GPU p90 11.69 ms → ≈ 17.69 ms at level 0, CPU 0.50 ms); PASS balanced
-  (18.19 → ≈ 12.02 ms at level 4, CPU 0.80 ms); PASS high (23.12 → ≈ 4.41 ms at level 10, CPU 1.30 ms);
-  PASS ultra (44.43 → ≈ 1.99 ms at level 17, CPU 0.70 ms).
-- Mobile 390×844 @3×: FAIL low (11.30 → ≈ 17.09 ms, CPU 0.50 ms); PASS balanced (14.61 → ≈ 9.66 ms at
-  level 4, CPU 0.70 ms).
-- Low sits at the benchmark's floor on this machine: a blank page that only clears a full-window WebGL
-  canvas measures 8–11 ms p90 desktop (≈ 12–17 ms at level 0) and 13–15 ms in the mobile profile.
+- Desktop 1920×1080: PASS low (GPU p50 10.88 / p90 11.91 ms, draws skipped 10.88 / 11.41 → typical
+  0.01, slow 0.76 at level 0; CPU p90 0.40 ms); PASS balanced (GPU p50 10.61 / p90 12.97 ms, draws
+  skipped 10.89 / 11.91 → typical 0.00, slow 0.70 at level 4; CPU p90 0.60 ms); PASS high (GPU p50
+  13.80 / p90 15.52 ms, draws skipped 10.88 / 11.84 → typical 0.56, slow 0.70 at level 10; CPU p90 0.70
+  ms); PASS ultra (GPU p50 25.26 / p90 31.28 ms, draws skipped 10.63 / 11.96 → typical 0.66, slow 0.87
+  at level 17; CPU p90 0.60 ms).
+- Mobile 390×844 @3×: PASS low (GPU p50 14.31 / p90 16.75 ms, draws skipped 14.31 / 16.75 → typical
+  0.01, slow 0.01 at level 0; CPU p90 0.40 ms); PASS balanced (GPU p50 14.24 / p90 16.82 ms, draws
+  skipped 14.64 / 16.79 → typical 0.00, slow 0.02 at level 4; CPU p90 0.50 ms).
 
 **Hero.** The board. Everything else is paper and brass around it; on the landing screen the hero is
 the key art (a lamp-lit board in a club library) that the real board then echoes.
