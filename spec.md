@@ -233,7 +233,9 @@ and hint, a divider, **Sign in with StarHermit** (only on the platform host with
 
 **Club (menu).** Desktop: two columns, `minmax(0,1fr) 320px`. Main: Play row (rated **Play** plus an unrated **Practice vs hal** entry), "My games" (n of 20
 seats), "Invitations" (Share invite link, Invite a friend). Side: "My rating", "Friends table",
-"Recent games". The starfield canvas sits behind everything at z-index 0.
+"Recent games". The starfield canvas sits behind everything at z-index 0. "My games" (refreshed every 30 s)
+and "Invitations" (every 10 s) are rebuilt only when what they show changes, and the cards' time-left text
+ticks in place, so a click on a card or on Accept / Decline is never lost to a refresh.
 
 **Game.** Desktop: `minmax(0,1fr) 340px`. Board column: opponent seat (presence lamp, name, Elo,
 colour), the board (`min(100%, 100vh − 300px, 640px)` wide), my seat with the Check flag, clock card

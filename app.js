@@ -11,6 +11,7 @@ const App = {
   game: null,            // active GameController
   replay: null,          // replay viewer state
   _menuTimers: [],
+  _listSigs: {},         // what #sessions-list / #invites-list last showed
   _mmTimer: null,
   _mmAiTimer: null,
   _mmStartedAt: null,
@@ -160,21 +161,27 @@ const App = {
     try {
       sessions = await SH.mySessions();
     } catch (e) {
-      if (e.status !== 401) $('sessions-list').replaceChildren(UI.el('p', 'empty', T('Could not load games — {error}', { error: e.message })));
+      if (e.status !== 401) { this._listSigs.sessions = null; $('sessions-list').replaceChildren(UI.el('p', 'empty', T('Could not load games — {error}', { error: e.message }))); }
       return;
     }
     const active = sessions.filter(s => s.status === 'active');
     const cap = (this.info && this.info.maxConcurrentSessionsPerPlayer) || 20;
     $('sessions-count').textContent = T('{n} of {cap} seats', { n: active.length, cap });
     const list = $('sessions-list');
+    active.sort((a, b) => (b.myTurn === true) - (a.myTurn === true) || (a.deadline || 0) - (b.deadline || 0));
+    const opponents = active.map(s => (s.players || []).find(p => p.userId !== Net.userId));
+    const opponentProfiles = await Promise.all(opponents.map(p => this.profileFor(p && p.userId)));
+    // The 30 s refresh rebuilds the cards only when what they show changed: a
+    // card replaced between press and release loses its click.
+    const sig = JSON.stringify([UI.locale(), active.map((s, i) => [s.sessionId, s.myTurn === true, s.deadline || '',
+      this.isHal(opponents[i]) ? 'hal' : opponentProfiles[i].name])]);
+    if (sig === this._listSigs.sessions) { this.tickSessionCards(); return; }
+    this._listSigs.sessions = sig;
     UI.clear(list);
     if (!active.length) {
       list.appendChild(UI.el('p', 'empty', T('No games yet — hit Play, or invite a friend.')));
       return;
     }
-    active.sort((a, b) => (b.myTurn === true) - (a.myTurn === true) || (a.deadline || 0) - (b.deadline || 0));
-    const opponents = active.map(s => (s.players || []).find(p => p.userId !== Net.userId));
-    const opponentProfiles = await Promise.all(opponents.map(p => this.profileFor(p && p.userId)));
     for (let i = 0; i < active.length; i++) {
       const s = active[i];
       const opp = opponents[i];
@@ -195,16 +202,24 @@ const App = {
     this.tickSessionCards();
   },
 
+  // Every second; the countdown nodes are updated in place, since a node
+  // replaced while it is pressed swallows the card's click.
   tickSessionCards() {
     document.querySelectorAll('#sessions-list .card-sub').forEach(el => {
       const dl = Number(el.dataset.deadline);
-      if (!dl) { el.textContent = ''; return; }
+      if (!dl) { if (el.firstChild) el.textContent = ''; return; }
       const left = dl - Date.now();
       const whose = el.dataset.myturn ? T('your move') : T('their move');
-      UI.clear(el);
-      const span = UI.el('span', left < 3600000 ? 'urgent' : null, UI.fmtRemaining(left));
-      el.appendChild(document.createTextNode(whose + ' — '));
-      el.appendChild(span);
+      let lead = el.firstChild, span = el.lastChild;
+      if (!lead || lead.nodeType !== Node.TEXT_NODE || !span || span.nodeType !== Node.ELEMENT_NODE) {
+        UI.clear(el);
+        lead = el.appendChild(document.createTextNode(''));
+        span = el.appendChild(UI.el('span'));
+      }
+      const head = whose + ' — ', cls = left < 3600000 ? 'urgent' : '', text = UI.fmtRemaining(left);
+      if (lead.data !== head) lead.data = head;
+      if (span.className !== cls) span.className = cls;
+      if (span.textContent !== text) span.textContent = text;
     });
   },
 
@@ -451,6 +466,12 @@ const App = {
       Promise.all(outgoing.map(inv => profOf(inv.to))),
     ]);
     const list = $('invites-list');
+    // Polled every 10 s: the list is rebuilt only when the invitations change,
+    // so Accept / Decline are never replaced between press and release.
+    const sig = JSON.stringify([UI.locale(), incoming.map((inv, i) => [inv.inviteId, inProfs[i].name, inProfs[i].avatarUrl || '']),
+      outgoing.map((inv, i) => [inv.inviteId, outProfs[i].name, outProfs[i].avatarUrl || ''])]);
+    if (sig === this._listSigs.invites) return;
+    this._listSigs.invites = sig;
     UI.clear(list);
     if (!incoming.length && !outgoing.length) {
       list.appendChild(UI.el('p', 'empty', T('No invitations.')));
