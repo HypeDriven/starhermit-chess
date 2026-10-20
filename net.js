@@ -12,14 +12,14 @@ const TOKEN_KEY = 'chess.gameToken';
 
 // Keyboard actions — declared as control.<action> in starhermit.txt. On the
 // board they move focus / play a square; in the replay viewer left/right/
-// rowStart/rowEnd step through the moves.
+// row_start/row_end step through the moves.
 const DEFAULT_BINDINGS = {
   up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'],
-  rowStart: ['Home'], rowEnd: ['End'], select: ['Enter', 'Space'],
+  row_start: ['Home'], row_end: ['End'], select: ['Enter', 'Space'],
 };
 const KEY_FALLBACK = {
   ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-  Home: 'rowStart', End: 'rowEnd', Enter: 'select', ' ': 'select', Spacebar: 'select',
+  Home: 'row_start', End: 'row_end', Enter: 'select', ' ': 'select', Spacebar: 'select',
 };
 
 // T() lives in ui.js (loaded after this file); these run only at call time.

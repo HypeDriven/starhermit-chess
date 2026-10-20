@@ -214,7 +214,37 @@
     ['Next (→)', 'Siguiente (→)', 'Nächster (→)', 'Suivant (→)', 'Próximo (→)', 'Successiva (→)'],
     ['Next move', 'Jugada siguiente', 'Nächster Zug', 'Coup suivant', 'Próximo lance', 'Mossa successiva'],
     ['Last (End)', 'Última (Fin)', 'Letzter (Ende)', 'Dernier (Fin)', 'Último (End)', 'Ultima (Fine)'],
-    ['Last move', 'Última jugada', 'Letzter Zug', 'Dernier coup', 'Último lance', 'Ultima mossa']
+    ['Last move', 'Última jugada', 'Letzter Zug', 'Dernier coup', 'Último lance', 'Ultima mossa'],
+    // ---- native client
+    ['No games in progress.', 'No hay partidas en curso.', 'Keine laufenden Partien.', 'Aucune partie en cours.', 'Nenhuma partida em andamento.', 'Nessuna partita in corso.'],
+    ['{name} invites you to a game', '{name} te invita a una partida', '{name} lädt dich zu einer Partie ein', '{name} vous invite à une partie', '{name} convida você para uma partida', '{name} ti invita a una partita'],
+    ['Invite link copied.', 'Enlace de invitación copiado.', 'Einladungslink kopiert.', 'Lien d’invitation copié.', 'Link de convite copiado.', 'Link di invito copiato.'],
+    ['W', 'G', 'S', 'V', 'V', 'V'],
+    ['L', 'P', 'N', 'D', 'D', 'S'],
+    ['D', 'T', 'R', 'N', 'E', 'P'],
+    ['Friends', 'Amigos', 'Freunde', 'Amis', 'Amigos', 'Amici'],
+    ['No finished games yet.', 'Aún no hay partidas terminadas.', 'Noch keine beendeten Partien.', 'Aucune partie terminée pour l’instant.', 'Nenhuma partida terminada ainda.', 'Ancora nessuna partita conclusa.'],
+    ['Won', 'Ganada', 'Gewonnen', 'Gagnée', 'Vitória', 'Vinta'],
+    ['Lost', 'Perdida', 'Verloren', 'Perdue', 'Derrota', 'Persa'],
+    ['No friends yet.', 'Aún no tienes amigos.', 'Noch keine Freunde.', 'Pas encore d’amis.', 'Nenhum amigo ainda.', 'Ancora nessun amico.'],
+    ['Invitation sent.', 'Invitación enviada.', 'Einladung gesendet.', 'Invitation envoyée.', 'Convite enviado.', 'Invito inviato.'],
+    ['Accept the updated terms in StarHermit to keep playing.', 'Acepta los términos actualizados en StarHermit para seguir jugando.', 'Akzeptiere die aktualisierten Bedingungen in StarHermit, um weiterzuspielen.', 'Acceptez les conditions mises à jour dans StarHermit pour continuer à jouer.', 'Aceite os termos atualizados no StarHermit para continuar jogando.', 'Accetta i termini aggiornati in StarHermit per continuare a giocare.'],
+    ['Your session has expired.', 'Tu sesión ha caducado.', 'Deine Sitzung ist abgelaufen.', 'Votre session a expiré.', 'Sua sessão expirou.', 'La sessione è scaduta.'],
+    ['Replay', 'Repetición', 'Wiederholung', 'Rediffusion', 'Replay', 'Replay'],
+    ['The game was updated — restart it to keep playing.', 'El juego se actualizó: reinícialo para seguir jugando.', 'Das Spiel wurde aktualisiert – starte es neu, um weiterzuspielen.', 'Le jeu a été mis à jour — relancez-le pour continuer à jouer.', 'O jogo foi atualizado — reinicie-o para continuar jogando.', 'Il gioco è stato aggiornato: riavvialo per continuare a giocare.'],
+    ['Practice could not start.', 'No se pudo iniciar la práctica.', 'Das Training konnte nicht starten.', 'L’entraînement n’a pas pu démarrer.', 'Não foi possível iniciar o treino.', 'Impossibile avviare l’allenamento.'],
+    ['{name} declines the draw.', '{name} rechaza las tablas.', '{name} lehnt das Remis ab.', '{name} refuse la nulle.', '{name} recusa o empate.', '{name} rifiuta la patta.'],
+    ['Practice wins: {score} — rank #{rank}', 'Victorias de práctica: {score} — puesto n.º {rank}', 'Trainingssiege: {score} – Rang #{rank}', 'Victoires d’entraînement : {score} — rang nº {rank}', 'Vitórias de treino: {score} — posição #{rank}', 'Vittorie di allenamento: {score} — posizione #{rank}'],
+    ['Too fast — try again.', 'Demasiado rápido: inténtalo de nuevo.', 'Zu schnell – versuch es noch einmal.', 'Trop rapide — réessayez.', 'Rápido demais — tente de novo.', 'Troppo veloce: riprova.'],
+    ['Connecting…', 'Conectando…', 'Verbinde…', 'Connexion…', 'Conectando…', 'Connessione…'],
+    ['Offline practice — no clock, no rating.', 'Práctica sin conexión: sin reloj ni clasificación.', 'Offline-Training – ohne Uhr, ohne Wertung.', 'Entraînement hors ligne — sans pendule ni classement.', 'Treino offline — sem relógio, sem rating.', 'Allenamento offline: niente orologio né punteggio.'],
+    ['Say something…', 'Di algo…', 'Sag etwas…', 'Dites quelque chose…', 'Diga algo…', 'Scrivi qualcosa…'],
+    ['Voice is unavailable.', 'La voz no está disponible.', 'Sprachchat ist nicht verfügbar.', 'La voix n’est pas disponible.', 'A voz não está disponível.', 'La voce non è disponibile.'],
+    ['Leave voice', 'Salir de la voz', 'Sprachchat verlassen', 'Quitter la voix', 'Sair da voz', 'Esci dalla voce'],
+    ['muted', 'silenciado', 'stumm', 'muet', 'mudo', 'muto'],
+    ['voice failed', 'falló la voz', 'Sprachchat fehlgeschlagen', 'échec de la voix', 'falha na voz', 'voce non riuscita'],
+    ['Promote to', 'Coronar como', 'Umwandeln in', 'Promouvoir en', 'Promover a', 'Promuovi a'],
+    ['Look at the board', 'Ver el tablero', 'Brett ansehen', 'Voir l’échiquier', 'Ver o tabuleiro', 'Guarda la scacchiera']
   ];
 
   var COLS = ['es-419', 'de-DE', 'fr-FR', 'pt-BR', 'it-IT'];
@@ -248,6 +278,7 @@
     'Table talk': 'Charla de mesa'
   };
   T['fr-CA'] = {
+    'Replay': 'Reprise',
     'Table talk': 'Clavardage',
     'Practice game — no chat.': 'Partie d’entraînement — pas de clavardage.',
     'View replay': 'Voir la reprise',

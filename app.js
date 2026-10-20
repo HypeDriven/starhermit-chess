@@ -757,8 +757,8 @@ document.addEventListener('keydown', (e) => {
   const act = Net.actionFor(e);
   if (act === 'left') { e.preventDefault(); App.replayStep(-1); }
   else if (act === 'right') { e.preventDefault(); App.replayStep(1); }
-  else if (act === 'rowStart') { e.preventDefault(); App.replayStep(-Infinity); }
-  else if (act === 'rowEnd') { e.preventDefault(); App.replayStep(Infinity); }
+  else if (act === 'row_start') { e.preventDefault(); App.replayStep(-Infinity); }
+  else if (act === 'row_end') { e.preventDefault(); App.replayStep(Infinity); }
 });
 $('btn-signin').addEventListener('click', () => SH.signIn());
 $('btn-relaunch').addEventListener('click', () => SH.relaunch());

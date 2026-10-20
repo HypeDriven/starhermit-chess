@@ -315,8 +315,8 @@ const UI = {
     else if (act === 'left') next = col > 0 ? pos - 1 : -1;
     else if (act === 'down') next = row < 7 ? pos + 8 : -1;
     else if (act === 'up') next = row > 0 ? pos - 8 : -1;
-    else if (act === 'rowStart') next = row * 8;
-    else if (act === 'rowEnd') next = row * 8 + 7;
+    else if (act === 'row_start') next = row * 8;
+    else if (act === 'row_end') next = row * 8 + 7;
     else return;
     e.preventDefault();
     if (next >= 0) cells[next].focus();   // focusin moves the tab stop with it

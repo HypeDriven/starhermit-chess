@@ -44,7 +44,7 @@ test('hosted: token, profile, cloud save path, settings, bindings, invite', asyn
   assert.deepEqual(env.settings.graphics, { preset: 'high' });
 
   await Net.loadBindings();
-  assert.equal(Net.actionFor({ code: 'Home' }), 'rowStart');
+  assert.equal(Net.actionFor({ code: 'Home' }), 'row_start');
   assert.equal(Net.actionFor({ code: 'Space' }), 'select');
   assert.equal(Net.actionFor({ key: 'ArrowLeft' }), 'left');
   assert.equal(sdk.inviteLink(), `https://dashboard.starhermit.com/game-invite/${UID}/${SLUG}`);

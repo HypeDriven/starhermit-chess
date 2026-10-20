@@ -15,6 +15,16 @@ description=Play correspondence chess against other players or practice against 
 # Repo-relative HTML entry point the client loads.
 launch=index.html
 
+# StarHermit engine (script game): the StarHermit Windows client plays the
+# native client in native/ on the pinned engine release; browsers keep
+# launch=index.html. Engine 1.0.0 has no web runtime, so the browser client
+# stays the web build. Check with `starhermit check .` and
+# `npx --package typescript tsc -p .` (spec.md §13 Native client).
+engine.api=1
+engine.entry=native/main.ts
+engine.version=1.1.0
+engine.capabilities=platform,storage,clipboard,voice
+
 # The Starhermit account that owns this game (the submitter's user id).
 owner=2712e04e-461b-4d23-81ae-e40b429128a8
 
@@ -32,6 +42,15 @@ control.up=ArrowUp | Board: focus up
 control.down=ArrowDown | Board: focus down
 control.left=ArrowLeft | Board: focus left / replay: previous move
 control.right=ArrowRight | Board: focus right / replay: next move
-control.rowStart=Home | Board: row start / replay: first move
-control.rowEnd=End | Board: row end / replay: last move
+control.row_start=Home | Board: row start / replay: first move
+control.row_end=End | Board: row end / replay: last move
 control.select=Enter+Space | Board: play the focused square
+
+# Gamepad defaults for the same actions (native engine only).
+engine.gamepad.up=DpadUp+LeftStickUp
+engine.gamepad.down=DpadDown+LeftStickDown
+engine.gamepad.left=DpadLeft+LeftStickLeft
+engine.gamepad.right=DpadRight+LeftStickRight
+engine.gamepad.row_start=LeftShoulder
+engine.gamepad.row_end=RightShoulder
+engine.gamepad.select=South

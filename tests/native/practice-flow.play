@@ -1,0 +1,9 @@
+until 300 Take a seat
+click Play
+until 600 Your move
+click Offer draw
+until 100 Offer a draw to hal?
+key Enter 2
+until 100 hal declines the draw.
+click ← Club
+until 100 Take a seat

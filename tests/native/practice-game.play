@@ -1,0 +1,21 @@
+until 300 Take a seat
+click Play
+until 600 Your move
+key Enter 2
+key KeyZ 2
+key ArrowUp 2
+key KeyZ 2
+key Enter 2
+key KeyZ 2
+key ArrowUp 2
+key KeyZ 2
+key ArrowUp 2
+key KeyZ 2
+key Enter 2
+until 300 Your move
+click Resign
+until 100 Resign this game?
+key Enter 2
+until 200 You lost
+click Look at the board
+until 60 by resignation
