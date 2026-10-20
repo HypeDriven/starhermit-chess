@@ -7,66 +7,49 @@ each through the script and relays only what the script explicitly returns — s
 clients can't cheat, spoof identity, or move out of turn.
 
 Use this repo as a template for your own Starhermit game: keep the shape
-(a `starhermit.txt` manifest, a static browser client, and — if your game needs
-multiplayer or server logic — a single authoritative `server.js`), and replace
+(a `starhermit.txt` manifest, a StarHermit engine client in TypeScript, and — if
+your game needs multiplayer or server logic — a single authoritative `server.js`), and replace
 the chess-specific parts.
 
 ## How a game gets onto the platform
 
-There is no deploy script and no special tooling. A player adds the game from
-the Starhermit client — **Add game → paste the GitHub repo URL** — and the
-platform reads `starhermit.txt` at the repo root to identify the owner and the
-optional server script, then stands the game up. Publishing is just pushing to
-GitHub and adding the repo.
+A player adds the game from the Starhermit client — **Add game → paste the
+GitHub repo URL** — and the platform reads `starhermit.txt` at the repo root to
+identify the owner and the optional server script. **Deploy to Starhermit** in
+the game's Manage menu serves the pinned commit at `<uid>.starhermit.com`.
 
-The submitter can choose **Deploy to Starhermit** from the game's Manage menu;
-the platform then clones the repo and **serves it at `<uid>.starhermit.com`**
-so it runs in the web dashboard, not just the desktop client. Verified GitHub
-ownership is not required. The submitter controls which version is live by
-pinning a **commit** in the game's details — the platform re-fetches the repo
-at that commit and serves it. The game's `/api` and `/ws` calls are proxied
-same-origin from its subdomain, so this client needs no CORS or API-base
-configuration.
+Chess is a StarHermit engine script game (engine 1.1.0): one package runs in
+browsers on the engine's web runtime and natively in the StarHermit Windows
+client, whichever the player launched it from. To publish a change:
+
+1. Run `STARHERMIT=/path/to/starhermit.exe npm run package` — it regenerates
+   `index.html` (the web loader) and `starhermit-files.json` (the file index).
+   The engine runtime is the developer download on
+   [Engine releases](https://wiki.starhermit.com/docs/engine-releases.html).
+2. `npm test` (the native check fails if step 1 was skipped), commit, push.
+3. Pin the new commit in the game's Manage menu.
 
 ## Files
 
-- `starhermit.txt` — the manifest the platform reads when the repo is added:
-  `name`, `launch` (HTML entry point), `owner` (the owning Starhermit account),
-  the optional `cover` (repo-relative cover art for the library tile), and the
-  optional `server` (the repo-relative file run as the authoritative server
-  script). Omit `server` for a game with no server-side logic. There is **no
-  slug key**: the platform assigns the game a uid and uses it as both the slug
-  and the `<uid>.starhermit.com` address, so two games can never contend for a
-  name.
+- `starhermit.txt` — the manifest: `name`, `launch`, `owner`, `cover`,
+  `server`, the `engine.*` keys and the `control.*` / `engine.gamepad.*`
+  bindings. There is **no slug key**: the platform assigns the game a uid.
 - `server.js` — the single authoritative game script (chess rules incl.
   castling/en passant/promotion/mate/stalemate/repetition/50-move, 24 h move
-  clock, elo, color assignment, replays). Also exposes `chessRules` for the
-  client's move highlighting — one file, one source of truth.
-- `index.html`, `app.js`, `game.js`, `net.js`, `ui.js`, `local.js`,
-  `style.css` — the static client (no build step): main menu (play via elo matchmaking, rejoin up
-  to 20 concurrent games, friends top-10 elo leaderboard, recent replays,
-  friend invites), game view (board, SAN move list, chat, opt-in voice via
-  WebRTC — off by default per game), replay viewer. The client is slug-agnostic:
-  it reads its slug from the launch token, so nothing here is tied to one
-  deployment, and `local.js` runs an offline practice game against hal with no
-  sign-in at all. The board is playable with the mouse, by touch, and from the
-  keyboard (arrow keys move between squares, Enter or Space plays one).
-- `audio.js`, `sfx/` — sound effects: one Opus clip per game event, bound
-  through `sfx/manifest.json`; `sfx/manifest.txt` is the canonical table. The
-  top-bar Sound button mutes them.
-- `assets/key-art.webp`, `coverart.png` — landing-screen backdrop and library
-  cover tile.
-- `tests/` — dev-only checks, not shipped with the game: `npm run test:rules`
-  exercises `server.js` (perft, SAN, draws, the platform entry points) and
-  `npm run test:e2e` drives the real UI in headless Chrome. `npm test` runs both.
-- `API.md` — the platform REST/WebSocket contract the client speaks (games
-  subsystem, chat, voice, leaderboards, game-scoped launch tokens).
-- `starfield.js`, `vendor/`, `assets/chess-pieces.glb` — the main menu's
-  three.js backdrop: the classic starfield with drifting 3D chess pieces
-  instead of stars. Lazy-loaded when the menu first shows, skipped (with a
-  console note) without WebGL. Piece models from
-  [mrabhin03/3D-Chess-Game](https://github.com/mrabhin03/3D-Chess-Game) (MIT),
-  repacked from 4.3 MB to 0.37 MB — see `vendor/ATTRIBUTION.md`.
+  clock, elo, color assignment, replays). The client loads the same file for
+  move highlighting and runs it locally as the offline opponent.
+- `native/` — the client (TypeScript on the engine's host API, no build step):
+  club (matchmaking, up to 20 concurrent games, invites, ratings, recent
+  replays), the table (board, SAN scoresheet, chat, opt-in voice), the replay
+  viewer, and offline practice against hal with no sign-in. Mouse, touch,
+  keyboard and gamepad all play the board.
+- `strings.js` — translations for nine locales; `sfx/` — one Opus clip per game
+  event.
+- `index.html`, `starhermit-files.json` — generated by `npm run package`; never
+  edit by hand.
+- `tests/` — `npm run test:rules` exercises `server.js`; `npm run test:native`
+  checks the web index and, with `STARHERMIT` set, runs `starhermit check` and
+  the play scripts in `tests/native/`.
 
 ## Rules of engagement (game design)
 
@@ -82,11 +65,10 @@ configuration.
 
 ## Local development
 
-Serve this directory with any static file server — `node server.js` starts one
-on port 8000 — and open `index.html`.
-Launched by the platform the game receives `#game_token=…` and signs in
-automatically; opened directly it shows a panel where you enter a user token,
-the game slug, and (optionally) an API base URL to point at a running platform.
+`starhermit . --dev` runs the game natively (Windows, or WSL calling the
+`.exe`); `npx --package typescript tsc -p .` type-checks it after
+`starhermit types .`. To try the web build, serve this directory with any
+static file server after `npm run package` and open `index.html`.
 
 ## Sandboxing & resource budgets
 

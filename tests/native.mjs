@@ -1,17 +1,30 @@
 // Native client checks on the StarHermit engine: `starhermit check .` (manifest,
 // package, 120 headless frames), then every tests/native/*.play script as a
 // signed-out offscreen run (offline practice against hal through server.js).
-// The engine is Windows-only (1.0.0): point STARHERMIT at starhermit.exe
-// (WSL runs it directly). Skipped when STARHERMIT is unset.
+// Also checks that the committed web index (starhermit-files.json) matches the
+// files, i.e. that `npm run package` ran after the last change. Point
+// STARHERMIT at the Windows runtime (WSL runs it directly); without it only
+// the index check runs.
 import { execFileSync } from 'node:child_process';
-import { readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const exe = process.env.STARHERMIT;
+
+const index = JSON.parse(readFileSync(join(root, 'starhermit-files.json'), 'utf8')).files;
+const tracked = execFileSync('git', ['ls-files', '-co', '--exclude-standard', '--deduplicate'], { cwd: root, encoding: 'utf8' })
+  .split('\n').filter((f) => f && f !== 'starhermit-files.json' && !f.split('/').some((p) => p.startsWith('.')));
+const stale = tracked.filter((f) => {
+  let data; try { data = readFileSync(join(root, f)); } catch { return false; }
+  return !index[f] || index[f].sha256 !== createHash('sha256').update(data).digest('hex');
+}).concat(Object.keys(index).filter((f) => !tracked.includes(f)));
+if (stale.length) { console.log(`not ok - web index is stale (run npm run package): ${stale.join(', ')}`); process.exit(1); }
+console.log('ok - web index matches the files');
 if (!exe) {
-  console.log('SKIP native: set STARHERMIT to the engine runtime (starhermit.exe)');
+  console.log('SKIP engine checks: set STARHERMIT to the engine runtime (starhermit.exe)');
   process.exit(0);
 }
 

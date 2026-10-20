@@ -22,7 +22,15 @@ export async function loadSfx(): Promise<void> {
 
 export function sfx(name: SfxName): void {
   const clip = clips.get(name);
-  if (clip) playClip(clip, { bus: name === "select" || name === "illegal" ? "interface" : "effects" });
+  if (!clip) return;
+  try {
+    playClip(clip, { bus: name === "select" || name === "illegal" ? "interface" : "effects" });
+  } catch {
+    // The web runtime can lose clips decoded before the page's audio started
+    // (the first press): load this one again for next time.
+    clips.delete(name);
+    loadClip(`sfx/${FILES[name]}.opus`).then((c) => { clips.set(name, c); }, () => { /* stays silent */ });
+  }
 }
 
 /** The sound for a move from its SAN, plus the check bell. */

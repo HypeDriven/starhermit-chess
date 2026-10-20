@@ -12,14 +12,12 @@ description=Play correspondence chess against other players or practice against 
 # client reads its own slug from the launch token's game_scope claim, so nothing
 # is hard-coded to it.
 
-# Repo-relative HTML entry point the client loads.
+# StarHermit engine script game. One package, two runtimes: browsers open
+# launch=index.html, the web loader `npm run package` writes (it pins the engine
+# on wiki.starhermit.com; never edit it), and the StarHermit Windows client plays
+# engine.entry natively. Re-run `npm run package` after every change and commit
+# index.html + starhermit-files.json (spec.md §13).
 launch=index.html
-
-# StarHermit engine (script game): the StarHermit Windows client plays the
-# native client in native/ on the pinned engine release; browsers keep
-# launch=index.html. Engine 1.0.0 has no web runtime, so the browser client
-# stays the web build. Check with `starhermit check .` and
-# `npx --package typescript tsc -p .` (spec.md §13 Native client).
 engine.api=1
 engine.entry=native/main.ts
 engine.version=1.1.0
@@ -46,7 +44,7 @@ control.row_start=Home | Board: row start / replay: first move
 control.row_end=End | Board: row end / replay: last move
 control.select=Enter+Space | Board: play the focused square
 
-# Gamepad defaults for the same actions (native engine only).
+# Gamepad defaults for the same actions.
 engine.gamepad.up=DpadUp+LeftStickUp
 engine.gamepad.down=DpadDown+LeftStickDown
 engine.gamepad.left=DpadLeft+LeftStickLeft

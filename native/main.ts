@@ -22,9 +22,9 @@ const camera = new PerspectiveCamera(50, 16 / 9, 0.1, 10);
 renderer.camera = camera;
 scene.background = new Color(PALETTE.bg);
 
-onStart(async () => {
+onStart(() => {
   setTheme();
-  await loadSfx();
+  void loadSfx(); // the board needs no sound to start; clips load behind it
   nav.club();
 });
 
