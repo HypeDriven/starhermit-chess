@@ -419,9 +419,14 @@ game-over dialog, Look at the board).
 - A launch cannot open a given session directly; invitations are accepted from the club.
 - In browsers sounds start only after the first press (autoplay policy), and the web runtime logs a
   warning while it fetches the clips at start.
-- The play scripts run signed out, so the online path (socket, matchmaking, invites, chat, voice,
-  replays) is type-checked and covered by `rules.mjs` at the script level only. Play scripts press
-  widgets by label, so board clicks were checked by hand in a browser, and promotion is not scripted.
+- The play scripts run signed out. The online path was checked by hand on the live web build
+  (sign-in by launch token, club panels, matchmaking and the hal offer, a rated game against hal with
+  a move and a declined draw, rejoining from My games, the replay viewer by mouse and keyboard); chat,
+  voice and invitations need a second account and are type-checked only. Board clicks were checked
+  the same way; promotion is not scripted.
+- The replay scoresheet does not scroll to keep the current move in view.
+- The platform names hal "The House" in session lists, so the club's rows and the table's seat
+  disagree.
 
 ## Design intent not yet implemented
 
