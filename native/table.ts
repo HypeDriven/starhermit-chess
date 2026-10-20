@@ -174,11 +174,12 @@ export class TableScreen implements Screen {
         this.finished();
         break;
       case "draw-offered":
-        if (this.view) this.view.drawOfferBy = data.by as Color;
+        // Platform messages arrive frozen in browsers: replace, never mutate.
+        if (this.view) this.view = { ...this.view, drawOfferBy: data.by as Color };
         if (data.by !== this.myColor()) sfx("drawOffer");
         break;
       case "draw-declined":
-        if (this.view) this.view.drawOfferBy = null;
+        if (this.view) this.view = { ...this.view, drawOfferBy: null };
         if (data.by !== this.myColor()) toast(this.view?.ai ? T("hal declines the draw.") : T("{name} declines the draw.", { name: this.oppName() }));
         break;
     }
@@ -365,7 +366,7 @@ export class TableScreen implements Screen {
         if (v) this.drawBanner(v, mine);
         this.scoresheet(v);
         if (this.sessionId && v && !v.ai) this.chatPanel();
-        else ui.label(this.sessionId ? T("Practice game — no chat.") : T("Offline practice — no clock, no rating."), { tone: "muted" });
+        else ui.label(this.sessionId ? T("No table talk with hal.") : T("Offline practice — no clock, no rating."), { tone: "muted" });
       }, { spacing: 12 });
     });
 

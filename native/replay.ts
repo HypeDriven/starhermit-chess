@@ -17,6 +17,7 @@ export class ReplayScreen implements Screen {
   private black = "";
   private resultLine = "";
   private flipped = false;
+  private dropFocus = false;
 
   constructor(sessionId: string) {
     replays.get(sessionId).then((d) => {
@@ -42,15 +43,18 @@ export class ReplayScreen implements Screen {
     this.ply = next;
   }
 
+  // The stepping keys always step (the screen has no text field), and take the
+  // focus off the buttons so the widgets' own arrow navigation does not hold them.
   action(name: string): void {
-    if (ui.focused() !== null) return;
-    if (name === "left") this.go(this.ply - 1);
-    if (name === "right") this.go(this.ply + 1);
-    if (name === "row_start") this.go(0);
-    if (name === "row_end") this.go(this.positions.length - 1);
+    const to = name === "left" ? this.ply - 1 : name === "right" ? this.ply + 1
+      : name === "row_start" ? 0 : name === "row_end" ? this.positions.length - 1 : null;
+    if (to == null) return;
+    this.go(to);
+    this.dropFocus = true;
   }
 
   update(): void {
+    if (this.dropFocus) { ui.setFocus(null); this.dropFocus = false; }
     const { scale } = frame();
     const layout = splitLayout();
     const pos = this.positions[this.ply];

@@ -244,6 +244,8 @@
     ['muted', 'silenciado', 'stumm', 'muet', 'mudo', 'muto'],
     ['voice failed', 'falló la voz', 'Sprachchat fehlgeschlagen', 'échec de la voix', 'falha na voz', 'voce non riuscita'],
     ['Promote to', 'Coronar como', 'Umwandeln in', 'Promouvoir en', 'Promover a', 'Promuovi a'],
+    ['a player left', 'un jugador se fue', 'ein Spieler ist gegangen', 'un joueur est parti', 'um jogador saiu', 'un giocatore è uscito'],
+    ['No table talk with hal.', 'No hay charla de mesa con hal.', 'Kein Tischgespräch mit hal.', 'Pas de discussion avec hal.', 'Sem conversa de mesa com hal.', 'Niente chiacchiere con hal.'],
     ['Look at the board', 'Ver el tablero', 'Brett ansehen', 'Voir l’échiquier', 'Ver o tabuleiro', 'Guarda la scacchiera']
   ];
 

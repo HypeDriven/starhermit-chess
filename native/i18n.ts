@@ -38,7 +38,7 @@ export function reasonText(reason: string | undefined): string {
     "threefold-repetition": "by threefold repetition", "fifty-move-rule": "by the fifty-move rule",
     "insufficient-material": "insufficient material", "resignation": "by resignation",
     "agreement": "by agreement", "timeout": "on time", "timeout-no-moves": "no moves were played",
-    "abandoned": "abandoned",
+    "abandoned": "abandoned", "players_left": "a player left",
   };
   return reason && reasons[reason] ? T(reasons[reason]!) : (reason ?? "");
 }
