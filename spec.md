@@ -218,7 +218,8 @@ player changes (sign in / out) ──▶ club
 **Club.** Signed out: "Take a seat", **Play**, "or sign in to the club", **Sign in with StarHermit**
 (the runtime's sign-in; in browsers it leaves for the platform's sign-in page and returns signed in).
 Signed in, two columns (stacked when narrow): Play (rated **Play**, **Practice vs hal**, the search
-state with **Cancel** and, after 30 s, **Play against hal**), "My games" (refreshed every 30 s),
+state with **Cancel** and, after 30 s, **Play against hal**), "My games" (refreshed every 30 s; one button per game, "Alice · your move — 3h 12m left", the time
+on its own line under the button on a window narrower than 560 logical pixels),
 "Invitations" (refreshed every 10 s; accept/decline, **Invite a friend**, **Share invite link**);
 side (scrolling on its own): "My rating" (Elo and W/L/D), "Friends", "Recent games" (one button per replay: opponent, Won /
 Lost / Drawn, or Abandoned for a game the platform ended, such as an AI game left mid-play, and the reason).

@@ -198,15 +198,18 @@ export class ClubScreen implements Screen {
     ui.panel("my-games", () => {
       ui.heading(T("My games"));
       if (!this.games.length) ui.label(T("No games in progress."), { tone: "muted" });
+      // On a narrow window the time left goes on its own line under the button.
+      const narrow = frame().width / frame().scale < 560;
       for (const g of this.games) {
         const opp = g.players.find((x) => x.userId !== player()?.userId);
-        const name = opp ? nameOf(opp.userId) : "hal";
+        const name = short(opp ? nameOf(opp.userId) : "hal");
         const left = g.deadline ? g.deadline - Date.now() : null;
         const turn = g.myTurn ? T("your move") : T("their move");
-        const time = left == null ? "" : ` — ${T("{time} left", { time: fmtLeft(left) })}`;
-        if (ui.id(`game-${g.sessionId}`).button(`${name} · ${turn}${time}`, { tone: left != null && left < HOUR_MS && g.myTurn ? "danger" : "normal" })) {
-          nav.table(g.sessionId);
-        }
+        const time = left == null ? "" : T("{time} left", { time: fmtLeft(left) });
+        const urgent = left != null && left < HOUR_MS && g.myTurn;
+        const label = narrow || !time ? `${name} · ${turn}` : `${name} · ${turn} — ${time}`;
+        if (ui.id(`game-${g.sessionId}`).button(label, { tone: urgent ? "danger" : "normal" })) nav.table(g.sessionId);
+        if (narrow && time) ui.label(time, { tone: urgent ? "danger" : "muted" });
       }
     }, { padding: 14, spacing: 8 });
   }
