@@ -11,7 +11,7 @@ import { storage } from "starhermit:storage";
 import { PALETTE } from "./board.js";
 import { fmtLeft, reasonText, T } from "./i18n.js";
 import { sfx } from "./sfx.js";
-import { errorText, nameOf, nav, rememberName, toast, type Screen } from "./shell.js";
+import { errorText, loadName, nameOf, nav, short, toast, type Screen } from "./shell.js";
 
 const HOUR_MS = 60 * 60 * 1000;
 const HAL_AFTER_S = 30;
@@ -62,7 +62,7 @@ export class ClubScreen implements Screen {
 
   private refreshGames(): void {
     sessions.list().then((list) => {
-      for (const s of list) for (const p of s.players) rememberName(p.userId, p.username);
+      for (const s of list) for (const p of s.players) loadName(p.userId);
       this.games = list.filter((s) => s.status === "active").sort((a, b) =>
         Number(b.myTurn) - Number(a.myTurn) || (a.deadline ?? Infinity) - (b.deadline ?? Infinity));
     }, () => { /* keep the last list */ });
@@ -157,7 +157,11 @@ export class ClubScreen implements Screen {
     });
     if (wide) {
       const side = { x: top.x + mainW + 24 * scale, y: top.y, width: top.width - mainW - 24 * scale, height: top.height };
-      ui.area(side, () => ui.column("club-side", () => this.sidePanel(), { spacing: 16 }));
+      ui.area(side, () => {
+        ui.scrollArea("club-side-scroll", { width: side.width / scale - 8, height: side.height / scale - 8 }, () => {
+          ui.column("club-side", () => this.sidePanel(), { spacing: 16 });
+        });
+      });
     }
     this.friendDialog();
   }
@@ -202,7 +206,7 @@ export class ClubScreen implements Screen {
       if (!this.games.length) ui.label(T("No games in progress."), { tone: "muted" });
       for (const g of this.games) {
         const opp = g.players.find((x) => x.userId !== player()?.userId);
-        const name = opp ? nameOf(opp.userId, opp.username) : "hal";
+        const name = opp ? nameOf(opp.userId) : "hal";
         const left = g.deadline ? g.deadline - Date.now() : null;
         const turn = g.myTurn ? T("your move") : T("their move");
         const time = left == null ? "" : ` — ${T("{time} left", { time: fmtLeft(left) })}`;
@@ -250,7 +254,7 @@ export class ClubScreen implements Screen {
     if (this.friendRatings.length) {
       ui.panel("friends", () => {
         ui.heading(T("Friends"));
-        for (const e of this.friendRatings) ui.label(`${e.rank}. ${nameOf(e.userId, e.username)} — ${e.score}`);
+        for (const e of this.friendRatings) ui.label(`${e.rank}. ${nameOf(e.userId)} — ${e.score}`);
       }, { padding: 14, spacing: 6 });
     }
     if (this.replaysEnabled) {
@@ -263,7 +267,7 @@ export class ClubScreen implements Screen {
           const myColor = res?.white === player()?.userId ? "white" : "black";
           const outcome = !res?.kind ? "" : res.kind === "draw" ? T("Drawn")
             : res.kind === "white" || res.kind === "black" ? (res.kind === myColor ? T("Won") : T("Lost")) : T("Abandoned");
-          const label = [opp ? nameOf(opp.userId, opp.username) : "hal", outcome, reasonText(res?.reason)].filter(Boolean).join(" · ");
+          const label = [opp ? nameOf(opp.userId) : "hal", outcome, reasonText(res?.reason)].filter(Boolean).join(" · ");
           if (ui.id(`replay-${r.sessionId}`).button(label)) nav.replay(r.sessionId);
         }
       }, { padding: 14, spacing: 6 });
@@ -273,15 +277,23 @@ export class ClubScreen implements Screen {
   private friendDialog(): void {
     if (!this.friendPicker) return;
     const list = this.friendPicker;
+    // The list scrolls inside a fixed width so long names and long lists fit
+    // the window (the dialog does not grow to its widest button).
+    const { height, scale } = frame();
+    const listH = Math.min(list.length * 37, height / scale - 220);
     const open = ui.dialog("friend-picker", T("Invite a friend"), true, () => {
       if (!list.length) ui.label(T("No friends yet."), { tone: "muted" });
-      for (const f of list) {
-        if (ui.id(`friend-${f.userId}`).button(`${f.online ? "● " : "○ "}${nameOf(f.userId, f.username)}`)) {
-          this.friendPicker = null;
-          sessions.invite(f.userId).then(() => { toast(T("Invitation sent.")); this.refreshInvites(); },
-            (e) => toast(T("Could not invite: {error}", { error: errorText(e) }), true));
-        }
-      }
+      else ui.scrollArea("friend-scroll", { width: 320, height: Math.max(listH, 80) }, () => {
+        ui.column("friend-list", () => {
+          for (const f of list) {
+            if (ui.id(`friend-${f.userId}`).button(`${f.online ? "● " : "○ "}${short(nameOf(f.userId), 24)}`)) {
+              this.friendPicker = null;
+              sessions.invite(f.userId).then(() => { toast(T("Invitation sent.")); this.refreshInvites(); },
+                (e) => toast(T("Could not invite: {error}", { error: errorText(e) }), true));
+            }
+          }
+        }, { spacing: 6 });
+      });
       if (ui.id("friend-cancel").button(T("Cancel"))) this.friendPicker = null;
     });
     if (!open) this.friendPicker = null;

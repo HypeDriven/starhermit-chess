@@ -71,23 +71,30 @@ export function setTheme(): void {
 }
 
 // -- Names ----------------------------------------------------------------------
+// Names come from profiles (the nickname, else "Player 1234abcd"); usernames
+// are account handles, never shown.
 const names = new Map<string, string>();
 const asked = new Set<string>();
-/** A player's display name (nickname when they have one); `fallback` until it loads. */
-export function nameOf(userId: string | null | undefined, fallback = "?"): string {
-  if (!userId) return fallback;
+/** A player's display name; `fallback` ("Player 1234abcd" by default) until it loads. */
+export function nameOf(userId: string | null | undefined, fallback?: string): string {
+  if (!userId) return fallback ?? "?";
   const me = player();
   if (me && me.userId === userId) return me.displayName;
   const n = names.get(userId);
   if (n) return n;
-  if (!asked.has(userId)) {
-    asked.add(userId);
-    profile(userId).then((p) => { names.set(userId, p.displayName); }, () => { /* keep the fallback */ });
-  }
-  return fallback;
+  loadName(userId);
+  return fallback ?? T("Player {id}", { id: userId.slice(0, 8) });
 }
-export function rememberName(userId: string, username: string): void {
-  if (!names.has(userId)) names.set(userId, username);
+/** A name cut to `max` characters with an ellipsis, for lines that cannot wrap. */
+export function short(name: string, max = 20): string {
+  const chars = [...name];
+  return chars.length > max ? `${chars.slice(0, max - 1).join("")}…` : name;
+}
+/** Starts loading a player's name before it is shown. */
+export function loadName(userId: string): void {
+  if (asked.has(userId)) return;
+  asked.add(userId);
+  profile(userId).then((p) => { names.set(userId, p.displayName); }, () => { asked.delete(userId); });
 }
 
 /** Two-column layout: the board on one side, a panel beside it (or below on a

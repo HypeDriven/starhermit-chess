@@ -162,7 +162,7 @@ clock, chat, voice or replay, and ends when the player leaves the table.
 | Offline practice vs hal | Signed out: **Play**. Signed in: **Practice vs hal** | Local authority; unrated; no clock; no chat/voice/replay; ← Club returns to the club |
 | Rated matchmaking | Club → **Play** | `matchmaking.enqueue`; nearest-Elo pairing; ticket polled every 3 s; after 30 s a **Play against hal** button appears (the 30 s belong to the ticket and survive a restart, stored per player) |
 | Rated game vs hal | Matchmaking → **Play against hal** | `sessions.practice()`; server-side hal; 24 h clock applies; no table talk or voice |
-| Friend invite | Club → **Invite a friend** | Dialog listing platform friends; accepting creates the session |
+| Friend invite | Club → **Invite a friend** | Dialog listing platform friends (● online, ○ offline) in a scrolling list of fixed width; accepting creates the session |
 | Share link | Club → **Share invite link** | Copies the platform invite link (`inviteLink()`) to the clipboard |
 | Rejoin | Club → "My games" | Opens the session; rows show "your move"/"their move" and time left |
 | Replay | Club → "Recent games", or **View replay** on the game-over dialog | Read-only board stepped from the archived move list |
@@ -220,7 +220,7 @@ player changes (sign in / out) ──▶ club
 Signed in, two columns (stacked when narrow): Play (rated **Play**, **Practice vs hal**, the search
 state with **Cancel** and, after 30 s, **Play against hal**), "My games" (refreshed every 30 s),
 "Invitations" (refreshed every 10 s; accept/decline, **Invite a friend**, **Share invite link**);
-side: "My rating" (Elo and W/L/D), "Friends", "Recent games" (one button per replay: opponent, Won /
+side (scrolling on its own): "My rating" (Elo and W/L/D), "Friends", "Recent games" (one button per replay: opponent, Won /
 Lost / Drawn, or Abandoned for a game the platform ended, such as an AI game left mid-play, and the reason).
 
 **Table.** `splitLayout()`: board left with the opponent's seat above and mine below, side panel
@@ -327,7 +327,7 @@ there is no hand-written platform layer. Signed out it makes no platform request
 | Platform feature | Used | How |
 |---|---|---|
 | Identity / sign-in | Yes | `player()`; `requestSignIn()` from the signed-out club; `onPlayerChange` reopens the club; `onSessionEnded` shows "Your session has expired." or the terms message |
-| Profiles | Yes | `profile(userId)` display names, cached per run |
+| Profiles | Yes | `profile(userId)` display names (the nickname), cached per run; "Player 1234abcd" until one loads. Usernames are never shown. Names on lines that cannot wrap (the turn line, the seats, the friend picker) are cut with an ellipsis |
 | Presence | Yes | `presence` events on the game socket |
 | Sessions | Yes | `sessions.list/get/practice`; the gameplay socket is `connectGame(sessionId)` (`sync` on every open and resume; `stopped` with `build-mismatch` asks for a restart) |
 | Matchmaking | Yes | `matchmaking.queues/enqueue`, ticket polled every 3 s and cancelled on Cancel; the ticket and queued-at are kept in `storage` so the search resumes after a restart |

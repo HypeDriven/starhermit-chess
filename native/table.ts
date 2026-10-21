@@ -13,7 +13,7 @@ import { drawBoard, moveFocus, PALETTE, squareAt } from "./board.js";
 import { colorName, fmtLeft, reasonText, T } from "./i18n.js";
 import { checkSquare, replayMoves, rules, type Color, type GameState, type LoggedMove, type Move } from "./rules.js";
 import { sfx, sfxForMove } from "./sfx.js";
-import { errorText, nameOf, nav, rememberName, splitLayout, toast, type Screen } from "./shell.js";
+import { errorText, loadName, nameOf, nav, short, splitLayout, toast, type Screen } from "./shell.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -98,7 +98,7 @@ export class TableScreen implements Screen {
     socket.on("abandoned", () => { toast(reasonText("abandoned")); });
     sessions.get(sessionId).then(async (s) => {
       if (!s) return;
-      for (const pl of s.players) rememberName(pl.userId, pl.username);
+      for (const pl of s.players) loadName(pl.userId);
       if (s.chatConversationId) await this.openChat(s.chatConversationId);
     }, () => { /* the board works without the session's details */ });
     gameInfo().then((info) => {
@@ -381,9 +381,9 @@ export class TableScreen implements Screen {
     const meName = this.sessionId ? nameOf(this.me, T("You")) : (player()?.displayName ?? T("You"));
     const rated = !!this.sessionId;
     const dot = this.oppOnline == null || v.ai === oppColor ? "" : this.oppOnline ? "● " : "○ ";
-    const opp = `${dot}${this.oppName()}${rated ? `  ${v.ratings[oppColor]}` : ""}  · ${colorName(oppColor)}`;
+    const opp = `${dot}${short(this.oppName(), 28)}${rated ? `  ${v.ratings[oppColor]}` : ""}  · ${colorName(oppColor)}`;
     draw.text(opp, board.x, board.y - 36 * scale, { size, color: PALETTE.ink });
-    let you = `${meName}${rated ? `  ${v.ratings[myColor]}` : ""}  · ${colorName(myColor)}`;
+    let you = `${short(meName, 28)}${rated ? `  ${v.ratings[myColor]}` : ""}  · ${colorName(myColor)}`;
     if (v.status === "active" && v.turn === myColor && checkSquare(this.game) >= 0) you += `   ${T("Check")}`;
     draw.text(you, board.x, board.y + board.height + 12 * scale, { size, color: PALETTE.ink });
   }
@@ -394,7 +394,7 @@ export class TableScreen implements Screen {
       return;
     }
     const myTurn = v.turn === mine;
-    ui.heading(myTurn ? T("Your move") : T("{name} to move", { name: this.oppName() }));
+    ui.heading(myTurn ? T("Your move") : T("{name} to move", { name: short(this.oppName()) }));
     if (!this.sessionId) return; // offline practice has no clock
     const left = Math.max(0, v.deadline - Date.now());
     const urgent = left < HOUR_MS;
@@ -438,7 +438,7 @@ export class TableScreen implements Screen {
     ui.scrollArea("chat", { width: 340, height: 140 }, () => {
       for (const m of this.messages.slice(-30)) {
         if (m.isDeleted) continue;
-        ui.paragraph(`${m.senderId === this.me ? T("You") : nameOf(m.senderId, m.senderUsername)}: ${m.content}`, 320);
+        ui.paragraph(`${m.senderId === this.me ? T("You") : nameOf(m.senderId)}: ${m.content}`, 320);
       }
     });
     this.draft = ui.textField("chat-input", this.draft, { maxChars: 500, placeholder: T("Say something…"), width: 340 });
@@ -469,7 +469,7 @@ export class TableScreen implements Screen {
     }, { spacing: 8, align: "center" });
     for (const p of st.participants) {
       const marks = (p.speaking ? " ●" : "") + (p.muted || p.serverMuted ? ` (${T("muted")})` : "");
-      ui.label(`${p.userId === this.me ? T("You") : nameOf(p.userId, p.username)}${marks}`, { tone: p.speaking ? "accent" : "normal" });
+      ui.label(`${p.userId === this.me ? T("You") : nameOf(p.userId)}${marks}`, { tone: p.speaking ? "accent" : "normal" });
     }
   }
 
