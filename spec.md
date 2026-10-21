@@ -327,6 +327,7 @@ Nine locales ship for the whole UI: **en-US, en-GB, es-419, es-ES, de-DE, fr-FR,
 
 - **Keyboard-only path.** Club → Play (Tab + Enter) → arrows move the board's focus square, Enter or
   Space plays it → Tab to Offer draw / Resign → the dialog → game-over buttons. Replay: ← → Home End.
+  While the board has the keyboard, a click or tap on any widget (the chat field) takes it back.
 - **Gamepad.** The same path with the D-pad/stick, South and the shoulders; widgets follow the
   runtime's gamepad navigation.
 - **Colour is never the only signal.** Check has the "Check" text as well as the glow; urgent time
@@ -444,7 +445,7 @@ only from a legal, unfinished move list, in its kept colour.
 - In browsers sounds start only after the first press (autoplay policy).
 - The play scripts run signed out. The online path was checked by hand on the live web build with two
   accounts: sign-in by launch token, club panels, an invitation sent and accepted, matchmaking between
-  two players and the hal offer, moves on both sides, a draw offered and declined, voice joined on both
+  two players and the hal offer, moves on both sides, table talk both ways, a draw offered and declined, voice joined on both
   sides (each hears the other), resignation with the game-over dialog and the new ratings on both
   sides, rejoining from My games, the replay viewer by mouse and keyboard, and the layout at
   1280×800, 1280×600, 900×900, 390×844 and 844×390. Promotion is not scripted.
