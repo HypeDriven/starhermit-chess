@@ -219,12 +219,12 @@ check('a practice win against hal posts to the practice-wins board', () => {
 
 check('resignation, draw agreement and the move deadline end a game', () => {
   const a = 'p-a', b = 'p-b';
-  const mk = (msgFrom, data) => ({
+  const mk = (msgFrom, data, deadline = 5000) => ({
     now: 1000, random: 0.25, sessionId: 'sess-2',
     players: [{ id: a }, { id: b }],
     sessionState: {
       white: a, black: b, game: R.newGameState(),
-      createdAt: 0, deadline: 500, result: null, drawOfferBy: null,
+      createdAt: 0, deadline, result: null, drawOfferBy: null,
     },
     playerStates: {},
     message: { from: msgFrom, data },
@@ -248,17 +248,32 @@ check('resignation, draw agreement and the move deadline end a game', () => {
   eq(GAME.onPlayerMessage(stranger).ok, false, 'strangers cannot command');
 
   // Deadline passed with no move played at all: a draw, not a loss.
-  const tick = mk(a, { type: 'sync' });
+  const tick = mk(a, { type: 'sync' }, 500);
   const tout = GAME.onTick(tick);
   eq(tout.result.reason, 'timeout-no-moves', 'unplayed game times out as a draw');
   eq(tout.result.kind, 'draw', 'unplayed timeout kind');
 
   // Deadline passed after a move: the player on the clock loses.
-  const late = mk(a, { type: 'sync' });
+  const late = mk(a, { type: 'sync' }, 500);
   play(late.sessionState.game, ['e2e4']);
   const lout = GAME.onTick(late);
   eq(lout.result.reason, 'timeout', 'timeout reason');
   eq(lout.result.kind, 'white', 'black was on the clock and lost');
+
+  // Sessions pause while nobody is connected (no ticks): the first command
+  // after the deadline — the sync on reconnect, or a late move — ends the game
+  // on time before it is handled.
+  eq(GAME.persistent, true, 'sessions are persistent');
+  const resumed = mk(b, { type: 'sync' }, 500);
+  play(resumed.sessionState.game, ['e2e4']);
+  const sout = GAME.onPlayerMessage(resumed);
+  eq(sout.result && sout.result.reason, 'timeout', 'the sync after a pause adjudicates the deadline');
+  eq(sout.broadcast[0].data.type, 'game-over', 'everyone hears the game is over');
+  const lateMove = mk(b, { type: 'move', from: 'e7', to: 'e5' }, 500);
+  play(lateMove.sessionState.game, ['e2e4']);
+  const mout = GAME.onPlayerMessage(lateMove);
+  eq(mout.result && mout.result.kind, 'white', 'a move after the deadline loses on time instead');
+  eq(lateMove.sessionState.game.moves.length, 1, 'and is not played');
 });
 
 check('a client cannot move out of turn or play an illegal move', () => {

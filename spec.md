@@ -130,6 +130,12 @@ relayed.
 to move loses on time (`timeout`) — unless no move has ever been played, in which case the game is a
 draw (`timeout-no-moves`). Both outcomes are rated.
 
+**Persistent sessions** (`persistent: true`): a game pauses while neither player is connected instead
+of ending as abandoned (`players_left`) five minutes after both leave, which would end every
+correspondence game. The deadline stays on the wall clock (`ctx.now`, not `ctx.now - ctx.pausedMs`):
+a paused session gets no ticks, so `onPlayerMessage` adjudicates an overdue deadline first — the sync
+a client sends on connecting, or a late move, ends the game on time before anything else is handled.
+
 **Practice wins**: every game against hal that the human wins (by any reason) adds one to the human's `practiceWins` and posts the new total to the `practice-wins` board through the returned `scores`.
 
 **Colours** (`game.createSession`): first meeting of a pair is decided by the host-supplied
@@ -345,7 +351,7 @@ there is no hand-written platform layer. Signed out it makes no platform request
 | Chat | Yes | The session's `chatConversationId`: `chat.messages` history, `chat.subscribe` (polled about every 5 s), `send` |
 | Voice | Yes (opt-in) | `voice.join(chatConversationId)` in open-mic mode, mute, leave on exit |
 | Controls | Yes | `control.*` and `engine.gamepad.*`; the runtime resolves the player's bindings and delivers actions |
-| Server script | Yes | `server.js` via `server=`; `createSession`, `onPlayerMessage`, `onTick`; `tickRateHz: 1`; per-player docs under the 5 MB budget |
+| Server script | Yes | `server.js` via `server=`; `createSession`, `onPlayerMessage`, `onTick`; `tickRateHz: 1`; `persistent: true`; per-player docs under the 5 MB budget |
 | Achievements / cloud save | No | Elo, record, games and replays live in the script's documents |
 
 ## 13. Technical architecture
@@ -398,7 +404,8 @@ file, rank and square; threefold repetition counts the opening position; fool's 
 stalemate, K+N v K insufficient material; a game hal ends still publishes `eloUpdates` and both
 player documents; resignation, draw agreement, `timeout` and `timeout-no-moves` end games with the
 right winner; out-of-turn, illegal and malformed commands are refused without recording anything;
-colours alternate for a pair; `tickRateHz` and `replays` are declared; a one-player session is refused.
+colours alternate for a pair; `tickRateHz`, `replays` and `persistent` are declared; the first command after a
+passed deadline (sync or a late move) ends the game on time; a one-player session is refused.
 
 **`tests/native.mjs`**: every client string (`T("…")` literals and the lists marked
 `// translated:`) has a row in `strings.js` for es-419, de-DE, fr-FR, pt-BR and it-IT; the committed

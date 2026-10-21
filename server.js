@@ -672,6 +672,25 @@ function aiReply(ctx, s, out) {
 // Entry points
 // ---------------------------------------------------------------------------
 
+// The move deadline has passed: the player to move loses on time (a draw when
+// no move was ever made). Null while the clock is still running.
+function timeoutResult(ctx, s) {
+  if (!s || s.game.status !== 'active' || ctx.now < s.deadline) return null;
+  var fin;
+  if (s.game.moves.length === 0) {
+    fin = finishGame(ctx, s, 'draw', 'timeout-no-moves');
+  } else {
+    var winner = s.game.turn === 'white' ? 'black' : 'white';
+    fin = finishGame(ctx, s, winner, 'timeout');
+  }
+  return {
+    ok: true, sessionState: s,
+    playerStates: fin.playerStates, eloUpdates: fin.eloUpdates, result: fin.result,
+    scores: fin.scores || {},
+    broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } }],
+  };
+}
+
 globalThis.game = {
 
   // How often the platform calls onTick. The only thing onTick does is compare
@@ -682,6 +701,12 @@ globalThis.game = {
   // The host clamps this to the operator override and the global maximum, so
   // it is a request, not a guarantee.
   tickRateHz: 1,
+
+  // Correspondence games outlive their players' visits: a session pauses while
+  // nobody is connected instead of ending as abandoned after five minutes. The
+  // 24h move deadline stays on the wall clock (ctx.now, not ctx.now - pausedMs),
+  // so a player who never comes back still loses on time.
+  persistent: true,
 
   // Keep finished sessions as replays. The platform records none unless a game
   // asks, and the client's replay viewer steps the move log in `state.game.moves`
@@ -786,6 +811,12 @@ globalThis.game = {
     var color = colorOf(s, from);
     if (!color) return { ok: false, error: 'You are not a player in this game.' };
 
+    // A paused session gets no ticks: a deadline that passed while nobody was
+    // connected is adjudicated by the first command after the resume (the
+    // client's sync on connect), before anything else, so a late move never lands.
+    var late = timeoutResult(ctx, s);
+    if (late) return late;
+
     // --- commands that work on finished games -----------------------------
     if (data.type === 'sync') {
       return { ok: true, broadcast: [{ to: [from], data: publicSessionView(s, ctx) }] };
@@ -886,23 +917,7 @@ globalThis.game = {
   //    spec says it "counts as a draw", so it is rated as one)
   //  - somebody has moved    -> the player to move loses on time
   onTick: function (ctx) {
-    var s = ctx.sessionState;
-    if (!s || s.game.status !== 'active') return { ok: true };
-    if (ctx.now < s.deadline) return { ok: true };
-
-    var fin;
-    if (s.game.moves.length === 0) {
-      fin = finishGame(ctx, s, 'draw', 'timeout-no-moves');
-    } else {
-      var winner = s.game.turn === 'white' ? 'black' : 'white';
-      fin = finishGame(ctx, s, winner, 'timeout');
-    }
-    return {
-      ok: true, sessionState: s,
-      playerStates: fin.playerStates, eloUpdates: fin.eloUpdates, result: fin.result,
-      scores: fin.scores || {},
-      broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } }],
-    };
+    return timeoutResult(ctx, ctx.sessionState) || { ok: true };
   },
 };
 
