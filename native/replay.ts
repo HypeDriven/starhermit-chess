@@ -13,6 +13,9 @@ export class ReplayScreen implements Screen {
   private positions: Position[] = [];
   private moves: LoggedMove[] = [];
   private ply = 0;
+  /** Set when the ply changes: the scoresheet brings its move into view. */
+  private follow = false;
+  private scrollTop: number | null = null;
   private white = "";
   private black = "";
   private resultLine = "";
@@ -42,6 +45,7 @@ export class ReplayScreen implements Screen {
   private go(ply: number): void {
     const next = Math.max(0, Math.min(this.positions.length - 1, ply));
     if (next === this.ply + 1) sfxForMove(this.moves[this.ply]!.san);
+    if (next !== this.ply) this.follow = true;
     this.ply = next;
   }
 
@@ -81,16 +85,28 @@ export class ReplayScreen implements Screen {
           if (ui.id("last").button("▶|")) this.go(this.positions.length - 1);
           ui.label(`${this.ply} / ${Math.max(0, this.positions.length - 1)}`, { tone: "muted" });
         }, { spacing: 8, align: "center" });
-        ui.scrollArea("replay-moves", { width: 340, height: 260 }, () => {
+        const scrollTo = this.scrollTop == null ? undefined : { scrollTo: { top: this.scrollTop, behavior: "smooth" as const } };
+        this.scrollTop = null;
+        const currentRow = this.ply <= 1 ? 0 : 2 * Math.floor((this.ply - 1) / 2);
+        let current: ui.Rect | null = null;
+        const sheet = ui.scrollArea("replay-moves", { width: 340, height: 260 }, () => {
           for (let i = 0; i < this.moves.length; i += 2) {
-            ui.row(`mv-${i}`, () => {
+            const row = ui.row(`mv-${i}`, () => {
               ui.label(`${i / 2 + 1}.`, { tone: "muted" });
               if (ui.id(`ply-${i + 1}`).button(this.moves[i]!.san, { tone: this.ply === i + 1 ? "accent" : "normal" })) this.go(i + 1);
               const b = this.moves[i + 1];
               if (b && ui.id(`ply-${i + 2}`).button(b.san, { tone: this.ply === i + 2 ? "accent" : "normal" })) this.go(i + 2);
             }, { spacing: 6, align: "center" });
+            if (i === currentRow) current = row;
           }
-        });
+        }, scrollTo);
+        if (this.follow && current) {
+          this.follow = false;
+          const r: ui.Rect = current;
+          if (r.y < sheet.y || r.y + r.height > sheet.y + sheet.clientHeight) {
+            this.scrollTop = sheet.scrollTop + r.y - sheet.y - (sheet.clientHeight - r.height) / 2;
+          }
+        }
       }, { spacing: 12 });
     });
   }

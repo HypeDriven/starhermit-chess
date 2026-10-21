@@ -16,7 +16,7 @@ const UPLOAD_GAP_MS = 400;
 
 /** Loads every clip once the mixer runs, one at a time and spaced out; a clip
  * that fails to decode just stays silent. On the web runtime the mixer starts
- * with the player's first press, and engine 1.3.0 there silently loses clips
+ * with the player's first press, and engines 1.3.0–1.4.0 there silently lose clips
  * made before it or uploaded side by side (all but one or two). */
 export function loadSfx(): void {
   const wait = (): void => { if (context.currentTime > 0) void loadAll(); else setTimeout(wait, 250); };

@@ -61,6 +61,7 @@ export class TableScreen implements Screen {
   /** The first-time hint for this position ("" until worked out) and the one shown. */
   private hint: HintId | null | "" = "";
   private shownHint: HintId | null = null;
+  private sheetMoves = -1;
   private focus: number | null = null;
   private promo: { from: number; to: number } | null = null;
   private confirm: "resign" | "draw" | null = null;
@@ -440,6 +441,9 @@ export class TableScreen implements Screen {
 
   private scoresheet(v: View | null): void {
     const moves = v?.moves ?? [];
+    // A new move scrolls the sheet to its end.
+    const grew = moves.length !== this.sheetMoves;
+    this.sheetMoves = moves.length;
     ui.scrollArea("scoresheet", { width: 340, height: 180 }, () => {
       if (!moves.length) ui.label(T("No moves yet."), { tone: "muted" });
       for (let i = 0; i < moves.length; i += 2) {
@@ -450,7 +454,7 @@ export class TableScreen implements Screen {
       if (this.conn === "reconnecting") ui.label(T("reconnecting…"), { tone: "muted" });
       if (this.conn === "closed") ui.label(T("connection closed"), { tone: "danger" });
       if (this.conn === "closed" && this.failure) ui.paragraph(this.failure, 320);
-    });
+    }, grew ? { scrollTo: { top: Infinity } } : undefined);
   }
 
   private chatPanel(): void {
