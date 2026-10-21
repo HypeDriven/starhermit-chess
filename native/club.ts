@@ -190,12 +190,12 @@ export class ClubScreen implements Screen {
   private guest(): void {
     ui.column("landing", () => {
       ui.heading(T("Take a seat"));
-      ui.paragraph(T("Practice against hal right now — no sign-in needed."), 420);
+      ui.paragraph(T("Practice against hal right now — no sign-in needed."), Math.min(420, frame().width / frame().scale - 56));
       ui.row("landing-play", () => {
         if (ui.id("play-local").button(T("Play"))) nav.practice(false);
         if (hasKeptPractice() && ui.id("resume-practice").button(T("Resume practice"))) nav.practice(true);
-        if (ui.id("how-to").button(T("How to play"))) this.howTo = true;
       }, { spacing: 8 });
+      if (ui.id("how-to").button(T("How to play"))) this.howTo = true;
       ui.label(T("or sign in to the club"), { tone: "muted" });
       if (ui.id("sign-in").button(T("Sign in with StarHermit"))) {
         requestSignIn().then((pl) => { if (pl) nav.club(); }, (e) => toast(errorText(e), true));
@@ -213,6 +213,8 @@ export class ClubScreen implements Screen {
             this.startSearch().finally(() => { this.busy = false; });
           }
           if (ui.id("practice").button(T("Practice vs hal"))) nav.practice(false);
+        }, { spacing: 8 });
+        ui.row("play-row-2", () => {
           if (hasKeptPractice() && ui.id("resume-practice").button(T("Resume practice"))) nav.practice(true);
           if (ui.id("how-to").button(T("How to play"))) this.howTo = true;
         }, { spacing: 8 });

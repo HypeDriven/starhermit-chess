@@ -8,7 +8,7 @@
     "index.html": {"sha256": "d4f7e0682df7af05c84eeef38e79283b634bcd83896ef147406fa439bdee77be", "size": 1743},
     "leaderboards.json": {"sha256": "e770782d74ba39f5c6c495448b993ac811fbc7b18d2c546b65f398e6d21c4f38", "size": 139},
     "native/board.ts": {"sha256": "4447ec498569c772c0c9915887d1a6c0118cec2a662cb42194a036035cff6f61", "size": 7787},
-    "native/club.ts": {"sha256": "14846def580f890ec9d2235d989bd7ded5e23fa6391b67d480fe22e0df69b9a2", "size": 15204},
+    "native/club.ts": {"sha256": "8b5c872fc163b60a099affef4f280646c50e9cdf471e94295d62dc2c63e36148", "size": 15313},
     "native/hints.ts": {"sha256": "fec3085c404c431ca682f307835e6d0972d13bf07293ad738fbf39f75f4e8516", "size": 2339},
     "native/i18n.ts": {"sha256": "49fc8c2489a0318e0151e688c064a7ef1c55b5421b6e5edb8014251db7a08575", "size": 2582},
     "native/main.ts": {"sha256": "433f43524725eef2cf98a27ab254e44b9a44417a92ea3156355f923b4a98bf03", "size": 2263},
