@@ -234,7 +234,9 @@ online; **View replay**, **Back to the club**, **Look at the board**).
 checkmate", "Abandoned — a player left"), the stepping buttons with a "12 / 37" counter and the clickable scoresheet.
 
 **Must never be cut off.** The board is sized to fit the window (the smaller of the height left after
-the seats and the width left after the panel), the panel scrolls inside its own areas, and toasts
+the seats and the width left after the panel), every panel (the club's columns, the guest landing, the table's and the replay's side panel, beside or
+below the board) scrolls as a whole when the window is too short for it, the chat and scoresheet also
+scroll inside their own areas, and toasts
 stack bottom-centre within the window. Layout honours the runtime's safe area and UI scale.
 
 ## 8. Art direction

@@ -7,7 +7,7 @@ import { drawBoard, PALETTE } from "./board.js";
 import { colorName, reasonText, T } from "./i18n.js";
 import { replayMoves, type LoggedMove, type Position } from "./rules.js";
 import { sfxForMove } from "./sfx.js";
-import { errorText, nameOf, nav, splitLayout, toast, type Screen } from "./shell.js";
+import { errorText, nameOf, nav, scrollPanel, splitLayout, toast, type Screen } from "./shell.js";
 
 export class ReplayScreen implements Screen {
   private positions: Position[] = [];
@@ -69,7 +69,7 @@ export class ReplayScreen implements Screen {
     } else {
       draw.text(T("Loading…"), layout.board.x, layout.board.y, { size: 18 * scale, color: PALETTE.muted });
     }
-    ui.area(layout.side, () => {
+    scrollPanel("replay-scroll", layout.side, () => {
       ui.column("replay", () => {
         if (ui.id("back").button(T("← Club"))) nav.club();
         ui.heading(T("Replay"));

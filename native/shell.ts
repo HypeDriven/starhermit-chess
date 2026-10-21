@@ -97,6 +97,15 @@ export function loadName(userId: string): void {
   profile(userId).then((p) => { names.set(userId, p.displayName); }, () => { asked.delete(userId); });
 }
 
+/** Lays out `build` in a window rectangle that scrolls when its content is
+ * taller, so nothing is cut off on short or narrow windows. */
+export function scrollPanel(label: string, rect: { x: number; y: number; width: number; height: number }, build: () => void): void {
+  const { scale } = frame();
+  ui.area(rect, () => {
+    ui.scrollArea(label, { width: Math.max(rect.width / scale - 8, 40), height: Math.max(rect.height / scale - 8, 40) }, build);
+  });
+}
+
 /** Two-column layout: the board on one side, a panel beside it (or below on a
  * tall window). Rects are window pixels. */
 export function splitLayout(): { board: { x: number; y: number; width: number; height: number }; side: { x: number; y: number; width: number; height: number } } {

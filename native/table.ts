@@ -13,7 +13,7 @@ import { drawBoard, moveFocus, PALETTE, squareAt } from "./board.js";
 import { colorName, fmtLeft, reasonText, T } from "./i18n.js";
 import { checkSquare, replayMoves, rules, type Color, type GameState, type LoggedMove, type Move } from "./rules.js";
 import { sfx, sfxForMove } from "./sfx.js";
-import { errorText, loadName, nameOf, nav, short, splitLayout, toast, type Screen } from "./shell.js";
+import { errorText, loadName, nameOf, nav, scrollPanel, short, splitLayout, toast, type Screen } from "./shell.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -352,7 +352,7 @@ export class TableScreen implements Screen {
       this.seats(layout.board, v, mine);
     }
 
-    ui.area(layout.side, () => {
+    scrollPanel("table-scroll", layout.side, () => {
       ui.column("table", () => {
         ui.row("table-top", () => {
           if (ui.id("back").button(T("← Club"))) nav.club();

@@ -11,7 +11,7 @@ import { storage } from "starhermit:storage";
 import { PALETTE } from "./board.js";
 import { fmtLeft, reasonText, T } from "./i18n.js";
 import { sfx } from "./sfx.js";
-import { errorText, loadName, nameOf, nav, short, toast, type Screen } from "./shell.js";
+import { errorText, loadName, nameOf, nav, scrollPanel, short, toast, type Screen } from "./shell.js";
 
 const HOUR_MS = 60 * 60 * 1000;
 const HAL_AFTER_S = 30;
@@ -141,27 +141,21 @@ export class ClubScreen implements Screen {
     draw.text("Chess", area.x, area.y, { size: 34 * scale, color: PALETTE.brassHi, font: "serif" });
     const p = player();
     const top = { ...area, y: area.y + 56 * scale, height: area.height - 56 * scale };
-    if (!p) { ui.area(top, () => this.guest()); return; }
+    if (!p) { scrollPanel("club-guest", top, () => this.guest()); return; }
 
     const wide = top.width > 900 * scale;
     const mainW = wide ? top.width * 0.58 : top.width;
-    ui.area({ ...top, width: mainW }, () => {
-      ui.scrollArea("club-main", { width: mainW / scale - 8, height: top.height / scale - 8 }, () => {
-        ui.column("club", () => {
-          this.playPanel();
-          this.myGames();
-          this.invitations();
-          if (!wide) this.sidePanel();
-        }, { spacing: 16 });
-      });
+    scrollPanel("club-main", { ...top, width: mainW }, () => {
+      ui.column("club", () => {
+        this.playPanel();
+        this.myGames();
+        this.invitations();
+        if (!wide) this.sidePanel();
+      }, { spacing: 16 });
     });
     if (wide) {
       const side = { x: top.x + mainW + 24 * scale, y: top.y, width: top.width - mainW - 24 * scale, height: top.height };
-      ui.area(side, () => {
-        ui.scrollArea("club-side-scroll", { width: side.width / scale - 8, height: side.height / scale - 8 }, () => {
-          ui.column("club-side", () => this.sidePanel(), { spacing: 16 });
-        });
-      });
+      scrollPanel("club-side-scroll", side, () => ui.column("club-side", () => this.sidePanel(), { spacing: 16 }));
     }
     this.friendDialog();
   }
