@@ -75,11 +75,14 @@ export function setTheme(): void {
 // are account handles, never shown.
 const names = new Map<string, string>();
 const asked = new Set<string>();
+/** The platform's AI seat (its profile says "The House"); the script plays it as hal. */
+const AI_USER_ID = "00000000-0000-4000-8000-00000000a1a1";
 /** A player's display name; `fallback` ("Player 1234abcd" by default) until it loads. */
 export function nameOf(userId: string | null | undefined, fallback?: string): string {
   if (!userId) return fallback ?? "?";
   const me = player();
   if (me && me.userId === userId) return me.displayName;
+  if (userId === AI_USER_ID) return "hal";
   const n = names.get(userId);
   if (n) return n;
   loadName(userId);
@@ -92,7 +95,7 @@ export function short(name: string, max = 20): string {
 }
 /** Starts loading a player's name before it is shown. */
 export function loadName(userId: string): void {
-  if (asked.has(userId)) return;
+  if (asked.has(userId) || userId === AI_USER_ID) return;
   asked.add(userId);
   profile(userId).then((p) => { names.set(userId, p.displayName); }, () => { asked.delete(userId); });
 }

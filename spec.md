@@ -337,7 +337,7 @@ there is no hand-written platform layer. Signed out it makes no platform request
 | Platform feature | Used | How |
 |---|---|---|
 | Identity / sign-in | Yes | `player()`; `requestSignIn()` from the signed-out club; `onPlayerChange` reopens the club; `onSessionEnded` shows "Your session has expired." or the terms message |
-| Profiles | Yes | `profile(userId)` display names (the nickname), cached per run; "Player 1234abcd" until one loads. Usernames are never shown. Names on lines that cannot wrap (the turn line, the seats, the friend picker) are cut with an ellipsis |
+| Profiles | Yes | `profile(userId)` display names (the nickname), cached per run; "Player 1234abcd" until one loads; the platform's AI seat (`00000000-0000-4000-8000-00000000a1a1`, "The House" to the platform) is always hal. Usernames are never shown. Names on lines that cannot wrap (the turn line, the seats, the friend picker) are cut with an ellipsis |
 | Presence | Yes | `presence` events on the game socket |
 | Sessions | Yes | `sessions.list/get/practice`; the gameplay socket is `connectGame(sessionId)` (`sync` on every open and resume; `stopped` with `build-mismatch` asks for a restart) |
 | Matchmaking | Yes | `matchmaking.queues/enqueue`, ticket polled every 3 s and cancelled on Cancel; the ticket and queued-at are kept in `storage` so the search resumes after a restart |
@@ -434,16 +434,17 @@ game-over dialog, Look at the board).
 - hal is a one-ply material-greedy player: it never plans, so it is a beginner's opponent.
 - Offline practice cannot be replayed or resumed; leaving the table ends it.
 - A launch cannot open a given session directly; invitations are accepted from the club.
-- In browsers sounds start only after the first press (autoplay policy), and the web runtime logs a
-  warning while it fetches the clips at start.
-- The play scripts run signed out. The online path was checked by hand on the live web build
-  (sign-in by launch token, club panels, matchmaking and the hal offer, a rated game against hal with
-  a move and a declined draw, rejoining from My games, the replay viewer by mouse and keyboard); chat,
-  voice and invitations need a second account and are type-checked only. Board clicks were checked
-  the same way; promotion is not scripted.
+- In browsers sounds start only after the first press (autoplay policy), and engine 1.3.0 logs "was
+  read before it was fetched" for each clip (fixed in engine 1.4.0).
+- In browsers on engine 1.3.0 the chat field takes no typing: the runtime never opens its text entry
+  (an engine bug, to be fixed in 1.4.1). Natively chat works.
+- The play scripts run signed out. The online path was checked by hand on the live web build with two
+  accounts: sign-in by launch token, club panels, an invitation sent and accepted, matchmaking between
+  two players and the hal offer, moves on both sides, a draw offered and declined, voice joined on both
+  sides (each hears the other), resignation with the game-over dialog and the new ratings on both
+  sides, rejoining from My games, the replay viewer by mouse and keyboard, and the layout at
+  1280×800, 1280×600, 900×900, 390×844 and 844×390. Promotion is not scripted.
 - The replay scoresheet does not scroll to keep the current move in view.
-- The platform names hal "The House" in session lists, so the club's rows and the table's seat
-  disagree.
 
 ## Design intent not yet implemented
 
