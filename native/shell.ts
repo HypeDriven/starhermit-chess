@@ -11,6 +11,8 @@ export interface Screen {
   update(): void;
   /** A press on the window (pointer or touch) not taken by a widget. */
   press?(x: number, y: number): void;
+  /** A press (pointer or touch) on a widget. */
+  widgetPress?(): void;
   /** One of the manifest's actions was pressed. */
   action?(name: string): void;
   /** A key press (KeyboardEvent.code), for keys that are not actions. */

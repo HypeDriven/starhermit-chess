@@ -372,6 +372,9 @@ export class TableScreen implements Screen {
   }
 
   // -- Frame --------------------------------------------------------------------------
+  /** Clicking a widget (the chat field) takes the keyboard off the board. */
+  widgetPress(): void { this.focus = null; }
+
   /** Tab moves the keyboard from the board back to the widgets. */
   key(code: string): void {
     if (code === "Tab") this.focus = null;

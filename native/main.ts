@@ -34,16 +34,19 @@ onSessionEnded((reason) => {
   toast(reason === "terms-required" ? T("Accept the updated terms in StarHermit to keep playing.") : T("Your session has expired."), true);
 });
 
-// A press outside the widgets goes to the screen (the board). Touch and the
+// A press outside the widgets goes to the screen (the board); a press on a
+// widget tells the screen too, so the board gives the keyboard back. Touch and the
 // mouse can both report one tap, so a pointer press right after a touch is skipped.
 let lastTouch = -1;
 onTouch((e) => {
-  if (e.phase !== "start" || !e.primary || ui.pointerOver()) return;
+  if (e.phase !== "start" || !e.primary) return;
+  if (ui.pointerOver()) { screen()?.widgetPress?.(); return; }
   lastTouch = performance.now();
   screen()?.press?.(e.x, e.y);
 });
 onPointerButton((e) => {
-  if (!e.pressed || e.button !== 0 || ui.pointerOver()) return;
+  if (!e.pressed || e.button !== 0) return;
+  if (ui.pointerOver()) { screen()?.widgetPress?.(); return; }
   if (performance.now() - lastTouch < 600) return;
   screen()?.press?.(e.x, e.y);
 });
