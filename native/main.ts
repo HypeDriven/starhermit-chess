@@ -25,7 +25,7 @@ scene.background = new Color(PALETTE.bg);
 
 onStart(() => {
   setTheme();
-  loadSfx(); // the board needs no sound to start; clips load behind it
+  void loadSfx(); // the board needs no sound to start; clips load behind it
   nav.club();
 });
 
