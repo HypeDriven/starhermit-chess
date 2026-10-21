@@ -455,7 +455,9 @@ only from a legal, unfinished move list, in its kept colour.
   in browsers a launch for an accepted invite opens its table.
 - In browsers sounds start only after the first press (autoplay policy).
 - The play scripts run signed out. The online path was checked by hand on the live web build with two
-  accounts: sign-in by launch token, club panels, an invitation sent and accepted, matchmaking between
+  accounts: sign-in by launch token, club panels, an invitation sent and accepted, Share invite link
+  copying the dashboard link (engine 1.5.1), a launch for a session opening its table, screen-reader
+  announcements in the page's live region, matchmaking between
   two players and the hal offer, moves on both sides, table talk both ways, a draw offered and declined, voice joined on both
   sides (each hears the other), resignation with the game-over dialog and the new ratings on both
   sides, rejoining from My games, the replay viewer by mouse and keyboard, and the layout at
