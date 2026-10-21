@@ -222,7 +222,8 @@ state with **Cancel** and, after 30 s, **Play against hal**), "My games" (refres
 on its own line under the button on a window narrower than 560 logical pixels),
 "Invitations" (refreshed every 10 s; accept/decline, **Invite a friend**, **Share invite link**);
 side (scrolling on its own): "My rating" (Elo and W/L/D), "Friends", "Recent games" (one button per replay: opponent, Won /
-Lost / Drawn, or Abandoned for a game the platform ended, such as an AI game left mid-play, and the reason).
+Lost / Drawn, or Abandoned for a game the platform ended, such as an AI game left mid-play, and the reason,
+which a window narrower than 560 logical pixels leaves to the replay).
 
 **Table.** `splitLayout()`: board left with the opponent's seat above and mine below, side panel
 right; on a tall window the panel goes below the board. Side panel: ← Club, Offer draw, Resign; the

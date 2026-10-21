@@ -258,13 +258,15 @@ export class ClubScreen implements Screen {
       ui.panel("recent", () => {
         ui.heading(T("Recent games"));
         if (!this.recent.length) ui.label(T("No finished games yet."), { tone: "muted" });
+        const narrow = frame().width / frame().scale < 560;
         for (const r of this.recent) {
           const opp = r.players.find((x) => x.userId !== player()?.userId);
           const res = r.result as { kind?: string; reason?: string; white?: string } | null;
           const myColor = res?.white === player()?.userId ? "white" : "black";
           const outcome = !res?.kind ? "" : res.kind === "draw" ? T("Drawn")
             : res.kind === "white" || res.kind === "black" ? (res.kind === myColor ? T("Won") : T("Lost")) : T("Abandoned");
-          const label = [opp ? nameOf(opp.userId) : "hal", outcome, reasonText(res?.reason)].filter(Boolean).join(" · ");
+          // A narrow window leaves the reason to the replay itself.
+          const label = [short(opp ? nameOf(opp.userId) : "hal"), outcome, narrow ? "" : reasonText(res?.reason)].filter(Boolean).join(" · ");
           if (ui.id(`replay-${r.sessionId}`).button(label)) nav.replay(r.sessionId);
         }
       }, { padding: 14, spacing: 6 });
