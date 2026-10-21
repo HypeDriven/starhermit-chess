@@ -16,6 +16,8 @@ export class ReplayScreen implements Screen {
   /** Set when the ply changes: the scoresheet brings its move into view. */
   private follow = false;
   private scrollTop: number | null = null;
+  /** Window pixels from one scoresheet row to the next, once measured. */
+  private pitch = 0;
   private white = "";
   private black = "";
   private resultLine = "";
@@ -87,8 +89,8 @@ export class ReplayScreen implements Screen {
         }, { spacing: 8, align: "center" });
         const scrollTo = this.scrollTop == null ? undefined : { scrollTo: { top: this.scrollTop, behavior: "smooth" as const } };
         this.scrollTop = null;
-        const currentRow = this.ply <= 1 ? 0 : 2 * Math.floor((this.ply - 1) / 2);
-        let current: ui.Rect | null = null;
+        const currentRow = this.ply <= 1 ? 0 : Math.floor((this.ply - 1) / 2);
+        const tops: number[] = [];
         const sheet = ui.scrollArea("replay-moves", { width: 340, height: 260 }, () => {
           for (let i = 0; i < this.moves.length; i += 2) {
             const row = ui.row(`mv-${i}`, () => {
@@ -97,14 +99,17 @@ export class ReplayScreen implements Screen {
               const b = this.moves[i + 1];
               if (b && ui.id(`ply-${i + 2}`).button(b.san, { tone: this.ply === i + 2 ? "accent" : "normal" })) this.go(i + 2);
             }, { spacing: 6, align: "center" });
-            if (i === currentRow) current = row;
+            if (i < 4) tops.push(row.y);
           }
         }, scrollTo);
-        if (this.follow && current) {
+        // Rows are evenly spaced: the first two give the pitch (measured while
+        // they show), which places the current row.
+        if (tops.length >= 2 && tops[1]! - tops[0]! > 0) this.pitch = tops[1]! - tops[0]!;
+        if (this.follow && this.pitch > 0) {
           this.follow = false;
-          const r: ui.Rect = current;
-          if (r.y < sheet.y || r.y + r.height > sheet.y + sheet.clientHeight) {
-            this.scrollTop = sheet.scrollTop + r.y - sheet.y - (sheet.clientHeight - r.height) / 2;
+          const top = currentRow * this.pitch;
+          if (top < sheet.scrollTop || top + this.pitch > sheet.scrollTop + sheet.clientHeight) {
+            this.scrollTop = Math.max(0, top - (sheet.clientHeight - this.pitch) / 2);
           }
         }
       }, { spacing: 12 });
