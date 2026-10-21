@@ -51,3 +51,39 @@ export function fmtLeft(ms: number): string {
 }
 
 export function colorName(color: string): string { return color === "black" ? T("black") : T("white"); }
+
+// -- Screen-reader speech ---------------------------------------------------------
+// translated:
+const PIECE_NAMES = {
+  K: "King", Q: "Queen", R: "Rook", B: "Bishop", N: "Knight",
+};
+
+/** A SAN move in words for a screen reader: "Knight takes e5, check". */
+export function spokenMove(san: string): string {
+  let s = san, tail = "";
+  if (s.endsWith("#")) { s = s.slice(0, -1); tail = `, ${T("checkmate")}`; }
+  else if (s.endsWith("+")) { s = s.slice(0, -1); tail = `, ${T("check")}`; }
+  if (s.startsWith("O-O-O")) return T("long castling") + tail;
+  if (s.startsWith("O-O")) return T("short castling") + tail;
+  let promo = "";
+  const eq = s.indexOf("=");
+  if (eq >= 0) {
+    const p = s[eq + 1] as keyof typeof PIECE_NAMES;
+    promo = ` ${T("promotes to {piece}", { piece: T(PIECE_NAMES[p] ?? "Queen") })}`;
+    s = s.slice(0, eq);
+  }
+  const first = s[0] as keyof typeof PIECE_NAMES;
+  const piece = PIECE_NAMES[first] ? `${T(PIECE_NAMES[first])} ` : "";
+  if (piece) s = s.slice(1);
+  const words = s.split("x").join(` ${T("takes")} `);
+  return `${piece}${words}${promo}${tail}`;
+}
+
+/** What a board square holds, for a screen reader: "e4, white pawn". */
+export function spokenSquare(square: string, piece: string): string {
+  if (piece === ".") return T("{square}, empty", { square });
+  const names: Record<string, string> = { p: "pawn", n: "knight", b: "bishop", r: "rook", q: "queen", k: "king" };
+  const color = piece === piece.toUpperCase() ? "white" : "black";
+  return T(`{square}, ${color} ${names[piece.toLowerCase()]}`, { square });
+}
+

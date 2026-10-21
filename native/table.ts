@@ -12,7 +12,7 @@ import { authority } from "starhermit:script";
 import { storage } from "starhermit:storage";
 import { drawBoard, moveFocus, PALETTE, squareAt } from "./board.js";
 import { hintFor, hintText, markSeen, type HintId } from "./hints.js";
-import { colorName, fmtLeft, reasonText, T } from "./i18n.js";
+import { colorName, fmtLeft, reasonText, spokenMove, spokenSquare, T } from "./i18n.js";
 import { checkSquare, replayMoves, rules, type Color, type GameState, type LoggedMove, type Move } from "./rules.js";
 import { sfx, sfxForMove } from "./sfx.js";
 import { errorText, loadName, nameOf, nav, scrollPanel, short, splitLayout, toast, type Screen } from "./shell.js";
@@ -203,11 +203,14 @@ export class TableScreen implements Screen {
       case "state":
         this.setView(data as unknown as View);
         break;
-      case "moved":
+      case "moved": {
         this.awaitingEcho = false;
         sfxForMove(String(data.san));
         this.setView(data.view as unknown as View);
+        const move = spokenMove(String(data.san));
+        ui.announce(data.by === this.myColor() ? T("You played {move}", { move }) : T("{name} played {move}", { name: this.oppName(), move }));
         break;
+      }
       case "game-over":
         this.setView(data.view as unknown as View);
         this.finished();
@@ -215,7 +218,10 @@ export class TableScreen implements Screen {
       case "draw-offered":
         // Platform messages arrive frozen in browsers: replace, never mutate.
         if (this.view) this.view = { ...this.view, drawOfferBy: data.by as Color };
-        if (data.by !== this.myColor()) sfx("drawOffer");
+        if (data.by !== this.myColor()) {
+          sfx("drawOffer");
+          ui.announce(T("{name} offers a draw", { name: this.oppName() }), { politeness: "assertive" });
+        }
         break;
       case "draw-declined":
         if (this.view) this.view = { ...this.view, drawOfferBy: null };
@@ -261,6 +267,7 @@ export class TableScreen implements Screen {
       rating: "",
       rank: "",
     };
+    if (withSound) ui.announce(`${this.over.title}, ${this.over.reason}`, { politeness: "assertive" });
     if (!this.sessionId) return;
     const over = this.over;
     const before = this.eloBefore;
@@ -369,6 +376,8 @@ export class TableScreen implements Screen {
       case "row_end": this.focus = moveFocus(at, f, 7, 0); break;
       case "select": if (this.focus != null) this.clickSquare(this.focus); else this.focus = at; break;
     }
+    // A screen reader hears the square the keyboard is on (the board is drawn).
+    if (this.focus != null && name !== "select") ui.announce(spokenSquare(rules.algebraic(this.focus), this.game.board[this.focus]!));
   }
 
   // -- Frame --------------------------------------------------------------------------

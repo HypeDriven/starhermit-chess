@@ -4,7 +4,7 @@ import * as draw from "starhermit:draw";
 import * as ui from "starhermit:ui";
 import { player, replays } from "starhermit:platform";
 import { drawBoard, PALETTE } from "./board.js";
-import { colorName, reasonText, T } from "./i18n.js";
+import { colorName, reasonText, spokenMove, T } from "./i18n.js";
 import { replayMoves, type LoggedMove, type Position } from "./rules.js";
 import { sfxForMove } from "./sfx.js";
 import { errorText, nameOf, nav, scrollPanel, splitLayout, toast, type Screen } from "./shell.js";
@@ -48,6 +48,7 @@ export class ReplayScreen implements Screen {
   private go(ply: number): void {
     const next = Math.max(0, Math.min(this.positions.length - 1, ply));
     if (next === this.ply + 1) sfxForMove(this.moves[this.ply]!.san);
+    if (next !== this.ply) ui.announce(next === 0 ? `0 / ${this.positions.length - 1}` : `${Math.ceil(next / 2)}${next % 2 ? "." : "..."} ${spokenMove(this.moves[next - 1]!.san)}`);
     this.ply = next;
     // Bring the move's scoresheet row into view on the next frame (rows are
     // evenly spaced; the pitch and the sheet's scroll come from the last frame).

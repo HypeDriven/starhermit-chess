@@ -310,6 +310,16 @@
       'Vous avez 24 heures pour chaque coup. Partez quand vous voulez et revenez depuis Mes parties.',
       'Você tem 24 horas para cada lance. Saia quando quiser e volte por Minhas partidas.',
       'Hai 24 ore per ogni mossa. Esci quando vuoi e torna da Le mie partite.'],
+    // ---- screen-reader speech
+    ['King', 'Rey', 'König', 'Roi', 'Rei', 'Re'],
+    ['check', 'jaque', 'Schach', 'échec', 'xeque', 'scacco'],
+    ['checkmate', 'jaque mate', 'Schachmatt', 'échec et mat', 'xeque-mate', 'scacco matto'],
+    ['takes', 'captura', 'schlägt', 'prend', 'captura', 'prende'],
+    ['short castling', 'enroque corto', 'kurze Rochade', 'petit roque', 'roque pequeno', 'arrocco corto'],
+    ['long castling', 'enroque largo', 'lange Rochade', 'grand roque', 'roque grande', 'arrocco lungo'],
+    ['promotes to {piece}', 'promociona a {piece}', 'wandelt in {piece} um', 'promu en {piece}', 'promove a {piece}', 'promuove a {piece}'],
+    ['{name} played {move}', '{name} jugó {move}', '{name} spielte {move}', '{name} a joué {move}', '{name} jogou {move}', '{name} ha giocato {move}'],
+    ['You played {move}', 'Jugaste {move}', 'Du hast {move} gespielt', 'Vous avez joué {move}', 'Você jogou {move}', 'Hai giocato {move}'],
   ];
 
   var COLS = ['es-419', 'de-DE', 'fr-FR', 'pt-BR', 'it-IT'];

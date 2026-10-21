@@ -5,7 +5,7 @@ import { onRender, onStart, onUpdate } from "starhermit:engine";
 import { Color, PerspectiveCamera, renderer, scene } from "starhermit:scene";
 import { onAction, onKey, onPointerButton, onTouch } from "starhermit:input";
 import * as ui from "starhermit:ui";
-import { onPlayerChange, onSessionEnded } from "starhermit:platform";
+import { launchContext, onPlayerChange, onSessionEnded, player, sessions } from "starhermit:platform";
 import { PALETTE } from "./board.js";
 import { ClubScreen } from "./club.js";
 import { T } from "./i18n.js";
@@ -27,6 +27,12 @@ onStart(() => {
   setTheme();
   void loadSfx(); // the board needs no sound to start; clips load behind it
   nav.club();
+  // Launched for a session (an invite accepted on the dashboard): open its
+  // table once, if it is still on.
+  const sessionId = launchContext()?.sessionId;
+  if (sessionId && player()) {
+    sessions.get(sessionId).then((s) => { if (s && s.status === "active") nav.table(sessionId); }, () => { /* stay in the club */ });
+  }
 });
 
 onPlayerChange(() => nav.club());
