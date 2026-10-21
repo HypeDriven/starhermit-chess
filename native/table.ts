@@ -207,9 +207,10 @@ export class TableScreen implements Screen {
     const res = v.result!;
     const mine = this.myColor();
     const won = res.kind === mine, drawn = res.kind === "draw";
-    if (withSound) sfx(drawn ? "draw" : won ? "win" : "lose");
+    const decided = res.kind === "white" || res.kind === "black";
+    if (withSound && (decided || drawn)) sfx(drawn ? "draw" : won ? "win" : "lose");
     this.over = {
-      title: drawn ? T("Drawn") : won ? T("You won") : T("You lost"),
+      title: drawn ? T("Drawn") : !decided ? T("Abandoned") : won ? T("You won") : T("You lost"),
       reason: reasonText(res.reason),
       rating: "",
       rank: "",
@@ -245,16 +246,14 @@ export class TableScreen implements Screen {
     if (!v) return null;
     return v.white === this.me ? "white" : v.black === this.me ? "black" : null;
   }
-  private oppId(): string | null {
-    const v = this.view;
-    return v ? (v.white === this.me ? v.black : v.white) : null;
-  }
   private oppName(): string {
+    return this.view ? this.seatName(this.myColor() === "white" ? "black" : "white") : "…";
+  }
+  private seatName(color: Color): string {
     const v = this.view;
     if (!v) return "…";
-    const opp: Color = this.myColor() === "white" ? "black" : "white";
-    if (v.ai === opp) return v.aiName ?? "hal";
-    return nameOf(this.oppId());
+    if (v.ai === color) return v.aiName ?? "hal";
+    return nameOf(v[color], colorName(color));
   }
   private canMove(): boolean {
     const v = this.view;
@@ -390,7 +389,13 @@ export class TableScreen implements Screen {
 
   private clock(v: View, mine: Color | null): void {
     if (v.status !== "active") {
-      if (v.result) ui.label(`${v.result.kind === "draw" ? T("Drawn") : T("{name} won", { name: colorName(v.result.kind) })} — ${reasonText(v.result.reason)}`);
+      if (v.result) {
+        const k = v.result.kind;
+        const outcome = k === "draw" ? T("Drawn")
+          : k === "white" || k === "black" ? (k === this.myColor() ? T("You won") : T("{name} won", { name: short(this.seatName(k)) }))
+          : T("Abandoned");
+        ui.label(v.result.reason ? `${outcome} — ${reasonText(v.result.reason)}` : outcome);
+      }
       return;
     }
     const myTurn = v.turn === mine;

@@ -225,9 +225,9 @@ Lost / Drawn, or Abandoned for a game the platform ended, such as an AI game lef
 
 **Table.** `splitLayout()`: board left with the opponent's seat above and mine below, side panel
 right; on a tall window the panel goes below the board. Side panel: ← Club, Offer draw, Resign; the
-turn line; online the clock with a 24 h bar (red under an hour); the draw banner; the scoresheet
+turn line (after game over the result line: "You won — by resignation", "Alice won — on time", "Drawn — by agreement"); online the clock with a 24 h bar (red under an hour); the draw banner; the scoresheet
 (scrolling); table talk and voice (online, human opponents). Dialogs: promotion, confirm ("Resign this
-game?", "Offer a draw to {name}?"), game over (result, reason, the new rating and practice-wins rank
+game?", "Offer a draw to {name}?"), game over ("You won" / "You lost" / "Drawn", or "Abandoned" with no sound when the platform ended the game; reason, the new rating and practice-wins rank
 online; **View replay**, **Back to the club**, **Look at the board**).
 
 **Replay.** The board at the chosen ply with both seats, the result line ("Alice won — by

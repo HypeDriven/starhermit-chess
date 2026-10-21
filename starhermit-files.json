@@ -15,7 +15,7 @@
     "native/rules.ts": {"sha256": "1529cd349923d0c81d9b3233fb5f8d39d866a9cc779d3603209a373bfed34e81", "size": 2836},
     "native/sfx.ts": {"sha256": "2360821cf3f3103a0b81a86aec6c7635e2cdace8d1f502452f8501ff70bea461", "size": 2355},
     "native/shell.ts": {"sha256": "bd7fe122d1be449a60f674eade0fb78da387b134dbd157cf9787168b625dc741", "size": 5318},
-    "native/table.ts": {"sha256": "1e5095c33a1eb8982fa4ffab2c10e5f2a64b3fa7c2e1c3a7966f1811bf0f1469", "size": 22339},
+    "native/table.ts": {"sha256": "a632563164fcc9a65c8790b0452dd46eaa825a2a8447feb48b72359e4ccbaf20", "size": 22621},
     "server.js": {"sha256": "e9ddeeda5cabc0b3769f29cf410c150e56b5ad6e680d1b36fefe5e9ca8762961", "size": 39494},
     "sfx/chat-note.opus": {"sha256": "e4db67a9be6590648a20611962bf29a66bd46ce4da41e8eebda1f10acbbb34e4", "size": 12010},
     "sfx/check-bell.opus": {"sha256": "d57d0feb611fb31229565bb6d3ae64b503c4c34f060c30aed0ba9b14934971c4", "size": 27719},
@@ -34,7 +34,7 @@
     "sfx/piece-move.opus": {"sha256": "f8b5b5c6899cece59d3fd2d80ad52c5ac5066429d92d4db8dec82ea6f2c08148", "size": 12630},
     "sfx/piece-select.opus": {"sha256": "9df5e65950e8410181bfe21d73202e0bd1d5fbc12426a9274781759dcdb086d5", "size": 11763},
     "sfx/promote-chime.opus": {"sha256": "4de21d026b88350f63303ef16b3a223e45f8cf44eb62132663b51a27bb6c99d4", "size": 28150},
-    "spec.md": {"sha256": "44dbb3db40d3ce0d630b9c4d9b68f9adfa65704609e59f5c3ccc65a8ea5152ef", "size": 33415},
+    "spec.md": {"sha256": "dd2c01cbabeff507421e044b7bc2426cd22198360d0d42a2e3faf5f77de987e2", "size": 33619},
     "starhermit.txt": {"sha256": "08722c9fc062b94dc9ae87c48f1767d9f6f61f7954f52646448d5163458300c0", "size": 2646},
     "strings.js": {"sha256": "81c392af23d079ee8a40ba35cebf83a3121ceb94a95b99f2c37bf314c18aace9", "size": 38084}
   },
