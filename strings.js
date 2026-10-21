@@ -142,6 +142,7 @@
     ['OK', 'Aceptar', 'OK', 'OK', 'OK', 'OK'],
     ['Close', 'Cerrar', 'Schließen', 'Fermer', 'Fechar', 'Chiudi'],
     ['Drawn', 'Tablas', 'Remis', 'Partie nulle', 'Empate', 'Patta'],
+    ['Abandoned', 'Abandonada', 'Abgebrochen', 'Abandonnée', 'Abandonada', 'Abbandonata'],
     ['You won', 'Ganaste', 'Du hast gewonnen', 'Vous avez gagné', 'Você venceu', 'Hai vinto'],
     ['You lost', 'Perdiste', 'Du hast verloren', 'Vous avez perdu', 'Você perdeu', 'Hai perso'],
     ['{name} won', 'Ganó {name}', '{name} hat gewonnen', '{name} a gagné', '{name} venceu', 'Ha vinto {name}'],

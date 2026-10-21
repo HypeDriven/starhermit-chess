@@ -220,7 +220,8 @@ player changes (sign in / out) ──▶ club
 Signed in, two columns (stacked when narrow): Play (rated **Play**, **Practice vs hal**, the search
 state with **Cancel** and, after 30 s, **Play against hal**), "My games" (refreshed every 30 s),
 "Invitations" (refreshed every 10 s; accept/decline, **Invite a friend**, **Share invite link**);
-side: "My rating" (Elo and W/L/D), "Friends", "Recent games".
+side: "My rating" (Elo and W/L/D), "Friends", "Recent games" (one button per replay: opponent, Won /
+Lost / Drawn, or Abandoned for a game the platform ended, such as an AI game left mid-play, and the reason).
 
 **Table.** `splitLayout()`: board left with the opponent's seat above and mine below, side panel
 right; on a tall window the panel goes below the board. Side panel: ← Club, Offer draw, Resign; the
@@ -230,7 +231,7 @@ game?", "Offer a draw to {name}?"), game over (result, reason, the new rating an
 online; **View replay**, **Back to the club**, **Look at the board**).
 
 **Replay.** The board at the chosen ply with both seats, the result line ("Alice won — by
-checkmate"), the stepping buttons with a "12 / 37" counter and the clickable scoresheet.
+checkmate", "Abandoned — a player left"), the stepping buttons with a "12 / 37" counter and the clickable scoresheet.
 
 **Must never be cut off.** The board is sized to fit the window (the smaller of the height left after
 the seats and the width left after the panel), the panel scrolls inside its own areas, and toasts

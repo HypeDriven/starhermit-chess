@@ -30,8 +30,10 @@ export class ReplayScreen implements Screen {
       this.flipped = this.black === player()?.userId;
       const res = d.result as { kind?: string; reason?: string } | null;
       this.resultLine = !res?.kind ? T("In progress")
-        : (res.kind === "draw" ? T("Drawn") : T("{name} won", { name: this.name(res.kind === "white" ? this.white : this.black) || colorName(res.kind) }))
-          + " — " + reasonText(res.reason);
+        : (res.kind === "draw" ? T("Drawn")
+          : res.kind === "white" || res.kind === "black" ? T("{name} won", { name: this.name(res.kind === "white" ? this.white : this.black) || colorName(res.kind) })
+          : T("Abandoned"))
+          + (res.reason ? " — " + reasonText(res.reason) : "");
     }, (e) => { toast(`${T("Could not open the replay.")} ${errorText(e)}`, true); nav.club(); });
   }
 

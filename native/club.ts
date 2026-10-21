@@ -261,7 +261,8 @@ export class ClubScreen implements Screen {
           const opp = r.players.find((x) => x.userId !== player()?.userId);
           const res = r.result as { kind?: string; reason?: string; white?: string } | null;
           const myColor = res?.white === player()?.userId ? "white" : "black";
-          const outcome = !res?.kind ? "" : res.kind === "draw" ? T("Drawn") : res.kind === myColor ? T("Won") : T("Lost");
+          const outcome = !res?.kind ? "" : res.kind === "draw" ? T("Drawn")
+            : res.kind === "white" || res.kind === "black" ? (res.kind === myColor ? T("Won") : T("Lost")) : T("Abandoned");
           const label = [opp ? nameOf(opp.userId, opp.username) : "hal", outcome, reasonText(res?.reason)].filter(Boolean).join(" · ");
           if (ui.id(`replay-${r.sessionId}`).button(label)) nav.replay(r.sessionId);
         }

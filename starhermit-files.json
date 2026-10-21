@@ -8,10 +8,10 @@
     "index.html": {"sha256": "3659c5f2619a37da8e06c3e42d6996a7ffc95d45e136b9989f88a7c9c5267a14", "size": 1743},
     "leaderboards.json": {"sha256": "e770782d74ba39f5c6c495448b993ac811fbc7b18d2c546b65f398e6d21c4f38", "size": 139},
     "native/board.ts": {"sha256": "4447ec498569c772c0c9915887d1a6c0118cec2a662cb42194a036035cff6f61", "size": 7787},
-    "native/club.ts": {"sha256": "7686500d1cecb2bd2ad3b57424ab16c2a63257adb821a082ab6449f4565169ac", "size": 12478},
+    "native/club.ts": {"sha256": "4afa3c5129fca5f67b0b8ed9d235bc8cc25f6bb4d0a51839faa2d393010051d5", "size": 12556},
     "native/i18n.ts": {"sha256": "49fc8c2489a0318e0151e688c064a7ef1c55b5421b6e5edb8014251db7a08575", "size": 2582},
     "native/main.ts": {"sha256": "2d562f1395040941cf1cd7a51e3c64ce0d17af3502898beed9773e316690089c", "size": 2189},
-    "native/replay.ts": {"sha256": "ea667a4ddf32faff50e74f03826c64192fc3d883cd423a2754f70dd69125d02c", "size": 4724},
+    "native/replay.ts": {"sha256": "6478aa2803c41b98ce8a5ba997efb943ee4a196b23ad91b2fdd269dc38b75891", "size": 4828},
     "native/rules.ts": {"sha256": "1529cd349923d0c81d9b3233fb5f8d39d866a9cc779d3603209a373bfed34e81", "size": 2836},
     "native/sfx.ts": {"sha256": "4f79de3dac4cd582f458a141641e45050b420dfe8a5b0d8d599039c504de232f", "size": 1811},
     "native/shell.ts": {"sha256": "5f409c0ed8b7abd44735bef9401891ce822df308806861b43e0928ed53cab0b6", "size": 4900},
@@ -34,9 +34,9 @@
     "sfx/piece-move.opus": {"sha256": "f8b5b5c6899cece59d3fd2d80ad52c5ac5066429d92d4db8dec82ea6f2c08148", "size": 12630},
     "sfx/piece-select.opus": {"sha256": "9df5e65950e8410181bfe21d73202e0bd1d5fbc12426a9274781759dcdb086d5", "size": 11763},
     "sfx/promote-chime.opus": {"sha256": "4de21d026b88350f63303ef16b3a223e45f8cf44eb62132663b51a27bb6c99d4", "size": 28150},
-    "spec.md": {"sha256": "dfec2d16e08f04ae1ebd9ce08855f740379b9d8b57e6bdd656d384e31f1b0c85", "size": 32748},
+    "spec.md": {"sha256": "b6e1fbd9ff24f567496c2c66ea059af1f5e7169d21b927eb1dc90f32f029ae87", "size": 32927},
     "starhermit.txt": {"sha256": "08722c9fc062b94dc9ae87c48f1767d9f6f61f7954f52646448d5163458300c0", "size": 2646},
-    "strings.js": {"sha256": "2f16fc8d73f9d46d3096831fdb4dc925e18ee85ca8c4bf73a6fc371fa31b548f", "size": 37992}
+    "strings.js": {"sha256": "81c392af23d079ee8a40ba35cebf83a3121ceb94a95b99f2c37bf314c18aace9", "size": 38084}
   },
   "excluded": ["node_modules/", "package.json", "tests/", "tools/", "tsconfig.json"],
   "format": 1
