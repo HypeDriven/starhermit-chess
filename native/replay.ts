@@ -18,6 +18,7 @@ export class ReplayScreen implements Screen {
   private scrollTop: number | null = null;
   /** Window pixels from one scoresheet row to the next, once measured. */
   private pitch = 0;
+  private dbgFrames = 0;
   private white = "";
   private black = "";
   private resultLine = "";
@@ -48,7 +49,7 @@ export class ReplayScreen implements Screen {
     const next = Math.max(0, Math.min(this.positions.length - 1, ply));
     if (next === this.ply + 1) sfxForMove(this.moves[this.ply]!.san);
     if (next !== this.ply) this.follow = true;
-    console.warn(`DBG go ${next}`);
+    console.warn(`DBG go ${next} frame=${this.dbgFrames}`);
     this.ply = next;
   }
 
@@ -63,6 +64,8 @@ export class ReplayScreen implements Screen {
   }
 
   update(): void {
+    this.dbgFrames++;
+    if (this.follow) console.warn(`DBG top follow frame=${this.dbgFrames} ply=${this.ply}`);
     if (this.dropFocus) { ui.setFocus(null); this.dropFocus = false; }
     const { scale } = frame();
     const layout = splitLayout();
