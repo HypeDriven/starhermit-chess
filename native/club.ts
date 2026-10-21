@@ -15,6 +15,14 @@ import { errorText, loadName, nameOf, nav, scrollPanel, short, toast, type Scree
 
 const HOUR_MS = 60 * 60 * 1000;
 const HAL_AFTER_S = 30;
+// translated:
+const HOW_TO = [
+  "Checkmate the other king: attack it so that it has no way out.",
+  "Pick one of your pieces to see where it can go, then pick one of its dots. Only legal moves are shown.",
+  "Special moves: castling (the king steps two squares toward a rook, which jumps over it), en passant, and promotion when a pawn reaches the far side.",
+  "A game is drawn by stalemate, threefold repetition, the fifty-move rule, too little material to mate, or agreement.",
+  "Club games are correspondence chess: one move a day, 24 hours per move, rated with Elo. Practice against hal any time — no clock, no rating.",
+];
 
 export class ClubScreen implements Screen {
   private me: GameStats | null = null;
@@ -29,6 +37,7 @@ export class ClubScreen implements Screen {
   private friendPicker: Friend[] | null = null;
   private timers: number[] = [];
   private busy = false;
+  private howTo = false;
 
   constructor() {
     if (!player()) return;
@@ -141,7 +150,7 @@ export class ClubScreen implements Screen {
     draw.text("Chess", area.x, area.y, { size: 34 * scale, color: PALETTE.brassHi, font: "serif" });
     const p = player();
     const top = { ...area, y: area.y + 56 * scale, height: area.height - 56 * scale };
-    if (!p) { scrollPanel("club-guest", top, () => this.guest()); return; }
+    if (!p) { scrollPanel("club-guest", top, () => this.guest()); this.howToDialog(); return; }
 
     const wide = top.width > 900 * scale;
     const mainW = wide ? top.width * 0.58 : top.width;
@@ -158,13 +167,33 @@ export class ClubScreen implements Screen {
       scrollPanel("club-side-scroll", side, () => ui.column("club-side", () => this.sidePanel(), { spacing: 16 }));
     }
     this.friendDialog();
+    this.howToDialog();
+  }
+
+  /** The rules in five lines, for players new to chess. */
+  private howToDialog(): void {
+    if (!this.howTo) return;
+    const { width, height, scale } = frame();
+    const w = Math.min(460, width / scale - 64);
+    const open = ui.dialog("how-to-play", T("How to play"), true, () => {
+      ui.scrollArea("how-to-scroll", { width: w, height: Math.min(470, height / scale - 200) }, () => {
+        ui.column("how-to-text", () => {
+          for (const line of HOW_TO) ui.paragraph(T(line), w - 16);
+        }, { spacing: 10 });
+      });
+      if (ui.id("how-to-ok").button(T("Got it"))) this.howTo = false;
+    });
+    if (!open) this.howTo = false;
   }
 
   private guest(): void {
     ui.column("landing", () => {
       ui.heading(T("Take a seat"));
       ui.paragraph(T("Practice against hal right now — no sign-in needed."), 420);
-      if (ui.id("play-local").button(T("Play"))) nav.table(null);
+      ui.row("landing-play", () => {
+        if (ui.id("play-local").button(T("Play"))) nav.table(null);
+        if (ui.id("how-to").button(T("How to play"))) this.howTo = true;
+      }, { spacing: 8 });
       ui.label(T("or sign in to the club"), { tone: "muted" });
       if (ui.id("sign-in").button(T("Sign in with StarHermit"))) {
         requestSignIn().then((pl) => { if (pl) nav.club(); }, (e) => toast(errorText(e), true));
@@ -182,6 +211,7 @@ export class ClubScreen implements Screen {
             this.startSearch().finally(() => { this.busy = false; });
           }
           if (ui.id("practice").button(T("Practice vs hal"))) nav.table(null);
+          if (ui.id("how-to").button(T("How to play"))) this.howTo = true;
         }, { spacing: 8 });
       } else {
         ui.label(T("Looking for an opponent…"), { tone: "accent" });

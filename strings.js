@@ -2,9 +2,7 @@
  * Each row: [English key, es-419, de-DE, fr-FR, pt-BR, it-IT]. en-GB, es-ES and
  * fr-CA list only where they differ from en-US, es-419 and fr-FR.
  * "StarHermit", "hal" and "Elo" are names and stay as they are; chess notation
- * (SAN, square names like e4) is locale-invariant. The Settings panel's
- * Graphics strings live in settings.js, the platform strings (sign-in,
- * session expired, Back to StarHermit…) in platform-strings.js.
+ * (SAN, square names like e4) is locale-invariant.
  */
 (function (root) {
   'use strict';
@@ -247,7 +245,70 @@
     ['Promote to', 'Coronar como', 'Umwandeln in', 'Promouvoir en', 'Promover a', 'Promuovi a'],
     ['a player left', 'un jugador se fue', 'ein Spieler ist gegangen', 'un joueur est parti', 'um jogador saiu', 'un giocatore è uscito'],
     ['No table talk with hal.', 'No hay charla de mesa con hal.', 'Kein Tischgespräch mit hal.', 'Pas de discussion avec hal.', 'Sem conversa de mesa com hal.', 'Niente chiacchiere con hal.'],
-    ['Look at the board', 'Ver el tablero', 'Brett ansehen', 'Voir l’échiquier', 'Ver o tabuleiro', 'Guarda la scacchiera']
+    ['Look at the board', 'Ver el tablero', 'Brett ansehen', 'Voir l’échiquier', 'Ver o tabuleiro', 'Guarda la scacchiera'],
+    // ---- how to play, first-time hints
+    ['How to play', 'Cómo se juega', 'So wird gespielt', 'Comment jouer', 'Como jogar', 'Come si gioca'],
+    ['Got it', 'Entendido', 'Verstanden', 'Compris', 'Entendi', 'Capito'],
+    ['Checkmate the other king: attack it so that it has no way out.',
+      'Da jaque mate al rey rival: atácalo de modo que no tenga escapatoria.',
+      'Setze den gegnerischen König matt: Greife ihn so an, dass er nicht mehr entkommen kann.',
+      'Faites mat le roi adverse : attaquez-le de sorte qu’il n’ait plus aucune issue.',
+      'Dê xeque-mate no rei adversário: ataque-o de forma que ele não tenha saída.',
+      'Dai scacco matto al re avversario: attaccalo in modo che non abbia via di scampo.'],
+    ['Pick one of your pieces to see where it can go, then pick one of its dots. Only legal moves are shown.',
+      'Elige una de tus piezas para ver adónde puede ir y luego elige uno de sus puntos. Solo se muestran las jugadas legales.',
+      'Wähle eine deiner Figuren, um zu sehen, wohin sie ziehen kann, und dann einen ihrer Punkte. Es werden nur erlaubte Züge gezeigt.',
+      'Choisissez une de vos pièces pour voir où elle peut aller, puis l’un de ses points. Seuls les coups légaux sont affichés.',
+      'Escolha uma de suas peças para ver para onde ela pode ir e depois um de seus pontos. Só os lances válidos aparecem.',
+      'Scegli uno dei tuoi pezzi per vedere dove può andare, poi uno dei suoi punti. Vengono mostrate solo le mosse legali.'],
+    ['Special moves: castling (the king steps two squares toward a rook, which jumps over it), en passant, and promotion when a pawn reaches the far side.',
+      'Jugadas especiales: el enroque (el rey avanza dos casillas hacia una torre, que salta por encima de él), la captura al paso y la coronación cuando un peón llega al otro extremo.',
+      'Sonderzüge: die Rochade (der König zieht zwei Felder auf einen Turm zu, der über ihn springt), en passant und die Umwandlung, wenn ein Bauer die gegnerische Grundreihe erreicht.',
+      'Coups spéciaux : le roque (le roi se déplace de deux cases vers une tour, qui saute par-dessus lui), la prise en passant et la promotion quand un pion atteint l’autre bord.',
+      'Lances especiais: o roque (o rei anda duas casas em direção a uma torre, que salta por cima dele), en passant e a promoção quando um peão chega ao outro lado.',
+      'Mosse speciali: l’arrocco (il re si sposta di due case verso una torre, che lo scavalca), la presa en passant e la promozione quando un pedone raggiunge il lato opposto.'],
+    ['A game is drawn by stalemate, threefold repetition, the fifty-move rule, too little material to mate, or agreement.',
+      'La partida es tablas por ahogado, triple repetición, la regla de las cincuenta jugadas, material insuficiente para dar mate o acuerdo.',
+      'Remis wird es durch Patt, dreifache Stellungswiederholung, die 50-Züge-Regel, zu wenig Material zum Mattsetzen oder Einigung.',
+      'La partie est nulle par pat, triple répétition, la règle des cinquante coups, matériel insuffisant pour mater ou accord mutuel.',
+      'A partida termina empatada por afogamento, tripla repetição, regra dos cinquenta lances, material insuficiente para dar mate ou acordo.',
+      'La partita è patta per stallo, triplice ripetizione, regola delle cinquanta mosse, materiale insufficiente per dare matto o accordo.'],
+    ['Club games are correspondence chess: one move a day, 24 hours per move, rated with Elo. Practice against hal any time — no clock, no rating.',
+      'Las partidas del club son ajedrez por correspondencia: una jugada al día, 24 horas por jugada, con puntuación Elo. Practica contra hal cuando quieras, sin reloj ni puntuación.',
+      'Clubpartien sind Fernschach: ein Zug pro Tag, 24 Stunden je Zug, mit Elo-Wertung. Gegen hal kannst du jederzeit üben – ohne Uhr und ohne Wertung.',
+      'Les parties du club se jouent par correspondance : un coup par jour, 24 heures par coup, classées Elo. Entraînez-vous contre hal quand vous voulez — sans pendule ni classement.',
+      'As partidas do clube são xadrez por correspondência: um lance por dia, 24 horas por lance, com rating Elo. Treine contra hal quando quiser — sem relógio e sem rating.',
+      'Le partite del circolo sono per corrispondenza: una mossa al giorno, 24 ore per mossa, con punteggio Elo. Allenati contro hal quando vuoi, senza orologio né punteggio.'],
+    ['Pick one of your pieces, then one of its dots to move it.',
+      'Elige una de tus piezas y luego uno de sus puntos para moverla.',
+      'Wähle eine deiner Figuren und dann einen ihrer Punkte, um sie zu ziehen.',
+      'Choisissez une de vos pièces, puis l’un de ses points pour la déplacer.',
+      'Escolha uma de suas peças e depois um de seus pontos para movê-la.',
+      'Scegli uno dei tuoi pezzi, poi uno dei suoi punti per muoverlo.'],
+    ['Your king is in check: only moves that end the check are allowed.',
+      'Tu rey está en jaque: solo se permiten jugadas que lo saquen del jaque.',
+      'Dein König steht im Schach: Nur Züge, die das Schach aufheben, sind erlaubt.',
+      'Votre roi est en échec : seuls les coups qui parent l’échec sont permis.',
+      'Seu rei está em xeque: só são permitidos lances que acabem com o xeque.',
+      'Il tuo re è sotto scacco: sono consentite solo le mosse che lo tolgono dallo scacco.'],
+    ['En passant: a pawn that just moved two squares past yours can be taken as if it had moved one.',
+      'Captura al paso: un peón que acaba de avanzar dos casillas junto al tuyo puede capturarse como si hubiera avanzado una.',
+      'En passant: Ein Bauer, der gerade zwei Felder an deinem vorbeigezogen ist, kann geschlagen werden, als wäre er nur eins gezogen.',
+      'En passant : un pion qui vient d’avancer de deux cases à côté du vôtre peut être pris comme s’il n’avait avancé que d’une.',
+      'En passant: um peão que acabou de andar duas casas passando pelo seu pode ser capturado como se tivesse andado uma.',
+      'En passant: un pedone che ha appena avanzato di due case accanto al tuo può essere catturato come se ne avesse avanzata una.'],
+    ['You can castle: pick your king and its dot two squares toward a rook; the rook jumps over it.',
+      'Puedes enrocar: elige tu rey y su punto a dos casillas hacia una torre; la torre salta por encima de él.',
+      'Du kannst rochieren: Wähle deinen König und seinen Punkt zwei Felder auf einen Turm zu; der Turm springt über ihn.',
+      'Vous pouvez roquer : choisissez votre roi et son point à deux cases vers une tour ; la tour saute par-dessus lui.',
+      'Você pode rocar: escolha seu rei e o ponto dele duas casas em direção a uma torre; a torre salta por cima dele.',
+      'Puoi arroccare: scegli il re e il suo punto a due case verso una torre; la torre lo scavalca.'],
+    ['You have 24 hours for each move. Leave whenever you like and come back from My games.',
+      'Tienes 24 horas para cada jugada. Sal cuando quieras y vuelve desde Mis partidas.',
+      'Du hast 24 Stunden für jeden Zug. Geh, wann du willst, und komm über Meine Partien zurück.',
+      'Vous avez 24 heures pour chaque coup. Partez quand vous voulez et revenez depuis Mes parties.',
+      'Você tem 24 horas para cada lance. Saia quando quiser e volte por Minhas partidas.',
+      'Hai 24 ore per ogni mossa. Esci quando vuoi e torna da Le mie partite.'],
   ];
 
   var COLS = ['es-419', 'de-DE', 'fr-FR', 'pt-BR', 'it-IT'];

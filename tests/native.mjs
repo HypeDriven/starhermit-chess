@@ -1,10 +1,12 @@
 // Native client checks on the StarHermit engine: `starhermit check .` (manifest,
 // package, browser module linking, 120 headless frames; any warning fails),
-// then every tests/native/*.play script as a signed-out offscreen run (offline practice against hal through server.js).
+// then every tests/native/*.play script as a signed-out offscreen run (offline
+// practice against hal through server.js).
 // Also checks that the committed web index (starhermit-files.json) matches the
-// files, i.e. that `npm run package` ran after the last change. Point
-// STARHERMIT at the Windows runtime (WSL runs it directly); without it only
-// the index check runs.
+// files, i.e. that `npm run package` ran after the last change, and that every
+// client string has its translations in strings.js (T("…") literals and lists
+// marked `// translated:`). Point STARHERMIT at the Windows runtime (WSL runs it
+// directly); without it only those two checks run.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -13,6 +15,23 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const exe = process.env.STARHERMIT;
+
+// Every string the client translates (T("…") and the hint/how-to tables) has
+// a row in strings.js for each table locale.
+globalThis.self = globalThis;
+await import(join(root, 'strings.js'));
+const tables = globalThis.CH_STRINGS;
+const untranslated = [];
+for (const f of readdirSync(join(root, 'native')).filter((n) => n.endsWith('.ts'))) {
+  const src = readFileSync(join(root, 'native', f), 'utf8');
+  const keys = [...src.matchAll(/\bT\(\s*"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1]);
+  for (const m of src.matchAll(/\/\/ translated:\n([\s\S]*?)\n[\]}];/g)) keys.push(...[...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]));
+  for (const k of keys) for (const loc of ['es-419', 'de-DE', 'fr-FR', 'pt-BR', 'it-IT']) {
+    if (!(k in tables[loc])) untranslated.push(`${f}: ${loc} "${k}"`);
+  }
+}
+if (untranslated.length) { console.log(`not ok - untranslated strings\n${untranslated.join('\n')}`); process.exit(1); }
+console.log('ok - every client string is translated');
 
 const { files: index, excluded = [] } = JSON.parse(readFileSync(join(root, 'starhermit-files.json'), 'utf8'));
 const left = (f) => excluded.some((e) => (e.endsWith('/') ? f.startsWith(e) : f === e));

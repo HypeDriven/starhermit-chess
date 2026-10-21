@@ -10,6 +10,7 @@ import {
 } from "starhermit:platform";
 import { authority } from "starhermit:script";
 import { drawBoard, moveFocus, PALETTE, squareAt } from "./board.js";
+import { hintFor, hintText, markSeen, type HintId } from "./hints.js";
 import { colorName, fmtLeft, reasonText, T } from "./i18n.js";
 import { checkSquare, replayMoves, rules, type Color, type GameState, type LoggedMove, type Move } from "./rules.js";
 import { sfx, sfxForMove } from "./sfx.js";
@@ -57,6 +58,9 @@ export class TableScreen implements Screen {
   private me: string;
   private selected = -1;
   private dests: Move[] = [];
+  /** The first-time hint for this position ("" until worked out) and the one shown. */
+  private hint: HintId | null | "" = "";
+  private shownHint: HintId | null = null;
   private focus: number | null = null;
   private promo: { from: number; to: number } | null = null;
   private confirm: "resign" | "draw" | null = null;
@@ -196,6 +200,7 @@ export class TableScreen implements Screen {
     const first = !this.view;
     this.view = v;
     this.game = replayMoves(v.moves).game;
+    this.hint = "";
     this.selected = -1;
     this.dests = [];
     this.promo = null;
@@ -255,6 +260,14 @@ export class TableScreen implements Screen {
     if (v.ai === color) return v.aiName ?? "hal";
     return nameOf(v[color], colorName(color));
   }
+  /** The first-time hint while it is my move (see hints.ts). */
+  private hintLine(): void {
+    const mine = this.myColor();
+    if (!this.canMove() || !mine) { this.shownHint = null; return; }
+    if (this.hint === "") this.hint = hintFor(this.game, mine, !!this.sessionId);
+    this.shownHint = this.hint;
+    if (this.hint) ui.paragraph(hintText(this.hint), 320);
+  }
   private canMove(): boolean {
     const v = this.view;
     return !!v && v.status === "active" && v.turn === this.myColor() && !this.awaitingEcho && !this.queue.length;
@@ -286,6 +299,7 @@ export class TableScreen implements Screen {
   private sendMove(from: number, to: number, promo: string | null): void {
     const sent = this.link.send({ type: "move", from: rules.algebraic(from), to: rules.algebraic(to), promo });
     if (!sent) { toast(T("Too fast — try again."), true); return; }
+    if (this.shownHint) markSeen(this.shownHint);
     this.awaitingEcho = true;
     this.selected = -1;
     this.dests = [];
@@ -363,6 +377,7 @@ export class TableScreen implements Screen {
         }, { spacing: 8 });
         if (v) this.clock(v, mine);
         if (v) this.drawBanner(v, mine);
+        this.hintLine();
         this.scoresheet(v);
         if (this.sessionId && v && !v.ai) this.chatPanel();
         else ui.label(this.sessionId ? T("No table talk with hal.") : T("Offline practice — no clock, no rating."), { tone: "muted" });
