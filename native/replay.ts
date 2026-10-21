@@ -13,12 +13,12 @@ export class ReplayScreen implements Screen {
   private positions: Position[] = [];
   private moves: LoggedMove[] = [];
   private ply = 0;
-  /** Set when the ply changes: the scoresheet brings its move into view. */
-  private follow = false;
+  /** Where the scoresheet scrolls on the next frame, if anywhere. */
   private scrollTop: number | null = null;
-  /** Window pixels from one scoresheet row to the next, once measured. */
+  /** Window pixels from one scoresheet row to the next, once measured, and the
+   * sheet's scroll state last frame. */
   private pitch = 0;
-  private dbgFrames = 0;
+  private sheet: ui.ScrollAreaRect | null = null;
   private white = "";
   private black = "";
   private resultLine = "";
@@ -48,9 +48,15 @@ export class ReplayScreen implements Screen {
   private go(ply: number): void {
     const next = Math.max(0, Math.min(this.positions.length - 1, ply));
     if (next === this.ply + 1) sfxForMove(this.moves[this.ply]!.san);
-    if (next !== this.ply) this.follow = true;
-    console.warn(`DBG go ${next} frame=${this.dbgFrames}`);
     this.ply = next;
+    // Bring the move's scoresheet row into view on the next frame (rows are
+    // evenly spaced; the pitch and the sheet's scroll come from the last frame).
+    const { pitch, sheet } = this;
+    if (!pitch || !sheet) return;
+    const top = (next <= 1 ? 0 : Math.floor((next - 1) / 2)) * pitch;
+    if (top < sheet.scrollTop || top + pitch > sheet.scrollTop + sheet.clientHeight) {
+      this.scrollTop = Math.max(0, top - (sheet.clientHeight - pitch) / 2);
+    }
   }
 
   // The stepping keys always step (the screen has no text field), and take the
@@ -64,8 +70,6 @@ export class ReplayScreen implements Screen {
   }
 
   update(): void {
-    this.dbgFrames++;
-    if (this.follow) console.warn(`DBG top follow frame=${this.dbgFrames} ply=${this.ply}`);
     if (this.dropFocus) { ui.setFocus(null); this.dropFocus = false; }
     const { scale } = frame();
     const layout = splitLayout();
@@ -93,7 +97,6 @@ export class ReplayScreen implements Screen {
         }, { spacing: 8, align: "center" });
         const scrollTo = this.scrollTop == null ? undefined : { scrollTo: { top: this.scrollTop, behavior: "smooth" as const } };
         this.scrollTop = null;
-        const currentRow = this.ply <= 1 ? 0 : Math.floor((this.ply - 1) / 2);
         const tops: number[] = [];
         const sheet = ui.scrollArea("replay-moves", { width: 340, height: 260 }, () => {
           for (let i = 0; i < this.moves.length; i += 2) {
@@ -106,17 +109,8 @@ export class ReplayScreen implements Screen {
             if (i < 4) tops.push(row.y);
           }
         }, scrollTo);
-        // Rows are evenly spaced: the first two give the pitch (measured while
-        // they show), which places the current row.
         if (tops.length >= 2 && tops[1]! - tops[0]! > 0) this.pitch = tops[1]! - tops[0]!;
-        if (this.follow || scrollTo) console.warn(`DBG follow=${this.follow} pitch=${this.pitch} tops=${tops.join(",")} st=${sheet.scrollTop} ch=${sheet.clientHeight} sh=${sheet.scrollHeight} y=${sheet.y} to=${JSON.stringify(scrollTo)}`);
-        if (this.follow && this.pitch > 0) {
-          this.follow = false;
-          const top = currentRow * this.pitch;
-          if (top < sheet.scrollTop || top + this.pitch > sheet.scrollTop + sheet.clientHeight) {
-            this.scrollTop = Math.max(0, top - (sheet.clientHeight - this.pitch) / 2);
-          }
-        }
+        this.sheet = sheet;
       }, { spacing: 12 });
     });
   }
