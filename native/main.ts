@@ -1,6 +1,6 @@
-// StarHermit Chess, native client: the entry module the StarHermit engine runs
-// (starhermit.txt engine.entry). The browser client (index.html) is unchanged;
-// both speak to the same server.js.
+// StarHermit Chess: the entry module the StarHermit engine runs
+// (starhermit.txt engine.entry), natively in the Windows client and in
+// browsers on the engine's web runtime; both speak to the same server.js.
 import { onRender, onStart, onUpdate } from "starhermit:engine";
 import { Color, PerspectiveCamera, renderer, scene } from "starhermit:scene";
 import { onAction, onKey, onPointerButton, onTouch } from "starhermit:input";
@@ -24,7 +24,7 @@ scene.background = new Color(PALETTE.bg);
 
 onStart(() => {
   setTheme();
-  void loadSfx(); // the board needs no sound to start; clips load behind it
+  loadSfx(); // the board needs no sound to start; clips load behind it
   nav.club();
 });
 

@@ -266,7 +266,10 @@ textures in the game: pieces are paths rasterized at the board's square size.
 No music and no ambience — the room is silent so that a piece landing is an event. Every clip is
 loudness-normalised to −20 LUFS and under three seconds. `select` and `illegal` play on the runtime's
 interface bus, the rest on the effects bus; volumes are the runtime's Options › Audio. Clips load in
-the background at start (`loadClip`); a clip that fails to load or play is silent, never an error.
+the background once the mixer runs (`context.currentTime` above 0: at start natively, after the first
+press in browsers), one at a time 400 ms apart, because engine 1.3.0's web runtime silently loses
+clips made before its audio starts or uploaded side by side. A clip that fails to load or play is
+silent, never an error.
 Move cues are derived from SAN (`sfxForMove`): `=` promote, `O-O` castle, `x` capture, otherwise
 move, plus the bell when the SAN ends in `+` or `#`.
 
