@@ -9,6 +9,7 @@ import {
   type ChatChannel, type ChatMessage,
 } from "starhermit:platform";
 import { authority } from "starhermit:script";
+import { storage } from "starhermit:storage";
 import { drawBoard, moveFocus, PALETTE, squareAt } from "./board.js";
 import { hintFor, hintText, markSeen, type HintId } from "./hints.js";
 import { colorName, fmtLeft, reasonText, T } from "./i18n.js";
@@ -20,6 +21,32 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 const PRACTICE_ME = "you";
 const PRACTICE_HAL = "hal";
+
+// -- The practice game kept on the device -------------------------------------------
+// Offline practice survives leaving the table: its colour and moves are kept
+// after every move and replayed by server.js when the player resumes.
+interface KeptPractice {
+  humanWhite: boolean;
+  moves: { from: string; to: string; promo: string | null }[];
+}
+const KEPT_KEY = "practice.game";
+let kept: KeptPractice | null | undefined; // read once, then kept in step with storage
+function keptPractice(): KeptPractice | null {
+  if (kept === undefined) {
+    try {
+      const k = storage.getJson(KEPT_KEY) as KeptPractice | null;
+      kept = k && Array.isArray(k.moves) ? k : null;
+    } catch { kept = null; }
+  }
+  return kept;
+}
+function keepPractice(k: KeptPractice | null): void {
+  kept = k;
+  try { if (k) storage.setJson(KEPT_KEY, k as unknown as JsonValue); else storage.remove(KEPT_KEY); }
+  catch { /* practice just is not kept */ }
+}
+/** Whether there is a practice game to resume. */
+export function hasKeptPractice(): boolean { return keptPractice() != null; }
 
 /** server.js publicSessionView. */
 interface View {
@@ -81,10 +108,11 @@ export class TableScreen implements Screen {
   private voiceOn = false;
   private failure = "";
 
-  constructor(private readonly sessionId: string | null) {
+  constructor(private readonly sessionId: string | null, resume = false) {
     const p = player();
     this.me = sessionId ? p!.userId : PRACTICE_ME;
-    this.link = sessionId ? this.connect(sessionId) : this.practice(p?.displayName ?? T("You"));
+    if (!sessionId && !resume) keepPractice(null);
+    this.link = sessionId ? this.connect(sessionId) : this.practice(p?.displayName ?? T("You"), resume ? keptPractice() : null);
   }
 
   // -- Connections ----------------------------------------------------------------
@@ -113,12 +141,13 @@ export class TableScreen implements Screen {
     return { send: (c) => socket.sendCommand(c), close: () => socket.close() };
   }
 
-  private practice(myName: string): Link {
+  private practice(myName: string, resumeFrom: KeptPractice | null): Link {
     const a = authority("server.js", {
       context: {
         sessionId: "practice",
         players: [{ id: PRACTICE_ME, name: myName }, { id: PRACTICE_HAL, name: "hal", ai: true }],
-        sessionState: null,
+        // server.js replays a kept game's moves (createSession's resumePractice).
+        sessionState: resumeFrom ? { resumePractice: { humanWhite: resumeFrom.humanWhite, moves: resumeFrom.moves } } : null,
         playerStates: {},
       },
       player: PRACTICE_ME,
@@ -126,7 +155,12 @@ export class TableScreen implements Screen {
     a.on("open", () => { this.conn = "open"; });
     a.on("game", (data) => this.receive(data));
     a.on("error", (message) => { if (this.conn === "open") this.refused(message); else this.failure = message; });
-    a.on("stopped", (reason) => { if (reason === "failed") { this.conn = "closed"; toast(T("Practice could not start."), true); } });
+    a.on("stopped", (reason) => {
+      if (reason !== "failed") return;
+      this.conn = "closed";
+      if (resumeFrom) keepPractice(null); // a kept game that no longer replays is dropped
+      toast(T("Practice could not start."), true);
+    });
     return { send: (c) => a.sendCommand(c), close: () => a.close() };
   }
 
@@ -200,6 +234,12 @@ export class TableScreen implements Screen {
   private setView(v: View): void {
     const first = !this.view;
     this.view = v;
+    if (!this.sessionId) {
+      keepPractice(v.status === "active" && v.moves.length ? {
+        humanWhite: v.white === PRACTICE_ME,
+        moves: v.moves.map((m) => ({ from: m.from, to: m.to, promo: m.promo ?? null })),
+      } : null);
+    }
     this.game = replayMoves(v.moves).game;
     this.hint = "";
     this.selected = -1;

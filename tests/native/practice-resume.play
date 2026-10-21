@@ -1,0 +1,25 @@
+until 300 Take a seat
+click Play
+until 600 Your move
+key Enter 2
+key KeyZ 2
+key ArrowUp 2
+key KeyZ 2
+key Enter 2
+key KeyZ 2
+key ArrowUp 2
+key KeyZ 2
+key ArrowUp 2
+key KeyZ 2
+key Enter 2
+until 300 1.
+until 300 Your move
+click ← Club
+until 100 Resume practice
+click Resume practice
+until 300 Your move
+until 60 1.
+click Resign
+until 100 Resign this game?
+key Enter 2
+until 200 You lost

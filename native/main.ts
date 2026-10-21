@@ -16,6 +16,7 @@ import { TableScreen } from "./table.js";
 
 nav.club = () => show(new ClubScreen());
 nav.table = (sessionId) => show(new TableScreen(sessionId));
+nav.practice = (resume) => show(new TableScreen(null, resume));
 nav.replay = (sessionId) => show(new ReplayScreen(sessionId));
 
 const camera = new PerspectiveCamera(50, 16 / 9, 0.1, 10);

@@ -28,8 +28,10 @@ export function screen(): Screen | null { return current; }
 /** Opens a screen by name; main.ts fills these in (screens never import each other). */
 export const nav = {
   club(): void { /* set by main.ts */ },
-  /** A platform session, or null for offline practice against hal. */
-  table(_sessionId: string | null): void { /* set by main.ts */ },
+  /** A platform session. */
+  table(_sessionId: string): void { /* set by main.ts */ },
+  /** Offline practice against hal: a new game, or the one kept on the device. */
+  practice(_resume: boolean): void { /* set by main.ts */ },
   replay(_sessionId: string): void { /* set by main.ts */ },
 };
 

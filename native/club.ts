@@ -11,6 +11,7 @@ import { storage } from "starhermit:storage";
 import { PALETTE } from "./board.js";
 import { fmtLeft, reasonText, T } from "./i18n.js";
 import { sfx } from "./sfx.js";
+import { hasKeptPractice } from "./table.js";
 import { errorText, loadName, nameOf, nav, scrollPanel, short, toast, type Screen } from "./shell.js";
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -191,7 +192,8 @@ export class ClubScreen implements Screen {
       ui.heading(T("Take a seat"));
       ui.paragraph(T("Practice against hal right now — no sign-in needed."), 420);
       ui.row("landing-play", () => {
-        if (ui.id("play-local").button(T("Play"))) nav.table(null);
+        if (ui.id("play-local").button(T("Play"))) nav.practice(false);
+        if (hasKeptPractice() && ui.id("resume-practice").button(T("Resume practice"))) nav.practice(true);
         if (ui.id("how-to").button(T("How to play"))) this.howTo = true;
       }, { spacing: 8 });
       ui.label(T("or sign in to the club"), { tone: "muted" });
@@ -210,7 +212,8 @@ export class ClubScreen implements Screen {
             this.busy = true;
             this.startSearch().finally(() => { this.busy = false; });
           }
-          if (ui.id("practice").button(T("Practice vs hal"))) nav.table(null);
+          if (ui.id("practice").button(T("Practice vs hal"))) nav.practice(false);
+          if (hasKeptPractice() && ui.id("resume-practice").button(T("Resume practice"))) nav.practice(true);
           if (ui.id("how-to").button(T("How to play"))) this.howTo = true;
         }, { spacing: 8 });
       } else {

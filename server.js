@@ -708,7 +708,12 @@ globalThis.game = {
       var practicePlayerStates = {};
       practicePlayerStates[humanId] = humanDoc;
       practicePlayerStates[aiEntry.id] = aiDoc;
-      var humanIsWhite = ctx.random < 0.5;
+      // A practice game the client kept on the device resumes from its moves
+      // (offline only: on the platform sessionState is the platform's, and a new
+      // session's is null). Every move is replayed through makeMove, so only a
+      // legal, unfinished game resumes.
+      var saved = ctx.sessionState && ctx.sessionState.resumePractice;
+      var humanIsWhite = saved ? saved.humanWhite === true : ctx.random < 0.5;
       var ps = {
         white: humanIsWhite ? humanId : aiEntry.id,
         black: humanIsWhite ? aiEntry.id : humanId,
@@ -719,6 +724,15 @@ globalThis.game = {
         result: null,
         drawOfferBy: null,
       };
+      if (saved) {
+        if (!Array.isArray(saved.moves) || saved.moves.length > 1000)
+          return { ok: false, error: 'Cannot resume this practice game.' };
+        for (var mi = 0; mi < saved.moves.length; mi++) {
+          var sm = saved.moves[mi] || {};
+          var replayed = makeMove(ps.game, { from: sm.from, to: sm.to, promo: sm.promo || null }, ctx.now);
+          if (!replayed.ok || replayed.gameOver) return { ok: false, error: 'Cannot resume this practice game.' };
+        }
+      }
       syncSummary(ps);
       var pout = { ok: true, sessionState: ps, playerStates: practicePlayerStates, broadcast: [] };
       aiReply(ctx, ps, pout);

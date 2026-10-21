@@ -165,7 +165,7 @@ clock, chat, voice or replay, and ends when the player leaves the table.
 
 | Mode | Entry | What differs |
 |---|---|---|
-| Offline practice vs hal | Signed out: **Play**. Signed in: **Practice vs hal** | Local authority; unrated; no clock; no chat/voice/replay; ← Club returns to the club |
+| Offline practice vs hal | Signed out: **Play**. Signed in: **Practice vs hal**. **Resume practice** (beside them while a game is kept) | Local authority; unrated; no clock; no chat/voice/replay; ← Club returns to the club. The unfinished game is kept on the device (`practice.game`: colour and moves, after every move) and resumes where it stopped: `server.js` `createSession` replays the kept moves (`sessionState.resumePractice`, offline only) through `makeMove` and refuses an illegal or finished list. Starting a new practice game or finishing one drops it |
 | Rated matchmaking | Club → **Play** | `matchmaking.enqueue`; nearest-Elo pairing; ticket polled every 3 s; after 30 s a **Play against hal** button appears (the 30 s belong to the ticket and survive a restart, stored per player) |
 | Rated game vs hal | Matchmaking → **Play against hal** | `sessions.practice()`; server-side hal; 24 h clock applies; no table talk or voice |
 | Friend invite | Club → **Invite a friend** | Dialog listing platform friends (● online, ○ offline) in a scrolling list of fixed width; accepting creates the session |
@@ -406,9 +406,11 @@ colours alternate for a pair; `tickRateHz` and `replays` are declared; a one-pla
 `// translated:`) has a row in `strings.js` for es-419, de-DE, fr-FR, pt-BR and it-IT; the committed
 `starhermit-files.json` matches the package (else "run npm run package"); then, with `STARHERMIT`
 pointing at the engine's `starhermit.exe`, `starhermit check .` with no warning and every `tests/native/*.play` script signed out and offscreen —
-`practice-flow.play` (practice opens, the draw offer hal declines, back to the club) and
+`practice-flow.play` (practice opens, the draw offer hal declines, back to the club),
 `practice-game.play` (a move by keyboard with either colour, resignation through its dialog, the
-game-over dialog, Look at the board).
+game-over dialog, Look at the board) and `practice-resume.play` (leave a practice game, **Resume
+practice** brings back its moves). `tests/rules.mjs` also checks that a kept practice game resumes
+only from a legal, unfinished move list, in its kept colour.
 
 **QA bar (checkable).**
 - `tsc` is clean; `starhermit check .` passes; the web index is fresh.
@@ -432,7 +434,7 @@ game-over dialog, Look at the board).
 - The cover tile bakes an English title into the image, and server-side refusal messages outside the
   known list are shown as sent.
 - hal is a one-ply material-greedy player: it never plans, so it is a beginner's opponent.
-- Offline practice cannot be replayed or resumed; leaving the table ends it.
+- Offline practice cannot be replayed; one practice game is kept per device.
 - A launch cannot open a given session directly; invitations are accepted from the club.
 - In browsers sounds start only after the first press (autoplay policy).
 - In browsers on engines 1.3.0 and 1.4.0 the chat field takes no typing: the runtime never opens its text entry

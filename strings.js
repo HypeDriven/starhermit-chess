@@ -247,6 +247,7 @@
     ['No table talk with hal.', 'No hay charla de mesa con hal.', 'Kein Tischgespräch mit hal.', 'Pas de discussion avec hal.', 'Sem conversa de mesa com hal.', 'Niente chiacchiere con hal.'],
     ['Look at the board', 'Ver el tablero', 'Brett ansehen', 'Voir l’échiquier', 'Ver o tabuleiro', 'Guarda la scacchiera'],
     // ---- how to play, first-time hints
+    ['Resume practice', 'Reanudar práctica', 'Übungspartie fortsetzen', 'Reprendre l’entraînement', 'Retomar treino', 'Riprendi l’allenamento'],
     ['How to play', 'Cómo se juega', 'So wird gespielt', 'Comment jouer', 'Como jogar', 'Come si gioca'],
     ['Got it', 'Entendido', 'Verstanden', 'Compris', 'Entendi', 'Capito'],
     ['Checkmate the other king: attack it so that it has no way out.',

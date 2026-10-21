@@ -306,5 +306,32 @@ check('colours alternate between the same pair, and the manifest knobs are decla
   eq(GAME.createSession({ ...mk(0.5), players: [{ id: a }] }).ok, false, 'chess needs two players');
 });
 
+check('a kept practice game resumes only from a legal, unfinished move list', () => {
+  const human = 'you', hal = 'hal';
+  const mk = (resumePractice) => ({
+    now: 1, random: 0.1, sessionId: 'practice',
+    players: [{ id: human }, { id: hal, ai: true }],
+    sessionState: resumePractice ? { resumePractice } : null,
+    playerStates: {},
+  });
+  const mv = (m) => ({ from: m.slice(0, 2), to: m.slice(2, 4), promo: null });
+  // Black (the human) to move after 1. e4 e5 2. Nf3: hal does not move on resume.
+  const out = GAME.createSession(mk({ humanWhite: false, moves: ['e2e4', 'e7e5', 'g1f3'].map(mv) }));
+  ok(out.ok, 'resumes: ' + out.error);
+  eq(out.sessionState.black, human, 'the kept colour, not the random one');
+  eq(out.sessionState.game.moves.length, 3, 'all moves replayed');
+  eq(out.sessionState.game.turn, 'black', 'the human to move');
+  const view = out.broadcast[out.broadcast.length - 1].data;
+  eq(view.moves.length, 3, 'the state broadcast carries the moves');
+  // White (the human) after 1. e4 e5: hal moves only when it is hal's turn.
+  const w = GAME.createSession(mk({ humanWhite: true, moves: ['e2e4', 'e7e5'].map(mv) }));
+  eq(w.sessionState.game.moves.length, 2, 'white to move: no hal reply');
+  eq(GAME.createSession(mk({ humanWhite: true, moves: ['e2e5'].map(mv) })).ok, false, 'an illegal move is refused');
+  const mate = ['f2f3', 'e7e5', 'g2g4', 'd8h4'].map(mv);
+  eq(GAME.createSession(mk({ humanWhite: true, moves: mate })).ok, false, 'a finished game is refused');
+  eq(GAME.createSession(mk({ humanWhite: true, moves: 'e2e4' })).ok, false, 'a malformed list is refused');
+  ok(GAME.createSession(mk(null)).ok, 'no kept game: a new one');
+});
+
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nRULES PASS — all checks clean');
 process.exit(failures ? 1 : 0);
