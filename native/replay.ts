@@ -105,6 +105,7 @@ export class ReplayScreen implements Screen {
         // Rows are evenly spaced: the first two give the pitch (measured while
         // they show), which places the current row.
         if (tops.length >= 2 && tops[1]! - tops[0]! > 0) this.pitch = tops[1]! - tops[0]!;
+        if (this.follow || scrollTo) console.log(`DBG follow=${this.follow} pitch=${this.pitch} tops=${tops.join(",")} st=${sheet.scrollTop} ch=${sheet.clientHeight} sh=${sheet.scrollHeight} y=${sheet.y} to=${JSON.stringify(scrollTo)}`);
         if (this.follow && this.pitch > 0) {
           this.follow = false;
           const top = currentRow * this.pitch;
