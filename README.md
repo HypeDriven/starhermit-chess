@@ -18,12 +18,13 @@ GitHub repo URL** — and the platform reads `starhermit.txt` at the repo root t
 identify the owner and the optional server script. **Deploy to Starhermit** in
 the game's Manage menu serves the pinned commit at `<uid>.starhermit.com`.
 
-Chess is a StarHermit engine script game (engine 1.1.0): one package runs in
+Chess is a StarHermit engine script game (engine 1.3.0): one package runs in
 browsers on the engine's web runtime and natively in the StarHermit Windows
 client, whichever the player launched it from. To publish a change:
 
 1. Run `STARHERMIT=/path/to/starhermit.exe npm run package` — it regenerates
-   `index.html` (the web loader) and `starhermit-files.json` (the file index).
+   `index.html` (the web loader) and `starhermit-files.json` (the file index);
+   `tests/`, `tools/` and the npm files stay out of the package.
    The engine runtime is the developer download on
    [Engine releases](https://wiki.starhermit.com/docs/engine-releases.html).
 2. `npm test` (the native check fails if step 1 was skipped), commit, push.

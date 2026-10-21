@@ -1,6 +1,6 @@
 // Native client checks on the StarHermit engine: `starhermit check .` (manifest,
-// package, 120 headless frames), then every tests/native/*.play script as a
-// signed-out offscreen run (offline practice against hal through server.js).
+// package, browser module linking, 120 headless frames; any warning fails),
+// then every tests/native/*.play script as a signed-out offscreen run (offline practice against hal through server.js).
 // Also checks that the committed web index (starhermit-files.json) matches the
 // files, i.e. that `npm run package` ran after the last change. Point
 // STARHERMIT at the Windows runtime (WSL runs it directly); without it only
@@ -14,9 +14,10 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const exe = process.env.STARHERMIT;
 
-const index = JSON.parse(readFileSync(join(root, 'starhermit-files.json'), 'utf8')).files;
+const { files: index, excluded = [] } = JSON.parse(readFileSync(join(root, 'starhermit-files.json'), 'utf8'));
+const left = (f) => excluded.some((e) => (e.endsWith('/') ? f.startsWith(e) : f === e));
 const tracked = execFileSync('git', ['ls-files', '-co', '--exclude-standard', '--deduplicate'], { cwd: root, encoding: 'utf8' })
-  .split('\n').filter((f) => f && f !== 'starhermit-files.json' && !f.split('/').some((p) => p.startsWith('.')));
+  .split('\n').filter((f) => f && f !== 'starhermit-files.json' && !left(f) && !f.split('/').some((p) => p.startsWith('.')));
 const stale = tracked.filter((f) => {
   let data; try { data = readFileSync(join(root, f)); } catch { return false; }
   return !index[f] || index[f].sha256 !== createHash('sha256').update(data).digest('hex');
@@ -35,7 +36,12 @@ function step(name, args) {
   catch (e) { failed++; console.log(`not ok - ${name}\n${(e.stderr || e.stdout || e.message).trim()}`); }
 }
 
-step('starhermit check', ['check', '.']);
+try {
+  const out = execFileSync(exe, ['check', '.', '--quiet'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const warnings = out.split('\n').filter((l) => l.startsWith('warning'));
+  if (warnings.length) { failed++; console.log(`not ok - starhermit check warns\n${warnings.join('\n')}`); }
+  else console.log('ok - starhermit check');
+} catch (e) { failed++; console.log(`not ok - starhermit check\n${(e.stderr || e.stdout || e.message).trim()}`); }
 for (const f of readdirSync(join(root, 'tests', 'native')).filter((n) => n.endsWith('.play')).sort()) {
   step(f, ['.', '--render-check', '--guest', '--script', `tests/native/${f}`]);
 }

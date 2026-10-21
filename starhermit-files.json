@@ -1,11 +1,11 @@
 {
   "files": {
     "LICENSE.md": {"sha256": "13324de5e020665146bea6eafc542805d5058daacbf163d89d9434f9367f33b8", "size": 4463},
-    "README.md": {"sha256": "0a2ce22e4cb39dec93bd39ea60131990d4e1fb2d6a0a498fd13eb8c33b8af886", "size": 4292},
+    "README.md": {"sha256": "08db393b2d203a07fb0a5aa8edc13141e0e6db53f5482fb1176d5bb91c2419c9", "size": 4357},
     "cover.jpg": {"sha256": "35f6e8afeeff367cf616cfc4be2e735d01148771cb894a33e9b34d76a4193a99", "size": 137482},
     "coverart.png": {"sha256": "58ccb0ae8dc60da0f7c16edf38f2a9a90fbaca3a288cff635f70178f0120194c", "size": 449796},
     "icon.png": {"sha256": "d3a1f22da6b3684e27398c1924a6e1dbc6b1b0889b8a3c3ad2aa1d15dae5dd55", "size": 6291},
-    "index.html": {"sha256": "85a4410e3634c9aa4ea39d5f4863d19dcdd71ca727303b10b879ecc0ffbcb2ea", "size": 1709},
+    "index.html": {"sha256": "3659c5f2619a37da8e06c3e42d6996a7ffc95d45e136b9989f88a7c9c5267a14", "size": 1743},
     "leaderboards.json": {"sha256": "e770782d74ba39f5c6c495448b993ac811fbc7b18d2c546b65f398e6d21c4f38", "size": 139},
     "native/board.ts": {"sha256": "4447ec498569c772c0c9915887d1a6c0118cec2a662cb42194a036035cff6f61", "size": 7787},
     "native/club.ts": {"sha256": "7686500d1cecb2bd2ad3b57424ab16c2a63257adb821a082ab6449f4565169ac", "size": 12478},
@@ -16,7 +16,6 @@
     "native/sfx.ts": {"sha256": "4f79de3dac4cd582f458a141641e45050b420dfe8a5b0d8d599039c504de232f", "size": 1811},
     "native/shell.ts": {"sha256": "5f409c0ed8b7abd44735bef9401891ce822df308806861b43e0928ed53cab0b6", "size": 4900},
     "native/table.ts": {"sha256": "42d9c9f00c5b4d6d76c5d24748e8f90ec405ff706248e01ac74cd8f92f49b004", "size": 22354},
-    "package.json": {"sha256": "fb55383410b8600a3a83a1c2da1969a0cbe9d27f78d8f5bb30a05a422679dfb0", "size": 279},
     "server.js": {"sha256": "e9ddeeda5cabc0b3769f29cf410c150e56b5ad6e680d1b36fefe5e9ca8762961", "size": 39494},
     "sfx/chat-note.opus": {"sha256": "e4db67a9be6590648a20611962bf29a66bd46ce4da41e8eebda1f10acbbb34e4", "size": 12010},
     "sfx/check-bell.opus": {"sha256": "d57d0feb611fb31229565bb6d3ae64b503c4c34f060c30aed0ba9b14934971c4", "size": 27719},
@@ -35,15 +34,10 @@
     "sfx/piece-move.opus": {"sha256": "f8b5b5c6899cece59d3fd2d80ad52c5ac5066429d92d4db8dec82ea6f2c08148", "size": 12630},
     "sfx/piece-select.opus": {"sha256": "9df5e65950e8410181bfe21d73202e0bd1d5fbc12426a9274781759dcdb086d5", "size": 11763},
     "sfx/promote-chime.opus": {"sha256": "4de21d026b88350f63303ef16b3a223e45f8cf44eb62132663b51a27bb6c99d4", "size": 28150},
-    "spec.md": {"sha256": "809f63550ab6c3d27f62365e2048cb02fd54c8a6b2dc6e228de176d93cfffb88", "size": 32393},
-    "starhermit.txt": {"sha256": "5274cef79dd4ecfb9002390e686a2b0656ce2c07316824332110c68f65ce8510", "size": 2646},
-    "strings.js": {"sha256": "2f16fc8d73f9d46d3096831fdb4dc925e18ee85ca8c4bf73a6fc371fa31b548f", "size": 37992},
-    "tests/native.mjs": {"sha256": "121353fba3752b8d6c6692657c8f74c08962190dfd57f8275d286fe1b1e4a0b6", "size": 2386},
-    "tests/native/practice-flow.play": {"sha256": "5c42d42b9d0e54f631e5dacb487c96fb8529c76496c8791a03de1f507074d9b2", "size": 183},
-    "tests/native/practice-game.play": {"sha256": "34be4c79516a90a940d7cdabbc663eb04efae25b3dbe0167c3789d977b2954f6", "size": 326},
-    "tests/rules.mjs": {"sha256": "fcf131ef71d36c6544e268aeeff72342978662bd722e5f01b081951aa4b76c40", "size": 13824},
-    "tools/package-web.mjs": {"sha256": "c9bc6e99ae4124adecd124c486e9bd4200a03f8ed22aed779c823b8b82bcb2e2", "size": 1549},
-    "tsconfig.json": {"sha256": "62c4db6e08f8fcc37de9f6014e8715aa6449aa9bad4c1daeb4386abb926c1bda", "size": 389}
+    "spec.md": {"sha256": "dfec2d16e08f04ae1ebd9ce08855f740379b9d8b57e6bdd656d384e31f1b0c85", "size": 32748},
+    "starhermit.txt": {"sha256": "08722c9fc062b94dc9ae87c48f1767d9f6f61f7954f52646448d5163458300c0", "size": 2646},
+    "strings.js": {"sha256": "2f16fc8d73f9d46d3096831fdb4dc925e18ee85ca8c4bf73a6fc371fa31b548f", "size": 37992}
   },
+  "excluded": ["node_modules/", "package.json", "tests/", "tools/", "tsconfig.json"],
   "format": 1
 }
