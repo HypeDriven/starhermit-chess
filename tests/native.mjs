@@ -25,9 +25,18 @@ const untranslated = [];
 for (const f of readdirSync(join(root, 'native')).filter((n) => n.endsWith('.ts'))) {
   const src = readFileSync(join(root, 'native', f), 'utf8');
   const keys = [...src.matchAll(/\bT\(\s*"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1]);
-  for (const m of src.matchAll(/\/\/ translated:\n([\s\S]*?)\n[\]}];/g)) keys.push(...[...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]));
+  for (const m of src.matchAll(/\/\/ translated:\n([\s\S]*?)\n[\]}];/g)) keys.push(...[...m[1].matchAll(/"((?:[^"\\]|\\.)*)"(\s*:)?/g)].filter((x) => !x[2]).map((x) => x[1]));
   for (const k of keys) for (const loc of ['es-419', 'de-DE', 'fr-FR', 'pt-BR', 'it-IT']) {
     if (!(k in tables[loc])) untranslated.push(`${f}: ${loc} "${k}"`);
+  }
+}
+// The achievements server.js declares have their texts in i18n.ts (keyed by achievement).
+new Function(readFileSync(join(root, 'server.js'), 'utf8'))();
+const i18nSrc = readFileSync(join(root, 'native', 'i18n.ts'), 'utf8');
+for (const a of globalThis.game.achievements) {
+  const line = i18nSrc.split('\n').find((l) => l.includes(`"${a.key}": {`)) ?? '';
+  if (!line.includes(JSON.stringify(a.name)) || !line.includes(JSON.stringify(a.description))) {
+    untranslated.push(`i18n.ts: achievement "${a.key}" differs from server.js`);
   }
 }
 if (untranslated.length) { console.log(`not ok - untranslated strings\n${untranslated.join('\n')}`); process.exit(1); }

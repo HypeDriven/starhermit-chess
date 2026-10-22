@@ -348,5 +348,55 @@ check('a kept practice game resumes only from a legal, unfinished move list', ()
   ok(GAME.createSession(mk(null)).ok, 'no kept game: a new one');
 });
 
+check('achievements are granted by the script for what it refereed, never to hal', () => {
+  const human = 'human-1', hal = 'hal-1', other = 'human-2';
+  const declared = new Set(GAME.achievements.map((a) => a.key));
+  // Mating hal: a win, a win against hal, a checkmate.
+  const g = stateFrom({ a1: 'K', d1: 'Q', g8: 'k', f7: 'p', g7: 'p', h7: 'p' }, 'white');
+  const mate = GAME.onPlayerMessage({
+    now: 1, random: 0.5, sessionId: 'sess-a1',
+    players: [{ id: human }, { id: hal, ai: true }],
+    sessionState: { white: human, black: hal, aiId: hal, game: g, createdAt: 0, deadline: 10, result: null, drawOfferBy: null },
+    playerStates: {},
+    message: { from: human, data: { type: 'move', from: 'd1', to: 'd8' } },
+  });
+  const got = mate.achievements[human];
+  for (const k of ['first-win', 'beat-hal', 'checkmate']) ok(got.includes(k), 'mating hal earns ' + k);
+  ok(!mate.achievements[hal], 'hal earns nothing');
+  for (const k of got) ok(declared.has(k), k + ' is declared');
+
+  // Resignation between people: the winner's first win; the loser gets nothing.
+  const res = GAME.onPlayerMessage({
+    now: 1, random: 0.5, sessionId: 'sess-a2',
+    players: [{ id: human }, { id: other }],
+    sessionState: { white: human, black: other, game: R.newGameState(), createdAt: 0, deadline: 10, result: null, drawOfferBy: null },
+    playerStates: {},
+    message: { from: human, data: { type: 'resign' } },
+  });
+  ok(res.achievements[other].includes('first-win'), 'the winner of a resignation');
+  ok(!res.achievements[human], 'the player who resigned earns nothing');
+
+  // Promotion and en passant are granted on the move itself.
+  const moveIn = (board, turn, data, setup) => {
+    const st = stateFrom(board, turn);
+    if (setup) setup(st);
+    return GAME.onPlayerMessage({
+      now: 1, random: 0.5, sessionId: 'sess-a3',
+      players: [{ id: human }, { id: other }],
+      sessionState: { white: human, black: other, game: st, createdAt: 0, deadline: 10, result: null, drawOfferBy: null },
+      playerStates: {},
+      message: { from: human, data },
+    });
+  };
+  const promo = moveIn({ a1: 'K', h8: 'k', b7: 'P' }, 'white', { type: 'move', from: 'b7', to: 'b8', promo: 'q' });
+  ok(promo.ok && promo.achievements[human].includes('promotion'), 'promoting earns promotion');
+  const ep = moveIn({ a1: 'K', h8: 'k', e5: 'P', d5: 'p' }, 'white', { type: 'move', from: 'e5', to: 'd6' },
+    (st) => { st.epSquare = idx('d6'); });
+  ok(ep.ok, 'en passant played: ' + ep.error);
+  ok(ep.achievements && ep.achievements[human].includes('en-passant'), 'capturing en passant earns en-passant');
+  const quiet = moveIn({ a1: 'K', h8: 'k', e2: 'P' }, 'white', { type: 'move', from: 'e2', to: 'e4' });
+  ok(!quiet.achievements, 'a quiet move earns nothing');
+});
+
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nRULES PASS — all checks clean');
 process.exit(failures ? 1 : 0);

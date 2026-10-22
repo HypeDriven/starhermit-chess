@@ -87,3 +87,25 @@ export function spokenSquare(square: string, piece: string): string {
   return T(`{square}, ${color} ${names[piece.toLowerCase()]}`, { square });
 }
 
+// -- Achievements -------------------------------------------------------------------
+// The platform lists achievements in the language server.js declares them in
+// (English); these are the same texts for T().
+// translated:
+const ACHIEVEMENT_TEXT: Record<string, { name: string; description: string }> = {
+  "first-win": { name: "First win", description: "Win a game." },
+  "beat-hal": { name: "Beat hal", description: "Win a rated game against hal." },
+  "checkmate": { name: "Checkmate", description: "Win a game by checkmate." },
+  "promotion": { name: "Promoted", description: "Promote a pawn." },
+  "en-passant": { name: "En passant", description: "Capture a pawn en passant." },
+  "regular": { name: "Club regular", description: "Finish ten games." },
+  "streak-3": { name: "On a roll", description: "Win three games in a row." },
+  "rating-1400": { name: "Rising", description: "Reach a rating of 1400." },
+  "fools-mate": { name: "Fool's mate", description: "Checkmate in two moves." },
+};
+
+/** An achievement's name and description in the player's language. */
+export function achievementText(a: { key: string; name: string; description?: string }): { name: string; description: string } {
+  const t = ACHIEVEMENT_TEXT[a.key];
+  return t ? { name: T(t.name), description: T(t.description) } : { name: a.name, description: a.description ?? "" };
+}
+

@@ -537,6 +537,45 @@ function publicSessionView(s, ctx) {
 // Ends the session: updates both player docs, produces eloUpdates + result.
 // The AI has a normal per-game player document, so games against hal affect
 // both players' ratings and records exactly like human-vs-human games.
+// ---------------------------------------------------------------------------
+// Achievements: declared on the game object (game.achievements) and granted
+// only here, from what the script itself refereed. hal's seat earns nothing.
+// ---------------------------------------------------------------------------
+
+// What a finished game earns each human player: player id -> keys.
+function gameAchievements(s, kind, reason, whiteDoc, blackDoc) {
+  var out = {};
+  [['white', s.white, whiteDoc], ['black', s.black, blackDoc]].forEach(function (seat) {
+    var color = seat[0], id = seat[1], doc = seat[2];
+    if (id === s.aiId) return;
+    var keys = [];
+    var won = kind === color;
+    if (won) keys.push('first-win');
+    if (won && s.aiId) keys.push('beat-hal');
+    if (won && reason === 'checkmate') keys.push('checkmate');
+    if (won && reason === 'checkmate' && s.game.moves.length <= 4) keys.push('fools-mate');
+    if (doc.elo >= 1400) keys.push('rating-1400');
+    if (doc.wins + doc.losses + doc.draws >= 10) keys.push('regular');
+    var last3 = doc.recentGames.slice(0, 3);
+    if (last3.length === 3 && last3.every(function (g) {
+      return g.result === (g.white === id ? 'white' : 'black');
+    })) keys.push('streak-3');
+    if (keys.length) out[id] = keys;
+  });
+  return out;
+}
+
+// Adds `more` (player id -> keys) to a result's achievements.
+function addAchievements(out, more) {
+  if (!more) return out;
+  for (var id in more) {
+    if (!more[id] || !more[id].length) continue;
+    out.achievements = out.achievements || {};
+    out.achievements[id] = (out.achievements[id] || []).concat(more[id]);
+  }
+  return out;
+}
+
 function finishGame(ctx, s, kind, reason) {
   var whiteDoc = playerDoc(ctx, s.white);
   var blackDoc = playerDoc(ctx, s.black);
@@ -596,6 +635,7 @@ function finishGame(ctx, s, kind, reason) {
     playerStates: updates,
     eloUpdates: elo,
     scores: scores,
+    achievements: gameAchievements(s, kind, reason, whiteDoc, blackDoc),
     // Persisted as the session's result record and surfaced in replay listings —
     // rich enough for a client to show "who won, why, and the rating change".
     result: {
@@ -663,6 +703,7 @@ function aiReply(ctx, s, out) {
     for (var pid in fin.playerStates) out.playerStates[pid] = fin.playerStates[pid];
     out.eloUpdates = fin.eloUpdates;
     if (fin.scores) out.scores = fin.scores;
+    addAchievements(out, fin.achievements);
     out.result = fin.result;
     out.broadcast.push({ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } });
   }
@@ -683,12 +724,12 @@ function timeoutResult(ctx, s) {
     var winner = s.game.turn === 'white' ? 'black' : 'white';
     fin = finishGame(ctx, s, winner, 'timeout');
   }
-  return {
+  return addAchievements({
     ok: true, sessionState: s,
     playerStates: fin.playerStates, eloUpdates: fin.eloUpdates, result: fin.result,
     scores: fin.scores || {},
     broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } }],
-  };
+  }, fin.achievements);
 }
 
 globalThis.game = {
@@ -707,6 +748,20 @@ globalThis.game = {
   // 24h move deadline stays on the wall clock (ctx.now, not ctx.now - pausedMs),
   // so a player who never comes back still loses on time.
   persistent: true,
+
+  // Granted only by this script (gameAchievements, and promotion / en passant
+  // when the move is played); hal's seat earns none.
+  achievements: [
+    { key: 'first-win', name: 'First win', description: 'Win a game.', points: 10 },
+    { key: 'beat-hal', name: 'Beat hal', description: 'Win a rated game against hal.', points: 10 },
+    { key: 'checkmate', name: 'Checkmate', description: 'Win a game by checkmate.', points: 10 },
+    { key: 'promotion', name: 'Promoted', description: 'Promote a pawn.', points: 5 },
+    { key: 'en-passant', name: 'En passant', description: 'Capture a pawn en passant.', points: 10, secret: true },
+    { key: 'regular', name: 'Club regular', description: 'Finish ten games.', points: 10 },
+    { key: 'streak-3', name: 'On a roll', description: 'Win three games in a row.', points: 25 },
+    { key: 'rating-1400', name: 'Rising', description: 'Reach a rating of 1400.', points: 25 },
+    { key: 'fools-mate', name: 'Fool\'s mate', description: 'Checkmate in two moves.', points: 25, secret: true },
+  ],
 
   // Keep finished sessions as replays. The platform records none unless a game
   // asks, and the client's replay viewer steps the move log in `state.game.moves`
@@ -827,6 +882,9 @@ globalThis.game = {
     // --- game commands ----------------------------------------------------
     if (data.type === 'move') {
       if (s.game.turn !== color) return { ok: false, error: 'Not your turn.' };
+      // Read before the move is played: whether it takes en passant.
+      var epTo = parseSquare(data.to);
+      var wasEp = legalMovesFrom(s.game, parseSquare(data.from)).some(function (c) { return c.to === epTo && c.isEp; });
       var res = makeMove(s.game, { from: data.from, to: data.to, promo: data.promo }, ctx.now);
       if (!res.ok) return { ok: false, error: res.error };
       s.drawOfferBy = null;                          // a move declines any offer
@@ -840,11 +898,16 @@ globalThis.game = {
           data: { type: 'moved', by: color, san: res.san, from: data.from, to: data.to, promo: data.promo || null, view: publicSessionView(s, ctx) },
         }],
       };
+      var moveKeys = [];
+      if (res.san.indexOf('=') >= 0) moveKeys.push('promotion');
+      if (wasEp) moveKeys.push('en-passant');
+      if (moveKeys.length) { var mk = {}; mk[from] = moveKeys; addAchievements(out, mk); }
       if (res.gameOver) {
         var fin = finishGame(ctx, s, res.gameOver.kind, res.gameOver.reason);
         out.playerStates = fin.playerStates;
         out.eloUpdates = fin.eloUpdates;
         if (fin.scores) out.scores = fin.scores;
+        addAchievements(out, fin.achievements);
         out.result = fin.result;
         out.broadcast.push({ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } });
       } else {
@@ -856,12 +919,12 @@ globalThis.game = {
     if (data.type === 'resign') {
       var winner = color === 'white' ? 'black' : 'white';
       var fin2 = finishGame(ctx, s, winner, 'resignation');
-      return {
+      return addAchievements({
         ok: true, sessionState: s,
         playerStates: fin2.playerStates, eloUpdates: fin2.eloUpdates, result: fin2.result,
         scores: fin2.scores || {},
         broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } }],
-      };
+      }, fin2.achievements);
     }
 
     if (data.type === 'offer-draw') {
@@ -873,12 +936,12 @@ globalThis.game = {
       if (s.drawOfferBy) {
         // both sides have now offered — that's an agreement
         var fin3 = finishGame(ctx, s, 'draw', 'agreement');
-        return {
+        return addAchievements({
           ok: true, sessionState: s,
           playerStates: fin3.playerStates, eloUpdates: fin3.eloUpdates, result: fin3.result,
           scores: fin3.scores || {},
           broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } }],
-        };
+        }, fin3.achievements);
       }
       s.drawOfferBy = color;
       return {
@@ -891,12 +954,12 @@ globalThis.game = {
       if (!s.drawOfferBy || s.drawOfferBy === color)
         return { ok: false, error: 'No draw offer to accept.' };
       var fin4 = finishGame(ctx, s, 'draw', 'agreement');
-      return {
+      return addAchievements({
         ok: true, sessionState: s,
         playerStates: fin4.playerStates, eloUpdates: fin4.eloUpdates, result: fin4.result,
         scores: fin4.scores || {},
         broadcast: [{ to: 'all', data: { type: 'game-over', result: s.result, view: publicSessionView(s, ctx) } }],
-      };
+      }, fin4.achievements);
     }
 
     if (data.type === 'decline-draw') {

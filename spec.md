@@ -136,6 +136,11 @@ correspondence game. The deadline stays on the wall clock (`ctx.now`, not `ctx.n
 a paused session gets no ticks, so `onPlayerMessage` adjudicates an overdue deadline first — the sync
 a client sends on connecting, or a late move, ends the game on time before anything else is handled.
 
+**Achievements** (`game.achievements`, granted in the result's `achievements`): First win (win a
+game), Beat hal (win a rated game against hal), Checkmate (win by mate), Promoted (promote a pawn),
+En passant (secret), Club regular (finish ten games), On a roll (win three in a row, from
+`recentGames`), Rising (reach Elo 1400), Fool's mate (secret: mate within four plies).
+
 **Practice wins**: every game against hal that the human wins (by any reason) adds one to the human's `practiceWins` and posts the new total to the `practice-wins` board through the returned `scores`.
 
 **Colours** (`game.createSession`): first meeting of a pair is decided by the host-supplied
@@ -237,7 +242,7 @@ Signed in, two columns (stacked when narrow): Play (rated **Play**, **Practice v
 state with **Cancel** and, after 30 s, **Play against hal**), "My games" (refreshed every 30 s; one button per game, "Alice · your move — 3h 12m left", the time
 on its own line under the button on a window narrower than 560 logical pixels),
 "Invitations" (refreshed every 10 s; accept/decline, **Invite a friend**, **Share invite link**);
-side (scrolling on its own): "My rating" (Elo and W/L/D), "Friends", "Recent games" (one button per replay: opponent, Won /
+side (scrolling on its own): "My rating" (Elo and W/L/D), "Achievements", "Friends", "Recent games" (one button per replay: opponent, Won /
 Lost / Drawn, or Abandoned for a game the platform ended, such as an AI game left mid-play, and the reason,
 which a window narrower than 560 logical pixels leaves to the replay).
 
@@ -362,7 +367,8 @@ there is no hand-written platform layer. Signed out it makes no platform request
 | Voice | Yes (opt-in) | `voice.join(chatConversationId)` in open-mic mode, mute, leave on exit |
 | Controls | Yes | `control.*` and `engine.gamepad.*`; the runtime resolves the player's bindings and delivers actions |
 | Server script | Yes | `server.js` via `server=`; `createSession`, `onPlayerMessage`, `onTick`; `tickRateHz: 1`; `persistent: true`; per-player docs under the 5 MB budget |
-| Achievements / cloud save | No | Elo, record, games and replays live in the script's documents |
+| Achievements | Yes | Nine declared in `server.js` (`game.achievements`) and granted only by the script from what it refereed (`gameAchievements` at game end; `promotion` and `en-passant` when the move is played); hal's seat earns none. The table toasts and announces each unlock (socket `achievement`); the club's "Achievements" panel lists them (`achievements.list()`, "3 of 9 unlocked", locked secrets hidden). Names and descriptions are translated client-side by key (`i18n.ts`) |
+| Cloud save | No | Elo, record, games and replays live in the script's documents |
 
 ## 13. Technical architecture
 
@@ -415,10 +421,12 @@ stalemate, K+N v K insufficient material; a game hal ends still publishes `eloUp
 player documents; resignation, draw agreement, `timeout` and `timeout-no-moves` end games with the
 right winner; out-of-turn, illegal and malformed commands are refused without recording anything;
 colours alternate for a pair; `tickRateHz`, `replays` and `persistent` are declared; the first command after a
-passed deadline (sync or a late move) ends the game on time; a one-player session is refused.
+passed deadline (sync or a late move) ends the game on time; a one-player session is refused; mating
+hal earns First win, Beat hal and Checkmate (hal nothing), a resignation earns the winner First win,
+promotion and en passant are granted on the move, a quiet move earns nothing.
 
 **`tests/native.mjs`**: every client string (`T("…")` literals and the lists marked
-`// translated:`) has a row in `strings.js` for es-419, de-DE, fr-FR, pt-BR and it-IT; the committed
+`// translated:`, including every achievement `server.js` declares) has a row in `strings.js` for es-419, de-DE, fr-FR, pt-BR and it-IT; the committed
 `starhermit-files.json` matches the package (else "run npm run package"); then, with `STARHERMIT`
 pointing at the engine's `starhermit.exe`, `starhermit check .` with no warning and every `tests/native/*.play` script signed out and offscreen —
 `practice-flow.play` (practice opens, the draw offer hal declines, back to the club),

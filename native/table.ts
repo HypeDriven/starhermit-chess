@@ -12,7 +12,7 @@ import { authority } from "starhermit:script";
 import { storage } from "starhermit:storage";
 import { drawBoard, moveFocus, PALETTE, squareAt } from "./board.js";
 import { hintFor, hintText, markSeen, type HintId } from "./hints.js";
-import { colorName, fmtLeft, reasonText, spokenMove, spokenSquare, T } from "./i18n.js";
+import { achievementText, colorName, fmtLeft, reasonText, spokenMove, spokenSquare, T } from "./i18n.js";
 import { checkSquare, replayMoves, rules, type Color, type GameState, type LoggedMove, type Move } from "./rules.js";
 import { sfx, sfxForMove } from "./sfx.js";
 import { errorText, loadName, nameOf, nav, scrollPanel, short, splitLayout, toast, type Screen } from "./shell.js";
@@ -129,6 +129,12 @@ export class TableScreen implements Screen {
     socket.on("error", (message) => this.refused(message));
     socket.on("presence", (userId, online) => { if (userId !== this.me) this.oppOnline = online; });
     socket.on("abandoned", () => { toast(reasonText("abandoned")); });
+    socket.on("achievement", (data) => {
+      const text = T("Achievement unlocked: {name}", { name: achievementText(data as unknown as { key: string; name: string }).name });
+      toast(text);
+      sfx("promote");
+      ui.announce(text);
+    });
     sessions.get(sessionId).then(async (s) => {
       if (!s) return;
       for (const pl of s.players) loadName(pl.userId);

@@ -4,12 +4,12 @@ import { clipboard, frame } from "starhermit:engine";
 import * as draw from "starhermit:draw";
 import * as ui from "starhermit:ui";
 import {
-  friends, gameInfo, inviteLink, leaderboards, matchmaking, player, replays, requestSignIn, sessions,
-  type Friend, type GameStats, type LeaderboardEntry, type ReplaySummary, type Session, type SessionInvite,
+  achievements, friends, gameInfo, inviteLink, leaderboards, matchmaking, player, replays, requestSignIn, sessions,
+  type Achievement, type Friend, type GameStats, type LeaderboardEntry, type ReplaySummary, type Session, type SessionInvite,
 } from "starhermit:platform";
 import { storage } from "starhermit:storage";
 import { PALETTE } from "./board.js";
-import { fmtLeft, reasonText, T } from "./i18n.js";
+import { achievementText, fmtLeft, reasonText, T } from "./i18n.js";
 import { sfx } from "./sfx.js";
 import { hasKeptPractice } from "./table.js";
 import { errorText, loadName, nameOf, nav, scrollPanel, short, toast, type Screen } from "./shell.js";
@@ -39,6 +39,7 @@ export class ClubScreen implements Screen {
   private timers: number[] = [];
   private busy = false;
   private howTo = false;
+  private achievements: Achievement[] = [];
 
   constructor() {
     if (!player()) return;
@@ -60,6 +61,7 @@ export class ClubScreen implements Screen {
       this.me = info.me;
       this.replaysEnabled = info.replaysEnabled;
       if (info.replaysEnabled) replays.list({ limit: 10 }).then((r) => { this.recent = r; }, () => { /* none shown */ });
+      achievements.list().then((a) => { this.achievements = a; }, () => { /* none shown */ });
       if (info.leaderboardId) {
         leaderboards.entries(info.leaderboardId, { friendsOnly: true, pageSize: 10 })
           .then((p) => { this.friendRatings = p.items; }, () => { /* none shown */ });
@@ -283,6 +285,20 @@ export class ClubScreen implements Screen {
       ui.label(m?.elo != null ? `Elo ${m.elo}` : "Elo —", { tone: "accent" });
       ui.label(`${T("W")} ${m?.wins ?? 0} · ${T("L")} ${m?.losses ?? 0} · ${T("D")} ${m?.draws ?? 0}`, { tone: "muted" });
     }, { padding: 14, spacing: 6 });
+    // Locked secret achievements stay hidden, as the platform keeps them.
+    const shown = this.achievements.filter((a) => a.unlocked || !a.secret);
+    if (shown.length) {
+      ui.panel("achievements", () => {
+        ui.heading(T("Achievements"));
+        const n = this.achievements.filter((a) => a.unlocked).length;
+        ui.label(T("{n} of {total} unlocked", { n, total: this.achievements.length }), { tone: "muted" });
+        const w = Math.min(380, frame().width / frame().scale - 80);
+        for (const a of shown) {
+          const t = achievementText(a);
+          ui.paragraph(`${a.unlocked ? "✓" : "○"} ${t.name} — ${t.description}`, w);
+        }
+      }, { padding: 14, spacing: 6 });
+    }
     if (this.friendRatings.length) {
       ui.panel("friends", () => {
         ui.heading(T("Friends"));

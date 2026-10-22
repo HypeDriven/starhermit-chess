@@ -320,6 +320,28 @@
     ['promotes to {piece}', 'promociona a {piece}', 'wandelt in {piece} um', 'promu en {piece}', 'promove a {piece}', 'promuove a {piece}'],
     ['{name} played {move}', '{name} jugó {move}', '{name} spielte {move}', '{name} a joué {move}', '{name} jogou {move}', '{name} ha giocato {move}'],
     ['You played {move}', 'Jugaste {move}', 'Du hast {move} gespielt', 'Vous avez joué {move}', 'Você jogou {move}', 'Hai giocato {move}'],
+    // ---- achievements
+    ['Achievements', 'Logros', 'Erfolge', 'Succès', 'Conquistas', 'Obiettivi'],
+    ['{n} of {total} unlocked', '{n} de {total} desbloqueados', '{n} von {total} freigeschaltet', '{n} sur {total} débloqués', '{n} de {total} desbloqueadas', '{n} di {total} sbloccati'],
+    ['Achievement unlocked: {name}', 'Logro desbloqueado: {name}', 'Erfolg freigeschaltet: {name}', 'Succès débloqué : {name}', 'Conquista desbloqueada: {name}', 'Obiettivo sbloccato: {name}'],
+    ['First win', 'Primera victoria', 'Erster Sieg', 'Première victoire', 'Primeira vitória', 'Prima vittoria'],
+    ['Win a game.', 'Gana una partida.', 'Gewinne eine Partie.', 'Gagnez une partie.', 'Vença uma partida.', 'Vinci una partita.'],
+    ['Beat hal', 'Vence a hal', 'Schlag hal', 'Battez hal', 'Vença hal', 'Batti hal'],
+    ['Win a rated game against hal.', 'Gana una partida puntuada contra hal.', 'Gewinne eine gewertete Partie gegen hal.', 'Gagnez une partie classée contre hal.', 'Vença uma partida valendo rating contra hal.', 'Vinci una partita con punteggio contro hal.'],
+    ['Checkmate', 'Jaque mate', 'Schachmatt', 'Échec et mat', 'Xeque-mate', 'Scacco matto'],
+    ['Win a game by checkmate.', 'Gana una partida por jaque mate.', 'Gewinne eine Partie durch Schachmatt.', 'Gagnez une partie par échec et mat.', 'Vença uma partida por xeque-mate.', 'Vinci una partita con lo scacco matto.'],
+    ['Promoted', 'Coronado', 'Umgewandelt', 'Promu', 'Promovido', 'Promosso'],
+    ['Promote a pawn.', 'Corona un peón.', 'Wandle einen Bauern um.', 'Promouvez un pion.', 'Promova um peão.', 'Promuovi un pedone.'],
+    ['En passant', 'Captura al paso', 'En passant', 'En passant', 'En passant', 'En passant'],
+    ['Capture a pawn en passant.', 'Captura un peón al paso.', 'Schlage einen Bauern en passant.', 'Prenez un pion en passant.', 'Capture um peão en passant.', 'Cattura un pedone en passant.'],
+    ['Club regular', 'Habitual del club', 'Stammgast', 'Habitué du club', 'Frequentador do clube', 'Habitué del circolo'],
+    ['Finish ten games.', 'Termina diez partidas.', 'Beende zehn Partien.', 'Terminez dix parties.', 'Termine dez partidas.', 'Completa dieci partite.'],
+    ['On a roll', 'En racha', 'Siegesserie', 'Sur une lancée', 'Em boa fase', 'In serie positiva'],
+    ['Win three games in a row.', 'Gana tres partidas seguidas.', 'Gewinne drei Partien hintereinander.', 'Gagnez trois parties d’affilée.', 'Vença três partidas seguidas.', 'Vinci tre partite di fila.'],
+    ['Rising', 'En ascenso', 'Aufsteiger', 'En progrès', 'Em ascensão', 'In ascesa'],
+    ['Reach a rating of 1400.', 'Alcanza una puntuación de 1400.', 'Erreiche eine Wertung von 1400.', 'Atteignez un classement de 1400.', 'Alcance um rating de 1400.', 'Raggiungi un punteggio di 1400.'],
+    ["Fool's mate", 'Mate del loco', 'Narrenmatt', 'Mat du lion', 'Mate do louco', 'Matto dell’imbecille'],
+    ['Checkmate in two moves.', 'Da mate en dos jugadas.', 'Setze in zwei Zügen matt.', 'Matez en deux coups.', 'Dê mate em dois lances.', 'Dai matto in due mosse.'],
   ];
 
   var COLS = ['es-419', 'de-DE', 'fr-FR', 'pt-BR', 'it-IT'];
