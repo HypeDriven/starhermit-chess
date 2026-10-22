@@ -138,7 +138,8 @@ export class TableScreen implements Screen {
     sessions.get(sessionId).then(async (s) => {
       if (!s) return;
       for (const pl of s.players) loadName(pl.userId);
-      if (s.chatConversationId) await this.openChat(s.chatConversationId);
+      // A finished game's conversation is closed to its players (403s).
+      if (s.chatConversationId && s.status === "active") await this.openChat(s.chatConversationId);
     }, () => { /* the board works without the session's details */ });
     gameInfo().then((info) => {
       this.eloBefore = info.me?.elo ?? null;
@@ -274,6 +275,9 @@ export class TableScreen implements Screen {
       rank: "",
     };
     if (withSound) ui.announce(`${this.over.title}, ${this.over.reason}`, { politeness: "assertive" });
+    // The platform closes the session's conversation with the game: stop polling it.
+    this.channel?.close();
+    this.channel = null;
     if (!this.sessionId) return;
     const over = this.over;
     const before = this.eloBefore;
@@ -438,7 +442,7 @@ export class TableScreen implements Screen {
         if (v) this.drawBanner(v, mine);
         this.hintLine();
         this.scoresheet(v);
-        if (this.sessionId && v && !v.ai) this.chatPanel();
+        if (this.sessionId && v && !v.ai && (v.status === "active" || this.messages.length)) this.chatPanel();
         else ui.label(this.sessionId ? T("No table talk with hal.") : T("Offline practice — no clock, no rating."), { tone: "muted" });
       }, { spacing: 12 });
     });
@@ -523,9 +527,11 @@ export class TableScreen implements Screen {
         ui.paragraph(`${m.senderId === this.me ? T("You") : nameOf(m.senderId)}: ${m.content}`, 320);
       }
     });
-    this.draft = ui.textField("chat-input", this.draft, { maxChars: 500, placeholder: T("Say something…"), width: 340 });
-    if (ui.submitted("chat-input") && this.draft.trim()) {
-      if (this.channel?.send(this.draft.trim())) this.draft = "";
+    if (this.channel) {
+      this.draft = ui.textField("chat-input", this.draft, { maxChars: 500, placeholder: T("Say something…"), width: 340 });
+      if (ui.submitted("chat-input") && this.draft.trim()) {
+        if (this.channel.send(this.draft.trim())) this.draft = "";
+      }
     }
     if (this.conversationId) this.voicePanel(this.conversationId);
   }
