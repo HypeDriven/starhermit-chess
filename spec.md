@@ -470,7 +470,9 @@ only from a legal, unfinished move list, in its kept colour.
   two players and the hal offer, moves on both sides, table talk both ways, a draw offered and declined, voice joined on both
   sides (each hears the other), resignation with the game-over dialog and the new ratings on both
   sides, rejoining from My games, the replay viewer by mouse and keyboard, and the layout at
-  1280×800, 1280×600, 900×900, 390×844 and 844×390. Promotion is not scripted.
+  1280×800, 1280×600, 900×900, 390×844 and 844×390. Natively, chess was launched through the
+  StarHermit Windows client (`StarHermit.exe --launch-product=<game id>`) on engine 1.6.0: the club
+  signed in, practice against hal and board clicks. Promotion is not scripted.
 
 ## Design intent not yet implemented
 

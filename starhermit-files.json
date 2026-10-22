@@ -35,7 +35,7 @@
     "sfx/piece-move.opus": {"sha256": "f8b5b5c6899cece59d3fd2d80ad52c5ac5066429d92d4db8dec82ea6f2c08148", "size": 12630},
     "sfx/piece-select.opus": {"sha256": "9df5e65950e8410181bfe21d73202e0bd1d5fbc12426a9274781759dcdb086d5", "size": 11763},
     "sfx/promote-chime.opus": {"sha256": "4de21d026b88350f63303ef16b3a223e45f8cf44eb62132663b51a27bb6c99d4", "size": 28150},
-    "spec.md": {"sha256": "b4a6f1129d686fc03e99aa264315de95c8ef985fe6113f0c5fd88e5a1f579c53", "size": 38085},
+    "spec.md": {"sha256": "7a9d3d2a705a053dbd2085f17e94599b021f349a91783309d569a9d0d0debfca", "size": 38278},
     "starhermit.txt": {"sha256": "c43a29aee66e6729ad5e311c0d0c57495eaaa90125b9d9aca91c25bf0e82b2ae", "size": 2661},
     "strings.js": {"sha256": "dc4d00d404d5891bdb3f2c4855545941a7f5cace37b5356ca6fd21a87d013bdd", "size": 49614}
   },
