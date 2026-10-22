@@ -7,7 +7,7 @@
     "cover.jpg": {"sha256": "35f6e8afeeff367cf616cfc4be2e735d01148771cb894a33e9b34d76a4193a99", "size": 137482},
     "coverart.png": {"sha256": "58ccb0ae8dc60da0f7c16edf38f2a9a90fbaca3a288cff635f70178f0120194c", "size": 449796},
     "icon.png": {"sha256": "d3a1f22da6b3684e27398c1924a6e1dbc6b1b0889b8a3c3ad2aa1d15dae5dd55", "size": 6291},
-    "index.html": {"sha256": "e50abe9302930fa2131b9d7220f1cd1cb6114a12e1eacb5494160d39d914ed5c", "size": 1743},
+    "index.html": {"sha256": "c4d160c85dd6c72a2e09e34ef4d0bfba8ad22a7ffaf196eecd462411b4936d56", "size": 1743},
     "leaderboards.json": {"sha256": "e770782d74ba39f5c6c495448b993ac811fbc7b18d2c546b65f398e6d21c4f38", "size": 139},
     "native/board.ts": {"sha256": "4447ec498569c772c0c9915887d1a6c0118cec2a662cb42194a036035cff6f61", "size": 7787},
     "native/club.ts": {"sha256": "4a2617783623ea8fa2109b4e75b1a4302b4ca4f3e4ca5fb763740f64862beda2", "size": 19293},
