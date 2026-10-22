@@ -12,7 +12,7 @@ import { achievementText, fmtLeft, reasonText, T } from "./i18n.js";
 import { sfx } from "./sfx.js";
 import { hasKeptPractice } from "./table.js";
 import { errorText, loadName, nameOf, nav, scrollPanel, short, toast, type Screen } from "./shell.js";
-import { cardButton, drawKeyArt, framedPanel, frameRect, note, panelTitle, pill, primaryButton, smallButton, TOP_BAR, topBar } from "./style.js";
+import { card, cardButton, divider, drawKeyArt, framedPanel, note, panelTitle, pill, primaryButton, smallButton, spacer, TOP_BAR, topBar } from "./style.js";
 
 const HOUR_MS = 60 * 60 * 1000;
 const HAL_AFTER_S = 30;
@@ -165,7 +165,7 @@ export class ClubScreen implements Screen {
     }
     const wide = cw >= 760;
     const mainW = wide ? cw - 320 - 22 : cw;
-    scrollPanel("club-main", { x: x0, y: top, width: (mainW + 12) * scale, height: h }, () => {
+    scrollPanel("club-main", { x: x0, y: top, width: (mainW + 20) * scale, height: h }, () => {
       ui.column("club", () => {
         this.playPanel(mainW);
         this.myGames(mainW);
@@ -174,7 +174,7 @@ export class ClubScreen implements Screen {
       }, { spacing: 18 });
     });
     if (wide) {
-      const side = { x: x0 + (mainW + 22) * scale, y: top, width: (320 + 12) * scale, height: h };
+      const side = { x: x0 + (mainW + 22) * scale, y: top, width: (320 + 20) * scale, height: h };
       scrollPanel("club-side-scroll", side, () => ui.column("club-side", () => this.sidePanel(320), { spacing: 18 }));
     }
     this.friendDialog();
@@ -197,21 +197,22 @@ export class ClubScreen implements Screen {
     if (!open) this.howTo = false;
   }
 
-  /** Signed out: the "Take a seat" card over the key art. */
+  /** Signed out: the "Take a seat" card over the key art (.auth-card). */
   private guest(w: number): void {
+    const inner = w - 56;
     framedPanel("landing", w, () => {
       ui.label(T("Take a seat"), { font: "serif", size: 28, weight: "600" });
-      ui.paragraph(T("Practice against hal right now — no sign-in needed."), w - 32, { size: 14 });
-      ui.row("landing-play", () => {
-        if (primaryButton("play-local", T("Play"), { big: true })) nav.practice(false);
-        if (hasKeptPractice() && ui.id("resume-practice").button(T("Resume practice"))) nav.practice(true);
+      if (primaryButton("play-local", T("Play"), { wide: true })) nav.practice(false);
+      ui.style("hint").label(T("Practice against hal right now — no sign-in needed."));
+      ui.row("landing-more", () => {
+        if (hasKeptPractice() && smallButton("resume-practice", T("Resume practice"))) nav.practice(true);
         if (smallButton("how-to", T("How to play"))) this.howTo = true;
-      }, { spacing: 10, align: "center" });
-      ui.label(T("or sign in to the club").toUpperCase(), { size: 11, color: PALETTE.faint });
-      if (ui.id("sign-in").button(T("Sign in with StarHermit"), { size: 15 })) {
+      }, { spacing: 8, justify: "center", width: inner });
+      divider("landing-or", T("or sign in to the club"), inner);
+      if (primaryButton("sign-in", T("Sign in with StarHermit"), { wide: true })) {
         requestSignIn().then((pl) => { if (pl) nav.club(); }, (e) => toast(errorText(e), true));
       }
-    }, 16);
+    }, 14, true);
   }
 
   private playPanel(w: number): void {
@@ -223,8 +224,9 @@ export class ClubScreen implements Screen {
             this.startSearch().finally(() => { this.busy = false; });
           }
           if (w >= 560) note(T("Matched by rating against another club member"));
+          spacer("play-gap");
           if (ui.id("practice").button(T("Practice vs hal"))) nav.practice(false);
-        }, { spacing: 14, align: "center" });
+        }, { spacing: 14, align: "center", width: w });
       } else {
         ui.row("search-row", () => {
           ui.label(T("Looking for an opponent…"), { font: "serif", color: PALETTE.muted });
@@ -240,18 +242,18 @@ export class ClubScreen implements Screen {
     }, { spacing: 10, width: w });
   }
 
-  /** A panel's header: the title, and a note or buttons after it. */
-  private header(id: string, title: string, inner: number, after?: () => void): void {
+  /** A panel's header: the title, and a note or buttons at the end (on a
+   * row of their own when the panel is narrower than `below`). */
+  private header(id: string, title: string, inner: number, after?: () => void, below = 0): void {
+    if (after && inner < below) {
+      panelTitle(title);
+      ui.row(id, after, { spacing: 8 });
+      return;
+    }
     ui.row(id, () => {
       panelTitle(title);
-      if (after) after();
+      if (after) { spacer(`${id}-gap`); after(); }
     }, { spacing: 12, align: "center", width: inner });
-  }
-
-  /** A card: a raised row inside a panel (the browser client's .card). */
-  private card(id: string, inner: number, build: () => void): void {
-    const r = ui.row(id, build, { spacing: 12, align: "center", width: inner, background: PALETTE.panel2, padding: { top: 8, bottom: 8, start: 12, end: 12 } });
-    frameRect(r);
   }
 
   private myGames(w: number): void {
@@ -264,9 +266,10 @@ export class ClubScreen implements Screen {
         const opp = g.players.find((x) => x.userId !== player()?.userId);
         const left = g.deadline ? g.deadline - Date.now() : null;
         const urgent = left != null && left < HOUR_MS && g.myTurn;
-        this.card(`game-card-${g.sessionId}`, inner, () => {
+        card(`game-card-${g.sessionId}`, inner, () => {
           if (cardButton(`game-${g.sessionId}`, short(opp ? nameOf(opp.userId) : "hal"))) nav.table(g.sessionId);
           if (left != null && !narrow) ui.label(T("{time} left", { time: fmtLeft(left) }), { size: 13, color: urgent ? PALETTE.danger : PALETTE.muted });
+          spacer(`game-gap-${g.sessionId}`);
           pill(`pill-${g.sessionId}`, g.myTurn ? T("your move") : T("their move"), g.myTurn);
         });
       }
@@ -284,11 +287,12 @@ export class ClubScreen implements Screen {
         if (smallButton("invite-friend", T("Invite a friend"))) {
           friends.list().then((f) => { this.friendPicker = f; }, (e) => toast(T("Could not load friends: {error}", { error: errorText(e) }), true));
         }
-      });
+      }, 420);
       for (const inv of this.incoming) {
-        this.card(`inv-${inv.inviteId}`, inner, () => {
+        card(`inv-${inv.inviteId}`, inner, () => {
           ui.label(short(nameOf(inv.from)), { font: "serif", size: 16 });
           ui.label(T("invites you to a game"), { size: 13, color: PALETTE.muted });
+          spacer(`inv-gap-${inv.inviteId}`);
           if (primaryButton(`acc-${inv.inviteId}`, T("Accept"))) {
             sessions.acceptInvite(inv.inviteId).then((sid) => nav.table(sid), (e) => toast(errorText(e), true));
           }
@@ -298,7 +302,7 @@ export class ClubScreen implements Screen {
         });
       }
       for (const inv of this.outgoing) {
-        this.card(`out-${inv.inviteId}`, inner, () => {
+        card(`out-${inv.inviteId}`, inner, () => {
           ui.label(short(nameOf(inv.to)), { font: "serif", size: 16 });
           ui.label(T("invited — waiting"), { size: 13, color: PALETTE.muted });
         });
@@ -323,7 +327,7 @@ export class ClubScreen implements Screen {
         for (const a of shown) {
           const t = achievementText(a);
           ui.row(`ach-${a.key}`, () => {
-            ui.label(a.unlocked ? "✓" : "○", { color: a.unlocked ? PALETTE.brass : PALETTE.faint });
+            ui.column(`ach-mark-${a.key}`, () => ui.label(a.unlocked ? "✓" : "○", { color: a.unlocked ? PALETTE.brass : PALETTE.faint }), { width: 14 });
             ui.column(`ach-text-${a.key}`, () => {
               ui.label(t.name, { font: "serif", size: 15, color: a.unlocked ? PALETTE.ink : PALETTE.muted });
               ui.paragraph(t.description, inner - 28, { size: 12.5 });
@@ -358,12 +362,12 @@ export class ClubScreen implements Screen {
           const outcome = !res?.kind ? "" : res.kind === "draw" ? T("Drawn")
             : res.kind === "white" || res.kind === "black" ? (res.kind === myColor ? T("Won") : T("Lost")) : T("Abandoned");
           const delta = res?.eloBefore?.[me] != null && res.eloAfter?.[me] != null ? res.eloAfter[me]! - res.eloBefore[me]! : null;
-          this.card(`recent-${r.sessionId}`, inner, () => {
+          card(`recent-${r.sessionId}`, inner, () => {
             if (cardButton(`replay-${r.sessionId}`, short(opp ? nameOf(opp.userId) : "hal", 14))) nav.replay(r.sessionId);
             // A narrow window leaves the reason to the replay itself.
             ui.label([outcome, narrow ? "" : reasonText(res?.reason)].filter(Boolean).join(" · "), { size: 12.5, color: PALETTE.muted });
-            if (delta) ui.label(`${delta > 0 ? "+" : ""}${delta}`, { size: 12.5, color: delta > 0 ? PALETTE.ok : PALETTE.danger });
-          });
+            if (delta) { spacer(`recent-gap-${r.sessionId}`); ui.label(`${delta > 0 ? "+" : ""}${delta}`, { size: 12.5, color: delta > 0 ? PALETTE.ok : PALETTE.danger }); }
+          }, true);
         }
       }, 8);
     }

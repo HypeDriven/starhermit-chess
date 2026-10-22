@@ -1,14 +1,13 @@
-// The club room's look, as the browser client drew it: brass on walnut,
-// serif headings, framed panels, a top bar with the wordmark. Widgets take
-// their colours from the theme, so a brass button switches the theme for
-// that one widget and back.
+// The club room's look, as the browser client drew it (style.css): brass on
+// walnut, serif headings, framed panels and cards with a 1-pixel line, a top
+// bar with the wordmark. The rules are ui.setStyles classes, CSS for CSS.
 import { createImageBitmap, OffscreenCanvas, type ImageBitmap } from "starhermit:canvas";
 import { frame, openMenu } from "starhermit:engine";
 import * as draw from "starhermit:draw";
 import * as ui from "starhermit:ui";
 import { PALETTE } from "./board.js";
 import { T } from "./i18n.js";
-import { currentClip, TOP_BAR } from "./shell.js";
+import { TOP_BAR } from "./shell.js";
 import { soundOn, toggleSound } from "./sfx.js";
 
 export { TOP_BAR };
@@ -22,38 +21,114 @@ const THEME: ui.Theme = {
   hovered: PALETTE.line, pressed: PALETTE.brass, field: PALETTE.bg, accent: PALETTE.brass,
   focus: PALETTE.brassHi, outline: PALETTE.line,
 };
-export function setTheme(): void { ui.setTheme(THEME); }
 
-/** The filled brass button (Play): `big` is the menu's large serif one. */
-export function primaryButton(id: string, label: string, options: { big?: boolean; disabled?: boolean } = {}): boolean {
-  ui.setTheme({ ...THEME, control: PALETTE.brass, hovered: PALETTE.brassHi, pressed: PALETTE.brassHi, text: BRASS_INK, muted: BRASS_INK });
-  // Em spaces give the big button the browser client's 44-pixel side padding.
-  const hit = ui.id(id).button(options.big ? `\u2003${label}\u2003` : label, options.big
-    ? { font: "serif", size: 20, weight: "600", disabled: !!options.disabled }
-    : { weight: "600", disabled: !!options.disabled });
+const STYLES: { [key: string]: ui.Style } = {
+  // .btn: walnut with a line that turns brass under the pointer.
+  button: {
+    background: PALETTE.panel2,
+    border: { width: 1, color: PALETTE.line },
+    radius: 6,
+    padding: { top: 8, bottom: 8, start: 16, end: 16 },
+    hovered: { border: { color: PALETTE.brass } },
+    pressed: { translate: { y: 1 } },
+    disabled: { opacity: 0.45, border: { color: PALETTE.line } },
+    focusRing: { color: PALETTE.brass, width: 2, offset: 2 },
+  },
+  ".primary": {
+    background: PALETTE.brass,
+    border: { color: PALETTE.brass },
+    text: { color: BRASS_INK, weight: "600" },
+    hovered: { background: PALETTE.brassHi, border: { color: PALETTE.brassHi } },
+    disabled: { border: { color: PALETTE.brass } },
+  },
+  ".danger": {
+    background: "transparent",
+    border: { color: "#c9674f80" },
+    text: { color: PALETTE.danger },
+    hovered: { border: { color: PALETTE.danger } },
+  },
+  ".small": { padding: { top: 4, bottom: 4, start: 11, end: 11 }, text: { size: 13 } },
+  ".big": { padding: { top: 12, bottom: 12, start: 44, end: 44 }, text: { size: 18, font: "serif", letterSpacing: "0.04em" } },
+  ".wide": { width: "fill", text: { align: "center" } },
+  // .panel
+  ".framed": {
+    background: PALETTE.panel,
+    border: { width: 1, color: PALETTE.line },
+    radius: 6,
+    padding: { top: 14, bottom: 14, start: 16, end: 16 },
+  },
+  // .auth-card: the landing's card, lifted off the key art.
+  ".seat": { extends: ".framed", padding: 28, shadow: { y: 10, blur: 30, color: "#00000073" } },
+  // .card; .cards-tight .card in the side column.
+  ".card": {
+    background: PALETTE.panel2,
+    border: { width: 1, color: PALETTE.line },
+    radius: 6,
+    padding: { top: 10, bottom: 10, start: 14, end: 14 },
+    hoverWithin: { border: { color: PALETTE.brass } },
+  },
+  ".card-tight": { extends: ".card", padding: { top: 7, bottom: 7, start: 11, end: 11 } },
+  // .card-name: the card's name, a button that is only its text.
+  ".card-name": {
+    background: "transparent",
+    border: { width: 0 },
+    padding: 0,
+    text: { font: "serif", size: 16, color: PALETTE.ink },
+    hovered: { text: { color: PALETTE.brassHi } },
+  },
+  // .card-turn, .card-turn.mine
+  ".pill": {
+    radius: 10,
+    border: { width: 1, color: PALETTE.line },
+    padding: { top: 2, bottom: 2, start: 8, end: 8 },
+    text: { size: 11, letterSpacing: "0.1em", transform: "uppercase", color: PALETTE.faint },
+  },
+  ".pill-mine": { extends: ".pill", background: PALETTE.brass, border: { color: PALETTE.brass }, text: { color: BRASS_INK, weight: "600" } },
+  // .auth-local-hint
+  ".hint": { text: { size: 13, color: PALETTE.faint, align: "center" }, width: "fill" },
+  // .auth-divider
+  ".divider": { text: { size: 11, letterSpacing: "0.12em", transform: "uppercase", color: PALETTE.faint, align: "center" }, width: "fill" },
+  // .msg, .msg.mine
+  ".msg": {
+    background: PALETTE.panel2,
+    border: { width: 1, color: PALETTE.line },
+    radius: 10,
+    padding: { top: 6, bottom: 6, start: 10, end: 10 },
+  },
+  ".msg-mine": { extends: ".msg", background: "#c8a35f24", border: { color: "#c8a35f66" } },
+  // .chat-form input
+  textField: {
+    background: PALETTE.bg,
+    border: { width: 1, color: PALETTE.line },
+    radius: 6,
+    focused: { border: { color: PALETTE.brass } },
+  },
+};
+
+export function setTheme(): void {
   ui.setTheme(THEME);
-  return hit;
+  ui.setStyles(STYLES);
 }
 
-/** A small secondary button. */
-export function smallButton(id: string, label: string, options: { tone?: ui.Tone } = {}): boolean {
-  return ui.id(id).button(label, { size: 13, tone: options.tone ?? "normal" });
+/** The filled brass button (Play): `big` is the menu's large serif one,
+ * `wide` fills its column. */
+export function primaryButton(id: string, label: string, options: { big?: boolean; wide?: boolean; disabled?: boolean } = {}): boolean {
+  return ui.id(id).style("primary", !!options.big && "big", !!options.wide && "wide").button(label, { disabled: !!options.disabled });
 }
 
-/** A card's name, as a button that blends into the card (serif, card fill). */
+/** A small secondary button (.btn-small). */
+export function smallButton(id: string, label: string): boolean {
+  return ui.id(id).style("small").button(label);
+}
+
+/** A card's name, as a button that is only its serif text. */
 export function cardButton(id: string, label: string): boolean {
-  ui.setTheme({ ...THEME, control: PALETTE.panel2, hovered: PALETTE.line });
-  const hit = ui.id(id).button(label, { font: "serif", size: 16 });
-  ui.setTheme(THEME);
-  return hit;
+  return ui.id(id).style("card-name").button(label);
 }
 
 /** The small turn pill on a game card: brass when it is the player's move. */
 export function pill(id: string, text: string, mine: boolean): void {
-  const r = ui.row(id, () => {
-    ui.label(text.toUpperCase(), { size: 11, weight: "600", color: mine ? BRASS_INK : PALETTE.faint });
-  }, { padding: { top: 2, bottom: 2, start: 8, end: 8 }, ...(mine ? { background: PALETTE.brass } : {}) });
-  if (!mine) frameRect(r);
+  ui.id(id).style(mine ? "pill-mine" : "pill").label(text);
 }
 
 /** A panel's title: brass serif. */
@@ -66,18 +141,37 @@ export function note(text: string): void {
   ui.label(text, { size: 12.5, color: PALETTE.faint });
 }
 
-/** A panel at `width` logical pixels with the room's 1-pixel line around it. */
-export function framedPanel(id: string, width: number, build: () => void, spacing = 10): ui.Rect {
-  const r = ui.panel(id, build, { padding: { top: 14, bottom: 14, start: 16, end: 16 }, spacing, width });
-  frameRect(r);
-  return r;
+/** A panel at `width` logical pixels with the room's 1-pixel line around it
+ * (.panel; `seat` is the landing's .auth-card). */
+export function framedPanel(id: string, width: number, build: () => void, spacing = 10, seat = false): ui.Rect {
+  return ui.panel(id, build, { style: seat ? "seat" : "framed", spacing, width });
 }
 
-/** The room's 1-pixel line around a laid-out rectangle (window pixels). */
-export function frameRect(r: ui.Rect, color: string = PALETTE.line): void {
+/** Takes the free width of a fixed-width row (CSS's `.spacer { flex: 1 }`):
+ * what follows sits at the row's end. */
+export function spacer(id: string): void {
+  ui.column(id, () => { /* empty */ }, { grow: 1 });
+}
+
+/** Small capitals between two rules across `width` (.auth-divider). */
+export function divider(id: string, text: string, width: number): void {
+  // Window pixels; the letter spacing (0.12em) is not measured.
   const s = frame().scale;
-  const clip = currentClip();
-  draw.strokeRoundRect(r.x - 0.5 * s, r.y - 0.5 * s, r.width + s, r.height + s, 6 * s, color, s, clip ? { clip } : {});
+  const m = ui.measureText(text.toUpperCase(), { size: 11 });
+  const textW = m.width / s + [...text].length * 11 * 0.12;
+  const rule = Math.max(0, (width - textW) / 2 - 12);
+  const top = Math.round(m.height / s / 2);
+  ui.id(id).style("divider", {
+    decorations: [
+      { fill: PALETTE.line, start: 0, top, width: rule, height: 1 },
+      { fill: PALETTE.line, end: 0, top, width: rule, height: 1 },
+    ],
+  }).label(text);
+}
+
+/** A card: a raised row in a panel (.card; `tight` in the side column). */
+export function card(id: string, width: number, build: () => void, tight = false): ui.Rect {
+  return ui.row(id, build, { style: tight ? "card-tight" : "card", spacing: tight ? 8 : 12, align: "center", width });
 }
 
 // -- Pictures ---------------------------------------------------------------------
@@ -123,8 +217,8 @@ export function topBar(elo: number | null): void {
   ui.area(right, () => {
     ui.row("top-right", () => {
       if (elo != null && !narrow) ui.label(`Elo ${elo}`, { font: "serif", size: 14, color: PALETTE.brass });
-      if (ui.id("sound").button(soundOn() ? T("Sound on") : T("Sound off"), { size: 13, tone: soundOn() ? "accent" : "muted" })) toggleSound();
-      if (ui.id("settings").button(narrow ? "⚙" : `⚙ ${T("Settings")}`, { size: 13 })) openMenu();
+      if (ui.id("sound").style("small").button(soundOn() ? T("Sound on") : T("Sound off"), { selected: soundOn() })) toggleSound();
+      if (ui.id("settings").style("small").button(narrow ? "⚙" : `⚙ ${T("Settings")}`)) openMenu();
     }, { spacing: 12, align: "center", justify: "end", width: right.width / scale });
   });
 }

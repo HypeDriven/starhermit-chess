@@ -440,7 +440,7 @@ export class TableScreen implements Screen {
           if (ui.id("back").button(T("← Club"))) nav.club();
           if (v && v.status === "active" && mine) {
             if (ui.id("draw").button(T("Offer draw"), { disabled: v.drawOfferBy === mine })) this.confirm = "draw";
-            if (ui.id("resign").button(T("Resign"), { tone: "danger" })) this.confirm = "resign";
+            if (ui.id("resign").style("danger").button(T("Resign"))) this.confirm = "resign";
           }
         }, { spacing: 8 });
         framedPanel("status", w, () => {
@@ -540,10 +540,13 @@ export class TableScreen implements Screen {
         for (const m of this.messages.slice(-30)) {
           if (m.isDeleted) continue;
           const mine = m.senderId === this.me;
-          ui.column(`msg-${m.id}`, () => {
-            ui.label(mine ? T("You") : nameOf(m.senderId), { size: 11, color: PALETTE.faint });
-            ui.paragraph(m.content, inner - 40);
-          }, { spacing: 2, background: mine ? PALETTE.line : PALETTE.panel2, padding: { top: 5, bottom: 6, start: 10, end: 10 } });
+          // Mine at the end, as the browser client's .msg.mine.
+          ui.row(`msg-row-${m.id}`, () => {
+            ui.column(`msg-${m.id}`, () => {
+              ui.label(mine ? T("You") : nameOf(m.senderId), { size: 10, color: PALETTE.faint });
+              ui.paragraph(m.content, Math.min(inner * 0.88 - 22, ui.measureText(m.content, { size: 14 }).width / frame().scale + 2), { size: 14 });
+            }, { spacing: 1, style: mine ? "msg-mine" : "msg" });
+          }, { width: inner - 12, justify: mine ? "end" : "start" });
         }
       }, { spacing: 6 });
     }, this.messages.length !== this.chatSeen ? { scrollTo: { top: Infinity } } : undefined);
@@ -601,7 +604,7 @@ export class TableScreen implements Screen {
       const kind = this.confirm;
       const open = ui.dialog("confirm", kind === "resign" ? T("Resign this game?") : T("Offer a draw to {name}?", { name: this.oppName() }), true, () => {
         ui.row("confirm-row", () => {
-          if (ui.id("confirm-yes").button(kind === "resign" ? T("Resign") : T("Offer draw"), { tone: kind === "resign" ? "danger" : "normal" })) {
+          if (ui.id("confirm-yes").style(kind === "resign" ? "danger" : "primary").button(kind === "resign" ? T("Resign") : T("Offer draw"))) {
             this.link.send({ type: kind === "resign" ? "resign" : "offer-draw" });
             this.confirm = null;
           }
