@@ -14,6 +14,7 @@ import { soundOn, toggleSound } from "./sfx.js";
 export const BRASS_INK = "#1c150e";
 
 const THEME: ui.Theme = {
+  fontSize: 15, smallSize: 13,
   text: PALETTE.ink, muted: PALETTE.muted, panel: PALETTE.panel, control: PALETTE.panel2,
   hovered: PALETTE.line, pressed: PALETTE.brass, field: PALETTE.bg, accent: PALETTE.brass,
   focus: PALETTE.brassHi, outline: PALETTE.line,
@@ -23,8 +24,9 @@ export function setTheme(): void { ui.setTheme(THEME); }
 /** The filled brass button (Play): `big` is the menu's large serif one. */
 export function primaryButton(id: string, label: string, options: { big?: boolean; disabled?: boolean } = {}): boolean {
   ui.setTheme({ ...THEME, control: PALETTE.brass, hovered: PALETTE.brassHi, pressed: PALETTE.brassHi, text: BRASS_INK, muted: BRASS_INK });
-  const hit = ui.id(id).button(label, options.big
-    ? { font: "serif", size: 19, weight: "600", disabled: !!options.disabled }
+  // Em spaces give the big button the browser client's 44-pixel side padding.
+  const hit = ui.id(id).button(options.big ? `\u2003${label}\u2003` : label, options.big
+    ? { font: "serif", size: 20, weight: "600", disabled: !!options.disabled }
     : { weight: "600", disabled: !!options.disabled });
   ui.setTheme(THEME);
   return hit;

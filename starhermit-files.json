@@ -19,7 +19,7 @@
     "native/sfx.ts": {"sha256": "b6ee1cfcfd88900c8d1c5857cf8ee2ab22c2dde3b757a54387514e9bdd3769fb", "size": 2191},
     "native/shell.ts": {"sha256": "5746698d17040498b3f8badad5bf1f50410728184836f0fb4599214bb5dabfcf", "size": 5871},
     "native/starfield.ts": {"sha256": "7a4672b12b24f21be5d44daa06766cda204e988cf071fbcd8d9cee8868ef6dd4", "size": 10265},
-    "native/style.ts": {"sha256": "661a71025f3e98f7f67b267e14136e0ffd3e666868706aa4a6c241f1599538ae", "size": 6099},
+    "native/style.ts": {"sha256": "5cbbd001481e9ae21ca4149a8124ddcb431fd023cfe6e8f7c43e3ff5249ac120", "size": 6248},
     "native/table.ts": {"sha256": "fb7012ba24d388cfd19c561494363450e6682ec24ef61b27cd47b8ec8051ce54", "size": 26794},
     "server.js": {"sha256": "4e2d5b5bf7a91229b525bc72678add26a9eddef2e0612e490aa70aeca99e8356", "size": 44621},
     "sfx/chat-note.opus": {"sha256": "e4db67a9be6590648a20611962bf29a66bd46ce4da41e8eebda1f10acbbb34e4", "size": 12010},
