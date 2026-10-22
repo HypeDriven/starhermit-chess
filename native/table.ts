@@ -442,8 +442,9 @@ export class TableScreen implements Screen {
         if (v) this.drawBanner(v, mine);
         this.hintLine();
         this.scoresheet(v);
-        if (this.sessionId && v && !v.ai && (v.status === "active" || this.messages.length)) this.chatPanel();
-        else ui.label(this.sessionId ? T("No table talk with hal.") : T("Offline practice — no clock, no rating."), { tone: "muted" });
+        if (!this.sessionId) ui.label(T("Offline practice — no clock, no rating."), { tone: "muted" });
+        else if (v?.ai) ui.label(T("No table talk with hal."), { tone: "muted" });
+        else if (v && (v.status === "active" || this.messages.length)) this.chatPanel();
       }, { spacing: 12 });
     });
 

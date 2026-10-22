@@ -16,7 +16,7 @@
     "native/rules.ts": {"sha256": "1529cd349923d0c81d9b3233fb5f8d39d866a9cc779d3603209a373bfed34e81", "size": 2836},
     "native/sfx.ts": {"sha256": "21eccb9cef0c702bd264b24c94033cc70fcb3d9baab019034b8a5292ca96deb8", "size": 1768},
     "native/shell.ts": {"sha256": "7a6ecf670dc14c6bb7cc79da59895614504f99e2aa4866ac06749b9af01ffaba", "size": 6166},
-    "native/table.ts": {"sha256": "d6d469ad3ae96b2c65eccb0069f923cbf84b57311f1786d8a1a4336c4a6b357d", "size": 26765},
+    "native/table.ts": {"sha256": "fb7012ba24d388cfd19c561494363450e6682ec24ef61b27cd47b8ec8051ce54", "size": 26794},
     "server.js": {"sha256": "4e2d5b5bf7a91229b525bc72678add26a9eddef2e0612e490aa70aeca99e8356", "size": 44621},
     "sfx/chat-note.opus": {"sha256": "e4db67a9be6590648a20611962bf29a66bd46ce4da41e8eebda1f10acbbb34e4", "size": 12010},
     "sfx/check-bell.opus": {"sha256": "d57d0feb611fb31229565bb6d3ae64b503c4c34f060c30aed0ba9b14934971c4", "size": 27719},
