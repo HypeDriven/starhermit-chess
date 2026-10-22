@@ -18,7 +18,7 @@ GitHub repo URL** — and the platform reads `starhermit.txt` at the repo root t
 identify the owner and the optional server script. **Deploy to Starhermit** in
 the game's Manage menu serves the pinned commit at `<uid>.starhermit.com`.
 
-Chess is a StarHermit engine script game (engine 1.5.1): one package runs in
+Chess is a StarHermit engine script game (engine 1.6.0): one package runs in
 browsers on the engine's web runtime and natively in the StarHermit Windows
 client, whichever the player launched it from. To publish a change:
 
