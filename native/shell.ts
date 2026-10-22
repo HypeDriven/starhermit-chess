@@ -66,13 +66,6 @@ export function errorText(e: unknown): string {
   return String((e as Error)?.message ?? e);
 }
 
-export function setTheme(): void {
-  ui.setTheme({
-    text: PALETTE.ink, muted: PALETTE.muted, panel: PALETTE.panel, control: PALETTE.panel2,
-    hovered: PALETTE.line, pressed: PALETTE.brass, field: PALETTE.bg, accent: PALETTE.brass,
-    focus: PALETTE.brassHi, outline: PALETTE.line,
-  });
-}
 
 // -- Names ----------------------------------------------------------------------
 // Names come from profiles (the nickname, else "Player 1234abcd"); usernames

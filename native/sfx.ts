@@ -1,6 +1,7 @@
 // Sound effects: one sfx/*.opus clip per game event, through the
 // engine's mixer (volume lives in the runtime's Options › Audio).
 import { loadClip, play as playClip, type AudioClip } from "starhermit:audio";
+import { storage } from "starhermit:storage";
 
 const FILES = {
   select: "piece-select", move: "piece-move", capture: "piece-capture", castle: "piece-castle",
@@ -20,9 +21,17 @@ export async function loadSfx(): Promise<void> {
   }));
 }
 
+// The top bar's Sound toggle, kept on the device (volumes stay the runtime's).
+let on = ((): boolean => { try { return storage.getJson("sound.on") !== false; } catch { return true; } })();
+export function soundOn(): boolean { return on; }
+export function toggleSound(): void {
+  on = !on;
+  try { storage.setJson("sound.on", on); } catch { /* this session only */ }
+}
+
 export function sfx(name: SfxName): void {
   const clip = clips.get(name);
-  if (!clip) return;
+  if (!clip || !on) return;
   try {
     playClip(clip, { bus: name === "select" || name === "illegal" ? "interface" : "effects" });
   } catch {

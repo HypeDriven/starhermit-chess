@@ -1,7 +1,6 @@
 // The club: practice for everyone; for a signed-in player matchmaking, My
 // games, invitations, friends' ratings and recent games.
 import { clipboard, frame } from "starhermit:engine";
-import * as draw from "starhermit:draw";
 import * as ui from "starhermit:ui";
 import {
   achievements, friends, gameInfo, inviteLink, leaderboards, matchmaking, player, replays, requestSignIn, sessions,
@@ -13,6 +12,7 @@ import { achievementText, fmtLeft, reasonText, T } from "./i18n.js";
 import { sfx } from "./sfx.js";
 import { hasKeptPractice } from "./table.js";
 import { errorText, loadName, nameOf, nav, scrollPanel, short, toast, type Screen } from "./shell.js";
+import { cardButton, drawKeyArt, framedPanel, frameRect, note, panelTitle, pill, primaryButton, smallButton, TOP_BAR, topBar } from "./style.js";
 
 const HOUR_MS = 60 * 60 * 1000;
 const HAL_AFTER_S = 30;
@@ -143,31 +143,39 @@ export class ClubScreen implements Screen {
   }
 
   // -- Frame ---------------------------------------------------------------------------
+  // The browser client's club room: a top bar, then a centred page (at most
+  // 1116 logical pixels) of framed panels — main column and a 320-pixel side
+  // column, stacked on a narrow window. Behind it the starfield (main.ts) or,
+  // signed out, the key art.
   update(): void {
     const { width, height, scale, safeArea } = frame();
-    const area = {
-      x: safeArea.left + 16 * scale, y: safeArea.top + 16 * scale,
-      width: width - safeArea.left - safeArea.right - 32 * scale,
-      height: height - safeArea.top - safeArea.bottom - 32 * scale,
-    };
-    draw.text("Chess", area.x, area.y, { size: 34 * scale, color: PALETTE.brassHi, font: "serif" });
     const p = player();
-    const top = { ...area, y: area.y + 56 * scale, height: area.height - 56 * scale };
-    if (!p) { scrollPanel("club-guest", top, () => this.guest()); this.howToDialog(); return; }
-
-    const wide = top.width > 900 * scale;
-    const mainW = wide ? top.width * 0.58 : top.width;
-    scrollPanel("club-main", { ...top, width: mainW }, () => {
+    if (!p) drawKeyArt();
+    topBar(p ? this.me?.elo ?? null : null);
+    const top = safeArea.top + (TOP_BAR + 22) * scale;
+    const avail = (width - safeArea.left - safeArea.right) / scale - 44;
+    const cw = Math.min(1116, avail);
+    const x0 = safeArea.left + ((width - safeArea.left - safeArea.right) / scale - cw) / 2 * scale;
+    const h = height - top - safeArea.bottom - 8 * scale;
+    if (!p) {
+      const w = Math.min(460, cw);
+      scrollPanel("club-guest", { x: x0 + (cw - w) / 2 * scale, y: top + Math.min(60, height / scale * 0.06) * scale, width: (w + 12) * scale, height: h }, () => this.guest(w));
+      this.howToDialog();
+      return;
+    }
+    const wide = cw >= 760;
+    const mainW = wide ? cw - 320 - 22 : cw;
+    scrollPanel("club-main", { x: x0, y: top, width: (mainW + 12) * scale, height: h }, () => {
       ui.column("club", () => {
-        this.playPanel();
-        this.myGames();
-        this.invitations();
-        if (!wide) this.sidePanel();
-      }, { spacing: 16 });
+        this.playPanel(mainW);
+        this.myGames(mainW);
+        this.invitations(mainW);
+        if (!wide) this.sidePanel(mainW);
+      }, { spacing: 18 });
     });
     if (wide) {
-      const side = { x: top.x + mainW + 24 * scale, y: top.y, width: top.width - mainW - 24 * scale, height: top.height };
-      scrollPanel("club-side-scroll", side, () => ui.column("club-side", () => this.sidePanel(), { spacing: 16 }));
+      const side = { x: x0 + (mainW + 22) * scale, y: top, width: (320 + 12) * scale, height: h };
+      scrollPanel("club-side-scroll", side, () => ui.column("club-side", () => this.sidePanel(320), { spacing: 18 }));
     }
     this.friendDialog();
     this.howToDialog();
@@ -189,138 +197,175 @@ export class ClubScreen implements Screen {
     if (!open) this.howTo = false;
   }
 
-  private guest(): void {
-    ui.column("landing", () => {
-      ui.heading(T("Take a seat"));
-      ui.paragraph(T("Practice against hal right now — no sign-in needed."), Math.min(420, frame().width / frame().scale - 56));
+  /** Signed out: the "Take a seat" card over the key art. */
+  private guest(w: number): void {
+    framedPanel("landing", w, () => {
+      ui.label(T("Take a seat"), { font: "serif", size: 28, weight: "600" });
+      ui.paragraph(T("Practice against hal right now — no sign-in needed."), w - 32, { size: 14 });
       ui.row("landing-play", () => {
-        if (ui.id("play-local").button(T("Play"))) nav.practice(false);
+        if (primaryButton("play-local", T("Play"), { big: true })) nav.practice(false);
         if (hasKeptPractice() && ui.id("resume-practice").button(T("Resume practice"))) nav.practice(true);
-      }, { spacing: 8 });
-      if (ui.id("how-to").button(T("How to play"))) this.howTo = true;
-      ui.label(T("or sign in to the club"), { tone: "muted" });
-      if (ui.id("sign-in").button(T("Sign in with StarHermit"))) {
+        if (smallButton("how-to", T("How to play"))) this.howTo = true;
+      }, { spacing: 10, align: "center" });
+      ui.label(T("or sign in to the club").toUpperCase(), { size: 11, color: PALETTE.faint });
+      if (ui.id("sign-in").button(T("Sign in with StarHermit"), { size: 15 })) {
         requestSignIn().then((pl) => { if (pl) nav.club(); }, (e) => toast(errorText(e), true));
       }
-    }, { spacing: 12 });
+    }, 16);
   }
 
-  private playPanel(): void {
-    ui.panel("play", () => {
-      ui.heading(T("Play"));
+  private playPanel(w: number): void {
+    ui.column("play", () => {
       if (this.searchingSince == null) {
         ui.row("play-row", () => {
-          if (ui.id("play-online").button(T("Play"), { disabled: this.busy })) {
+          if (primaryButton("play-online", T("Play"), { big: true, disabled: this.busy })) {
             this.busy = true;
             this.startSearch().finally(() => { this.busy = false; });
           }
+          if (w >= 560) note(T("Matched by rating against another club member"));
           if (ui.id("practice").button(T("Practice vs hal"))) nav.practice(false);
-        }, { spacing: 8 });
-        ui.row("play-row-2", () => {
-          if (hasKeptPractice() && ui.id("resume-practice").button(T("Resume practice"))) nav.practice(true);
-          if (ui.id("how-to").button(T("How to play"))) this.howTo = true;
-        }, { spacing: 8 });
+        }, { spacing: 14, align: "center" });
       } else {
-        ui.label(T("Looking for an opponent…"), { tone: "accent" });
-        const waited = (Date.now() - this.searchingSince) / 1000;
         ui.row("search-row", () => {
+          ui.label(T("Looking for an opponent…"), { font: "serif", color: PALETTE.muted });
           if (ui.id("cancel-search").button(T("Cancel"))) this.stopSearch(true);
-          if (waited >= HAL_AFTER_S && ui.id("play-hal").button(T("Play against hal"))) this.playHal();
-        }, { spacing: 8 });
+          const waited = (Date.now() - this.searchingSince!) / 1000;
+          if (waited >= HAL_AFTER_S && primaryButton("play-hal", T("Play against hal"))) this.playHal();
+        }, { spacing: 14, align: "center" });
       }
-    }, { padding: 14, spacing: 10 });
+      ui.row("play-row-2", () => {
+        if (hasKeptPractice() && smallButton("resume-practice", T("Resume practice"))) nav.practice(true);
+        if (smallButton("how-to", T("How to play"))) this.howTo = true;
+      }, { spacing: 8 });
+    }, { spacing: 10, width: w });
   }
 
-  private myGames(): void {
-    ui.panel("my-games", () => {
-      ui.heading(T("My games"));
-      if (!this.games.length) ui.label(T("No games in progress."), { tone: "muted" });
-      // On a narrow window the time left goes on its own line under the button.
-      const narrow = frame().width / frame().scale < 560;
+  /** A panel's header: the title, and a note or buttons after it. */
+  private header(id: string, title: string, inner: number, after?: () => void): void {
+    ui.row(id, () => {
+      panelTitle(title);
+      if (after) after();
+    }, { spacing: 12, align: "center", width: inner });
+  }
+
+  /** A card: a raised row inside a panel (the browser client's .card). */
+  private card(id: string, inner: number, build: () => void): void {
+    const r = ui.row(id, build, { spacing: 12, align: "center", width: inner, background: PALETTE.panel2, padding: { top: 8, bottom: 8, start: 12, end: 12 } });
+    frameRect(r);
+  }
+
+  private myGames(w: number): void {
+    const inner = w - 32;
+    framedPanel("my-games", w, () => {
+      this.header("games-head", T("My games"), inner, () => note(T("{n} of {cap} seats", { n: this.games.length, cap: 20 })));
+      if (!this.games.length) ui.label(T("No games in progress."), { font: "serif", color: PALETTE.faint });
+      const narrow = w < 520;
       for (const g of this.games) {
         const opp = g.players.find((x) => x.userId !== player()?.userId);
-        const name = short(opp ? nameOf(opp.userId) : "hal");
         const left = g.deadline ? g.deadline - Date.now() : null;
-        const turn = g.myTurn ? T("your move") : T("their move");
-        const time = left == null ? "" : T("{time} left", { time: fmtLeft(left) });
         const urgent = left != null && left < HOUR_MS && g.myTurn;
-        const label = narrow || !time ? `${name} · ${turn}` : `${name} · ${turn} — ${time}`;
-        if (ui.id(`game-${g.sessionId}`).button(label, { tone: urgent ? "danger" : "normal" })) nav.table(g.sessionId);
-        if (narrow && time) ui.label(time, { tone: urgent ? "danger" : "muted" });
+        this.card(`game-card-${g.sessionId}`, inner, () => {
+          if (cardButton(`game-${g.sessionId}`, short(opp ? nameOf(opp.userId) : "hal"))) nav.table(g.sessionId);
+          if (left != null && !narrow) ui.label(T("{time} left", { time: fmtLeft(left) }), { size: 13, color: urgent ? PALETTE.danger : PALETTE.muted });
+          pill(`pill-${g.sessionId}`, g.myTurn ? T("your move") : T("their move"), g.myTurn);
+        });
       }
-    }, { padding: 14, spacing: 8 });
+    });
   }
 
-  private invitations(): void {
-    ui.panel("invites", () => {
-      ui.heading(T("Invitations"));
-      for (const inv of this.incoming) {
-        ui.row(`inv-${inv.inviteId}`, () => {
-          ui.label(T("{name} invites you to a game", { name: nameOf(inv.from) }));
-          if (ui.id(`acc-${inv.inviteId}`).button(T("Accept"))) {
-            sessions.acceptInvite(inv.inviteId).then((sid) => nav.table(sid), (e) => toast(errorText(e), true));
-          }
-          if (ui.id(`dec-${inv.inviteId}`).button(T("Decline"))) {
-            sessions.declineInvite(inv.inviteId).then(() => this.refreshInvites(), (e) => toast(errorText(e), true));
-          }
-        }, { spacing: 8, align: "center" });
-      }
-      for (const inv of this.outgoing) ui.label(`${nameOf(inv.to)} — ${T("invited — waiting")}`, { tone: "muted" });
-      ui.row("invite-row", () => {
-        if (ui.id("invite-friend").button(T("Invite a friend"))) {
-          friends.list().then((f) => { this.friendPicker = f; }, (e) => toast(T("Could not load friends: {error}", { error: errorText(e) }), true));
-        }
-        if (this.link && ui.id("share-link").button(T("Share invite link"))) {
+  private invitations(w: number): void {
+    const inner = w - 32;
+    framedPanel("invites", w, () => {
+      this.header("invites-head", T("Invitations"), inner, () => {
+        if (this.link && smallButton("share-link", T("Share invite link"))) {
           try { clipboard.writeText(this.link); toast(T("Invite link copied.")); }
           catch { toast(this.link); }
         }
-      }, { spacing: 8 });
-    }, { padding: 14, spacing: 8 });
+        if (smallButton("invite-friend", T("Invite a friend"))) {
+          friends.list().then((f) => { this.friendPicker = f; }, (e) => toast(T("Could not load friends: {error}", { error: errorText(e) }), true));
+        }
+      });
+      for (const inv of this.incoming) {
+        this.card(`inv-${inv.inviteId}`, inner, () => {
+          ui.label(short(nameOf(inv.from)), { font: "serif", size: 16 });
+          ui.label(T("invites you to a game"), { size: 13, color: PALETTE.muted });
+          if (primaryButton(`acc-${inv.inviteId}`, T("Accept"))) {
+            sessions.acceptInvite(inv.inviteId).then((sid) => nav.table(sid), (e) => toast(errorText(e), true));
+          }
+          if (smallButton(`dec-${inv.inviteId}`, T("Decline"))) {
+            sessions.declineInvite(inv.inviteId).then(() => this.refreshInvites(), (e) => toast(errorText(e), true));
+          }
+        });
+      }
+      for (const inv of this.outgoing) {
+        this.card(`out-${inv.inviteId}`, inner, () => {
+          ui.label(short(nameOf(inv.to)), { font: "serif", size: 16 });
+          ui.label(T("invited — waiting"), { size: 13, color: PALETTE.muted });
+        });
+      }
+    });
   }
 
-  private sidePanel(): void {
-    ui.panel("rating", () => {
-      ui.heading(T("My rating"));
+  private sidePanel(w: number): void {
+    const inner = w - 32;
+    framedPanel("rating", w, () => {
+      panelTitle(T("My rating"));
       const m = this.me;
-      ui.label(m?.elo != null ? `Elo ${m.elo}` : "Elo —", { tone: "accent" });
-      ui.label(`${T("W")} ${m?.wins ?? 0} · ${T("L")} ${m?.losses ?? 0} · ${T("D")} ${m?.draws ?? 0}`, { tone: "muted" });
-    }, { padding: 14, spacing: 6 });
+      ui.label(m?.elo != null ? String(m.elo) : "—", { font: "serif", size: 34, color: PALETTE.brass });
+      ui.label(T("{wins} won · {losses} lost · {draws} drawn", { wins: m?.wins ?? 0, losses: m?.losses ?? 0, draws: m?.draws ?? 0 }), { font: "serif", size: 14, color: PALETTE.muted });
+    }, 4);
     // Locked secret achievements stay hidden, as the platform keeps them.
     const shown = this.achievements.filter((a) => a.unlocked || !a.secret);
     if (shown.length) {
-      ui.panel("achievements", () => {
-        ui.heading(T("Achievements"));
+      framedPanel("achievements", w, () => {
         const n = this.achievements.filter((a) => a.unlocked).length;
-        ui.label(T("{n} of {total} unlocked", { n, total: this.achievements.length }), { tone: "muted" });
-        const w = Math.min(380, frame().width / frame().scale - 80);
+        this.header("ach-head", T("Achievements"), inner, () => note(T("{n} of {total} unlocked", { n, total: this.achievements.length })));
         for (const a of shown) {
           const t = achievementText(a);
-          ui.paragraph(`${a.unlocked ? "✓" : "○"} ${t.name} — ${t.description}`, w);
+          ui.row(`ach-${a.key}`, () => {
+            ui.label(a.unlocked ? "✓" : "○", { color: a.unlocked ? PALETTE.brass : PALETTE.faint });
+            ui.column(`ach-text-${a.key}`, () => {
+              ui.label(t.name, { font: "serif", size: 15, color: a.unlocked ? PALETTE.ink : PALETTE.muted });
+              ui.paragraph(t.description, inner - 28, { size: 12.5 });
+            }, { spacing: 1 });
+          }, { spacing: 8 });
         }
-      }, { padding: 14, spacing: 6 });
+      }, 8);
     }
     if (this.friendRatings.length) {
-      ui.panel("friends", () => {
-        ui.heading(T("Friends"));
-        for (const e of this.friendRatings) ui.label(`${e.rank}. ${nameOf(e.userId)} — ${e.score}`);
-      }, { padding: 14, spacing: 6 });
+      framedPanel("friends", w, () => {
+        panelTitle(T("Friends table"));
+        for (const e of this.friendRatings) {
+          const me = e.userId === player()?.userId;
+          ui.row(`lb-${e.userId}`, () => {
+            ui.column(`lb-rank-${e.userId}`, () => ui.label(String(e.rank), { size: 14, color: PALETTE.faint }), { width: 30 });
+            ui.column(`lb-name-${e.userId}`, () => ui.label(short(nameOf(e.userId), 22), { size: 14, color: me ? PALETTE.brassHi : PALETTE.ink }), { width: inner - 100 });
+            ui.column(`lb-score-${e.userId}`, () => ui.label(String(e.score), { font: "serif", size: 14, color: PALETTE.brass }), { width: 60, align: "end" });
+          }, { spacing: 4, width: inner });
+        }
+      }, 6);
     }
     if (this.replaysEnabled) {
-      ui.panel("recent", () => {
-        ui.heading(T("Recent games"));
-        if (!this.recent.length) ui.label(T("No finished games yet."), { tone: "muted" });
+      framedPanel("recent", w, () => {
+        panelTitle(T("Recent games"));
+        if (!this.recent.length) ui.label(T("No finished games yet."), { font: "serif", color: PALETTE.faint });
         const narrow = frame().width / frame().scale < 560;
+        const me = player()?.userId ?? "";
         for (const r of this.recent) {
-          const opp = r.players.find((x) => x.userId !== player()?.userId);
-          const res = r.result as { kind?: string; reason?: string; white?: string } | null;
-          const myColor = res?.white === player()?.userId ? "white" : "black";
+          const opp = r.players.find((x) => x.userId !== me);
+          const res = r.result as { kind?: string; reason?: string; white?: string; eloBefore?: Record<string, number>; eloAfter?: Record<string, number> } | null;
+          const myColor = res?.white === me ? "white" : "black";
           const outcome = !res?.kind ? "" : res.kind === "draw" ? T("Drawn")
             : res.kind === "white" || res.kind === "black" ? (res.kind === myColor ? T("Won") : T("Lost")) : T("Abandoned");
-          // A narrow window leaves the reason to the replay itself.
-          const label = [short(opp ? nameOf(opp.userId) : "hal"), outcome, narrow ? "" : reasonText(res?.reason)].filter(Boolean).join(" · ");
-          if (ui.id(`replay-${r.sessionId}`).button(label)) nav.replay(r.sessionId);
+          const delta = res?.eloBefore?.[me] != null && res.eloAfter?.[me] != null ? res.eloAfter[me]! - res.eloBefore[me]! : null;
+          this.card(`recent-${r.sessionId}`, inner, () => {
+            if (cardButton(`replay-${r.sessionId}`, short(opp ? nameOf(opp.userId) : "hal", 14))) nav.replay(r.sessionId);
+            // A narrow window leaves the reason to the replay itself.
+            ui.label([outcome, narrow ? "" : reasonText(res?.reason)].filter(Boolean).join(" · "), { size: 12.5, color: PALETTE.muted });
+            if (delta) ui.label(`${delta > 0 ? "+" : ""}${delta}`, { size: 12.5, color: delta > 0 ? PALETTE.ok : PALETTE.danger });
+          });
         }
-      }, { padding: 14, spacing: 6 });
+      }, 8);
     }
   }
 
