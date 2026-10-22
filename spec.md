@@ -262,7 +262,7 @@ pixels — and the rating change in green or red).
 **Table.** `splitLayout()`: board left with the opponent's seat above and mine below, side panel
 right (below the top bar); on a tall window the panel goes below the board. Side panel: ← Club,
 Offer draw, Resign, then framed panels: the status (the turn line in brass serif — "Your move" in
-brass, "Alice to move" in ink — the hint, the offline/hal notes; the (after game over the result line: "You won — by resignation", "Alice won — on time", "Drawn — by agreement"); online the clock with a 24 h bar (red under an hour); the draw banner), "Scoresheet" (numbered rows in serif; it scrolls to the newest move), "Voice",
+brass, "Alice to move" in ink — the hint, the offline/hal notes; after game over the result line: "You won — by resignation", "Alice won — on time", "Drawn — by agreement"; online the clock with a 24 h bar (red under an hour); the draw banner), "Scoresheet" (numbered rows in serif; it scrolls to the newest move), "Voice",
 "Table talk" (each line a card with its sender, yours lighter; "Message your opponent" and a brass
 **Send**, Enter sends too) — table talk and voice (online, human opponents; the chat stops polling and its field
 goes when the game ends, since the platform closes the session's conversation then). Dialogs: promotion, confirm ("Resign this
