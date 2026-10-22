@@ -108,12 +108,15 @@ export function scrollPanel(label: string, rect: { x: number; y: number; width: 
 
 /** Two-column layout: the board on one side, a panel beside it (or below on a
  * tall window). Rects are window pixels. */
+/** Height of the top bar (style.ts `topBar`) in logical pixels. */
+export const TOP_BAR = 54;
+
 export function splitLayout(): { board: { x: number; y: number; width: number; height: number }; side: { x: number; y: number; width: number; height: number } } {
   const { width, height, scale, safeArea } = frame();
   const pad = 16 * scale;
-  const x0 = safeArea.left + pad, y0 = safeArea.top + pad;
+  const x0 = safeArea.left + pad, y0 = safeArea.top + TOP_BAR * scale + pad;
   const w = width - safeArea.left - safeArea.right - pad * 2;
-  const h = height - safeArea.top - safeArea.bottom - pad * 2;
+  const h = height - safeArea.top - TOP_BAR * scale - safeArea.bottom - pad * 2;
   if (w >= h * 1.25) {
     const side = Math.max(300 * scale, Math.min(w * 0.42, 460 * scale));
     const size = Math.min(h - 120 * scale, w - side - pad);

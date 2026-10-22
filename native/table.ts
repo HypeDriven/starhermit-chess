@@ -16,6 +16,7 @@ import { achievementText, colorName, fmtLeft, reasonText, spokenMove, spokenSqua
 import { checkSquare, replayMoves, rules, type Color, type GameState, type LoggedMove, type Move } from "./rules.js";
 import { sfx, sfxForMove } from "./sfx.js";
 import { errorText, loadName, nameOf, nav, scrollPanel, short, splitLayout, toast, type Screen } from "./shell.js";
+import { framedPanel, note, panelTitle, primaryButton, topBar } from "./style.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -89,6 +90,7 @@ export class TableScreen implements Screen {
   private hint: HintId | null | "" = "";
   private shownHint: HintId | null = null;
   private sheetMoves = -1;
+  private chatSeen = -1;
   private focus: number | null = null;
   private promo: { from: number; to: number } | null = null;
   private confirm: "resign" | "draw" | null = null;
@@ -319,12 +321,12 @@ export class TableScreen implements Screen {
     return nameOf(v[color], colorName(color));
   }
   /** The first-time hint while it is my move (see hints.ts). */
-  private hintLine(): void {
+  private hintLine(width: number): void {
     const mine = this.myColor();
     if (!this.canMove() || !mine) { this.shownHint = null; return; }
     if (this.hint === "") this.hint = hintFor(this.game, mine, !!this.sessionId);
     this.shownHint = this.hint;
-    if (this.hint) ui.paragraph(hintText(this.hint), 320);
+    if (this.hint) ui.paragraph(hintText(this.hint), width, { size: 14 });
   }
   private canMove(): boolean {
     const v = this.view;
@@ -429,6 +431,9 @@ export class TableScreen implements Screen {
       this.seats(layout.board, v, mine);
     }
 
+    topBar(this.sessionId && mine && v ? v.ratings[mine] : null);
+    // The side column: the actions, then framed panels as in the club.
+    const w = Math.min(440, layout.side.width / scale - 14);
     scrollPanel("table-scroll", layout.side, () => {
       ui.column("table", () => {
         ui.row("table-top", () => {
@@ -438,14 +443,17 @@ export class TableScreen implements Screen {
             if (ui.id("resign").button(T("Resign"), { tone: "danger" })) this.confirm = "resign";
           }
         }, { spacing: 8 });
-        if (v) this.clock(v, mine);
-        if (v) this.drawBanner(v, mine);
-        this.hintLine();
-        this.scoresheet(v);
-        if (!this.sessionId) ui.label(T("Offline practice — no clock, no rating."), { tone: "muted" });
-        else if (v?.ai) ui.label(T("No table talk with hal."), { tone: "muted" });
-        else if (v && (v.status === "active" || this.messages.length)) this.chatPanel();
-      }, { spacing: 12 });
+        framedPanel("status", w, () => {
+          if (v) this.clock(v, mine, w - 32);
+          if (v) this.drawBanner(v, mine);
+          this.hintLine(w - 32);
+          if (!this.sessionId) note(T("Offline practice — no clock, no rating."));
+          else if (v?.ai) note(T("No table talk with hal."));
+        }, 8);
+        framedPanel("scoresheet-panel", w, () => this.scoresheet(v, w - 32), 8);
+        if (this.sessionId && v && !v.ai && this.conversationId) framedPanel("voice-panel", w, () => this.voicePanel(this.conversationId!), 8);
+        if (this.sessionId && v && !v.ai && (v.status === "active" || this.messages.length)) framedPanel("chat-panel", w, () => this.chatPanel(w - 32), 8);
+      }, { spacing: 16 });
     });
 
     this.dialogs(v);
@@ -466,24 +474,24 @@ export class TableScreen implements Screen {
     draw.text(you, board.x, board.y + board.height + 12 * scale, { size, color: PALETTE.ink });
   }
 
-  private clock(v: View, mine: Color | null): void {
+  private clock(v: View, mine: Color | null, inner: number): void {
     if (v.status !== "active") {
       if (v.result) {
         const k = v.result.kind;
         const outcome = k === "draw" ? T("Drawn")
           : k === "white" || k === "black" ? (k === this.myColor() ? T("You won") : T("{name} won", { name: short(this.seatName(k)) }))
           : T("Abandoned");
-        ui.label(v.result.reason ? `${outcome} — ${reasonText(v.result.reason)}` : outcome);
+        ui.label(v.result.reason ? `${outcome} — ${reasonText(v.result.reason)}` : outcome, { font: "serif", size: 20, color: PALETTE.brass });
       }
       return;
     }
     const myTurn = v.turn === mine;
-    ui.heading(myTurn ? T("Your move") : T("{name} to move", { name: short(this.oppName()) }));
+    ui.label(myTurn ? T("Your move") : T("{name} to move", { name: short(this.oppName()) }), { font: "serif", size: 22, weight: "600", color: myTurn ? PALETTE.brass : PALETTE.ink });
     if (!this.sessionId) return; // offline practice has no clock
     const left = Math.max(0, v.deadline - Date.now());
     const urgent = left < HOUR_MS;
-    ui.label(T("{time} left", { time: fmtLeft(left) }), { tone: urgent ? "danger" : "muted" });
-    ui.progress(left / DAY_MS);
+    ui.label(T("{time} left", { time: fmtLeft(left) }), { size: 13, tone: urgent ? "danger" : "muted" });
+    ui.progress(left / DAY_MS, inner);
     if (myTurn && urgent && !this.warned) { this.warned = true; sfx("clockWarning"); }
   }
 
@@ -502,44 +510,58 @@ export class TableScreen implements Screen {
     }, { padding: 10, spacing: 8 });
   }
 
-  private scoresheet(v: View | null): void {
+  private scoresheet(v: View | null, inner: number): void {
     const moves = v?.moves ?? [];
     // A new move scrolls the sheet to its end.
     const grew = moves.length !== this.sheetMoves;
     this.sheetMoves = moves.length;
-    ui.scrollArea("scoresheet", { width: 340, height: 180 }, () => {
-      if (!moves.length) ui.label(T("No moves yet."), { tone: "muted" });
+    panelTitle(T("Scoresheet"));
+    ui.scrollArea("scoresheet", { width: inner, height: 160 }, () => {
+      if (!moves.length) ui.label(T("No moves yet."), { font: "serif", color: PALETTE.faint });
       for (let i = 0; i < moves.length; i += 2) {
         const black = moves[i + 1];
-        ui.label(`${i / 2 + 1}.  ${moves[i]!.san}${black ? `   ${black.san}` : ""}`);
+        ui.row(`sheet-${i}`, () => {
+          ui.column(`sheet-n-${i}`, () => ui.label(`${i / 2 + 1}.`, { color: PALETTE.faint }), { width: 36 });
+          ui.column(`sheet-w-${i}`, () => ui.label(moves[i]!.san, { font: "serif" }), { width: 80 });
+          if (black) ui.label(black.san, { font: "serif" });
+        });
       }
       if (this.conn === "connecting") ui.label(T("connecting…"), { tone: "muted" });
       if (this.conn === "reconnecting") ui.label(T("reconnecting…"), { tone: "muted" });
       if (this.conn === "closed") ui.label(T("connection closed"), { tone: "danger" });
-      if (this.conn === "closed" && this.failure) ui.paragraph(this.failure, 320);
+      if (this.conn === "closed" && this.failure) ui.paragraph(this.failure, inner - 16);
     }, grew ? { scrollTo: { top: Infinity } } : undefined);
   }
 
-  private chatPanel(): void {
-    ui.heading(T("Table talk"));
-    ui.scrollArea("chat", { width: 340, height: 140 }, () => {
-      for (const m of this.messages.slice(-30)) {
-        if (m.isDeleted) continue;
-        ui.paragraph(`${m.senderId === this.me ? T("You") : nameOf(m.senderId)}: ${m.content}`, 320);
-      }
-    });
+  private chatPanel(inner: number): void {
+    panelTitle(T("Table talk"));
+    ui.scrollArea("chat", { width: inner, height: 150 }, () => {
+      ui.column("chat-lines", () => {
+        for (const m of this.messages.slice(-30)) {
+          if (m.isDeleted) continue;
+          const mine = m.senderId === this.me;
+          ui.column(`msg-${m.id}`, () => {
+            ui.label(mine ? T("You") : nameOf(m.senderId), { size: 11, color: PALETTE.faint });
+            ui.paragraph(m.content, inner - 40);
+          }, { spacing: 2, background: mine ? PALETTE.line : PALETTE.panel2, padding: { top: 5, bottom: 6, start: 10, end: 10 } });
+        }
+      }, { spacing: 6 });
+    }, this.messages.length !== this.chatSeen ? { scrollTo: { top: Infinity } } : undefined);
+    this.chatSeen = this.messages.length;
     if (this.channel) {
-      this.draft = ui.textField("chat-input", this.draft, { maxChars: 500, placeholder: T("Say something…"), width: 340 });
-      if (ui.submitted("chat-input") && this.draft.trim()) {
-        if (this.channel.send(this.draft.trim())) this.draft = "";
-      }
+      ui.row("chat-send", () => {
+        this.draft = ui.textField("chat-input", this.draft, { maxChars: 500, placeholder: T("Message your opponent"), width: inner - 80 });
+        const send = primaryButton("chat-send-button", T("Send"));
+        if ((send || ui.submitted("chat-input")) && this.draft.trim()) {
+          if (this.channel!.send(this.draft.trim())) this.draft = "";
+        }
+      }, { spacing: 8, align: "center" });
     }
-    if (this.conversationId) this.voicePanel(this.conversationId);
   }
 
   // Voice is opt-in per game (open mic), off until the player enables it.
   private voicePanel(conversationId: string): void {
-    ui.heading(T("Voice"));
+    panelTitle(T("Voice"));
     const st = voice.status();
     if (!this.voiceOn) {
       if (ui.id("voice-on").button(T("Enable voice"))) {

@@ -8,6 +8,7 @@ import { colorName, reasonText, spokenMove, T } from "./i18n.js";
 import { replayMoves, type LoggedMove, type Position } from "./rules.js";
 import { sfxForMove } from "./sfx.js";
 import { errorText, nameOf, nav, scrollPanel, splitLayout, toast, type Screen } from "./shell.js";
+import { topBar } from "./style.js";
 
 export class ReplayScreen implements Screen {
   private positions: Position[] = [];
@@ -74,6 +75,7 @@ export class ReplayScreen implements Screen {
     if (this.dropFocus) { ui.setFocus(null); this.dropFocus = false; }
     const { scale } = frame();
     const layout = splitLayout();
+    topBar(null);
     const pos = this.positions[this.ply];
     if (pos) {
       drawBoard(layout.board, { board: pos.board, flipped: this.flipped, last: pos.last, check: pos.check }, scale);
@@ -87,7 +89,7 @@ export class ReplayScreen implements Screen {
     scrollPanel("replay-scroll", layout.side, () => {
       ui.column("replay", () => {
         if (ui.id("back").button(T("← Club"))) nav.club();
-        ui.heading(T("Replay"));
+        ui.label(T("Replay"), { font: "serif", size: 22, weight: "600", color: PALETTE.brass });
         if (this.resultLine) ui.label(this.resultLine, { tone: "accent" });
         ui.row("replay-controls", () => {
           if (ui.id("first").button("|◀")) this.go(0);

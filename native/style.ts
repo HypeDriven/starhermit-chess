@@ -8,7 +8,10 @@ import * as draw from "starhermit:draw";
 import * as ui from "starhermit:ui";
 import { PALETTE } from "./board.js";
 import { T } from "./i18n.js";
+import { TOP_BAR } from "./shell.js";
 import { soundOn, toggleSound } from "./sfx.js";
+
+export { TOP_BAR };
 
 /** Text on brass (the browser client's --brass-ink). */
 export const BRASS_INK = "#1c150e";
@@ -104,8 +107,6 @@ export function drawKeyArt(): void {
 }
 
 // -- Top bar ------------------------------------------------------------------------
-/** Height of the top bar in logical pixels. */
-export const TOP_BAR = 54;
 
 /** The top bar: the mark and wordmark, then (right) the rating, the sound
  * toggle and the runtime's settings. */
