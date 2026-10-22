@@ -101,10 +101,17 @@ export function loadName(userId: string): void {
  * taller, so nothing is cut off on short or narrow windows. */
 export function scrollPanel(label: string, rect: { x: number; y: number; width: number; height: number }, build: () => void): void {
   const { scale } = frame();
-  ui.area(rect, () => {
-    ui.scrollArea(label, { width: Math.max(rect.width / scale - 8, 40), height: Math.max(rect.height / scale - 8, 40) }, build);
-  });
+  const outer = clipRect;
+  clipRect = rect; // lines drawn for its content (style.ts frameRect) stay inside it
+  try {
+    ui.area(rect, () => {
+      ui.scrollArea(label, { width: Math.max(rect.width / scale - 8, 40), height: Math.max(rect.height / scale - 8, 40) }, build);
+    });
+  } finally { clipRect = outer; }
 }
+let clipRect: { x: number; y: number; width: number; height: number } | null = null;
+/** The scroll panel being built, if any: drawing for its content clips to it. */
+export function currentClip(): { x: number; y: number; width: number; height: number } | null { return clipRect; }
 
 /** Two-column layout: the board on one side, a panel beside it (or below on a
  * tall window). Rects are window pixels. */

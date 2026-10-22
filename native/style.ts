@@ -8,7 +8,7 @@ import * as draw from "starhermit:draw";
 import * as ui from "starhermit:ui";
 import { PALETTE } from "./board.js";
 import { T } from "./i18n.js";
-import { TOP_BAR } from "./shell.js";
+import { currentClip, TOP_BAR } from "./shell.js";
 import { soundOn, toggleSound } from "./sfx.js";
 
 export { TOP_BAR };
@@ -76,7 +76,8 @@ export function framedPanel(id: string, width: number, build: () => void, spacin
 /** The room's 1-pixel line around a laid-out rectangle (window pixels). */
 export function frameRect(r: ui.Rect, color: string = PALETTE.line): void {
   const s = frame().scale;
-  draw.strokeRoundRect(r.x - 0.5 * s, r.y - 0.5 * s, r.width + s, r.height + s, 6 * s, color, s);
+  const clip = currentClip();
+  draw.strokeRoundRect(r.x - 0.5 * s, r.y - 0.5 * s, r.width + s, r.height + s, 6 * s, color, s, clip ? { clip } : {});
 }
 
 // -- Pictures ---------------------------------------------------------------------
