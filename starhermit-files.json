@@ -7,7 +7,7 @@
     "cover.jpg": {"sha256": "35f6e8afeeff367cf616cfc4be2e735d01148771cb894a33e9b34d76a4193a99", "size": 137482},
     "coverart.png": {"sha256": "58ccb0ae8dc60da0f7c16edf38f2a9a90fbaca3a288cff635f70178f0120194c", "size": 449796},
     "icon.png": {"sha256": "d3a1f22da6b3684e27398c1924a6e1dbc6b1b0889b8a3c3ad2aa1d15dae5dd55", "size": 6291},
-    "index.html": {"sha256": "2ffdb164dd4ebec65075dab4d08f530bb5e6ac5c9a06afbf3d64f43b834019f4", "size": 1746},
+    "index.html": {"sha256": "e4ea724cffe37080cd0d99c9fd5ee666ac71c7ce9a98647d872a6e51d12e89f8", "size": 1746},
     "leaderboards.json": {"sha256": "e770782d74ba39f5c6c495448b993ac811fbc7b18d2c546b65f398e6d21c4f38", "size": 139},
     "native/board.ts": {"sha256": "4447ec498569c772c0c9915887d1a6c0118cec2a662cb42194a036035cff6f61", "size": 7787},
     "native/club.ts": {"sha256": "4a2617783623ea8fa2109b4e75b1a4302b4ca4f3e4ca5fb763740f64862beda2", "size": 19293},
@@ -40,7 +40,7 @@
     "sfx/piece-select.opus": {"sha256": "9df5e65950e8410181bfe21d73202e0bd1d5fbc12426a9274781759dcdb086d5", "size": 11763},
     "sfx/promote-chime.opus": {"sha256": "4de21d026b88350f63303ef16b3a223e45f8cf44eb62132663b51a27bb6c99d4", "size": 28150},
     "spec.md": {"sha256": "cc80740d91907618da05d2f3359e391c139649ab0d5dfae0a739d13aa49f37a0", "size": 41399},
-    "starhermit.txt": {"sha256": "cd23b7efed25a8b9c887e73b9c626269d6f4f82573d9f7a63d8c992bfe8b3389", "size": 2663},
+    "starhermit.txt": {"sha256": "c3e4efc27a5373ffbedfc94a7024cfed82c0fb74394d81b5858ef91d6ae06785", "size": 2663},
     "strings.js": {"sha256": "dc4d00d404d5891bdb3f2c4855545941a7f5cace37b5356ca6fd21a87d013bdd", "size": 49614}
   },
   "excluded": ["node_modules/", "package.json", "tests/", "tools/", "tsconfig.json"],
