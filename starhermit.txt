@@ -20,7 +20,7 @@ description=Play correspondence chess against other players or practice against 
 launch=index.html
 engine.api=1
 engine.entry=native/main.ts
-engine.version=1.15.0
+engine.version=1.15.2
 engine.minor=12
 engine.capabilities=platform,storage,clipboard,voice
 
