@@ -8,7 +8,7 @@ import { OffscreenCanvas } from "starhermit:canvas";
 import {
   ACESFilmicToneMapping, AdditiveBlending, AmbientLight, BufferAttribute, BufferGeometry, CanvasTexture, Color,
   DirectionalLight, Fog, GLTFLoader, HemisphereLight, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial,
-  MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, Points, PointsMaterial, Quaternion, Vector3,
+  MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, Points, PointsMaterial, Quaternion, SRGBColorSpace, Vector3,
   renderer, scene, type Object3D,
 } from "starhermit:scene";
 import { PALETTE } from "./board.js";
@@ -76,7 +76,9 @@ function radialTexture(size: number, stops: [number, string][]): CanvasTexture {
   for (const [at, color] of stops) grad.addColorStop(at, color);
   g.fillStyle = grad;
   g.fillRect(0, 0, size, size);
-  return new CanvasTexture(c);
+  const t = new CanvasTexture(c);
+  t.colorSpace = SRGBColorSpace; // as the browser build set it (minor 28 follows colorSpace)
+  return t;
 }
 
 function spawn(anywhere: boolean, star?: Star): Star {
