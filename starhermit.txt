@@ -20,8 +20,8 @@ description=Play correspondence chess against other players or practice against 
 launch=index.html
 engine.api=1
 engine.entry=native/main.ts
-engine.version=1.27.0
-engine.minor=29
+engine.version=1.28.0
+engine.minor=30
 engine.capabilities=platform,storage,clipboard,voice
 
 # The Starhermit account that owns this game (the submitter's user id).
