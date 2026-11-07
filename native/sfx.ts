@@ -1,6 +1,7 @@
 // Sound effects: one sfx/*.opus clip per game event, through the
-// engine's mixer (volume lives in the runtime's Options › Audio).
-import { loadClip, play as playClip, type AudioClip } from "starhermit:audio";
+// engine's mixer (volume lives in the runtime's Options › Audio; the Sound
+// toggle is the engine's game-level mute).
+import { loadClip, play as playClip, setMuted, type AudioClip } from "starhermit:audio";
 import { storage } from "starhermit:storage";
 
 const FILES = {
@@ -23,23 +24,20 @@ export async function loadSfx(): Promise<void> {
 
 // The top bar's Sound toggle, kept on the device (volumes stay the runtime's).
 let on = ((): boolean => { try { return storage.getJson("sound.on") !== false; } catch { return true; } })();
+setMuted(!on);
 export function soundOn(): boolean { return on; }
 export function toggleSound(): void {
   on = !on;
   try { storage.setJson("sound.on", on); } catch { /* this session only */ }
+  setMuted(!on);
 }
 
 export function sfx(name: SfxName): void {
   const clip = clips.get(name);
-  if (!clip || !on) return;
+  if (!clip) return;
   try {
     playClip(clip, { bus: name === "select" || name === "illegal" ? "interface" : "effects" });
-  } catch {
-    // A clip the mixer lost (it throws rather than staying silent): load it
-    // again for next time.
-    clips.delete(name);
-    loadClip(`sfx/${FILES[name]}.opus`).then((c) => { clips.set(name, c); }, () => { /* stays silent */ });
-  }
+  } catch { /* the mixer is full this frame: skip it */ }
 }
 
 /** The sound for a move from its SAN, plus the check bell. */

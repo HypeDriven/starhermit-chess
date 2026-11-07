@@ -209,7 +209,7 @@ export class ClubScreen implements Screen {
         if (smallButton("how-to", T("How to play"))) this.howTo = true;
       }, { spacing: 8, justify: "center", width: inner });
       divider("landing-or", T("or sign in to the club"), inner);
-      if (primaryButton("sign-in", T("Sign in with StarHermit"), { wide: true })) {
+      if (primaryButton("sign-in", T("starhermit.signIn"), { wide: true })) {
         requestSignIn().then((pl) => { if (pl) nav.club(); }, (e) => toast(errorText(e), true));
       }
     }, 14, true);
@@ -281,10 +281,10 @@ export class ClubScreen implements Screen {
     framedPanel("invites", w, () => {
       this.header("invites-head", T("Invitations"), inner, () => {
         if (this.link && smallButton("share-link", T("Share invite link"))) {
-          try { clipboard.writeText(this.link); toast(T("Invite link copied.")); }
-          catch { toast(this.link); }
+          try { clipboard.writeText(this.link); toast(T("starhermit.inviteCopied")); }
+          catch { toast(T("starhermit.inviteLink", { link: this.link })); }
         }
-        if (smallButton("invite-friend", T("Invite a friend"))) {
+        if (smallButton("invite-friend", T("starhermit.invite"))) {
           friends.list().then((f) => { this.friendPicker = f; }, (e) => toast(T("Could not load friends: {error}", { error: errorText(e) }), true));
         }
       }, 420);
@@ -380,7 +380,7 @@ export class ClubScreen implements Screen {
     // the window (the dialog does not grow to its widest button).
     const { height, scale } = frame();
     const listH = Math.min(list.length * 37, height / scale - 220);
-    const open = ui.dialog("friend-picker", T("Invite a friend"), true, () => {
+    const open = ui.dialog("friend-picker", T("starhermit.invite"), true, () => {
       if (!list.length) ui.label(T("No friends yet."), { tone: "muted" });
       else ui.scrollArea("friend-scroll", { width: 320, height: Math.max(listH, 80) }, () => {
         ui.column("friend-list", () => {

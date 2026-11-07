@@ -1,0 +1,21 @@
+# Frame-cost bench (tools/engine-tier-bench.mjs): a practice game against hal
+# at the table: two moves by keyboard, hal's replies, the board settling.
+until 300 Take a seat
+click Play
+until 600 Your move
+frames 120
+measure start
+key Enter 2
+key KeyZ 2
+key ArrowUp 2
+key KeyZ 2
+key Enter 2
+key KeyZ 2
+key ArrowUp 2
+key KeyZ 2
+key ArrowUp 2
+key KeyZ 2
+key Enter 2
+until 300 Your move
+frames 400
+measure stop

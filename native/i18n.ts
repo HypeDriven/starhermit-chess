@@ -1,35 +1,16 @@
-// Localization for the native client: the browser's own tables (strings.js),
-// keyed by the English source string, in the locale the runtime reports.
-import { onPreferencesChange, preferences } from "starhermit:engine";
-import { loadClassic } from "starhermit:script";
+// Localization for the native client: the browser's tables (assets/strings.json,
+// keyed by the English source string), in the locale the
+// engine's strings follow; account lines are the engine's `starhermit.*`.
+import { strings } from "starhermit:engine";
+import * as ui from "starhermit:ui";
 
-loadClassic("strings.js");
-const TABLES = (globalThis as unknown as { CH_STRINGS?: Record<string, Record<string, string>> }).CH_STRINGS ?? {};
-
-const LOCALES = ["en-US", "en-GB", "es-419", "es-ES", "de-DE", "fr-FR", "fr-CA", "pt-BR", "it-IT"];
-const PARENT: Record<string, string> = { "en-GB": "en-US", "es-ES": "es-419", "fr-CA": "fr-FR" };
-const PRIMARY: Record<string, string> = { en: "en-US", es: "es-419", de: "de-DE", fr: "fr-FR", pt: "pt-BR", it: "it-IT" };
-
-/** The supported locale nearest a BCP 47 tag. */
-export function pickLocale(tag: string): string {
-  const exact = LOCALES.find((l) => l.toLowerCase() === tag.toLowerCase());
-  if (exact) return exact;
-  return PRIMARY[tag.split("-")[0]!.toLowerCase()] ?? "en-US";
-}
-
-export let locale = pickLocale(preferences().language);
-onPreferencesChange((p) => { locale = pickLocale(p.language); });
+strings.load("assets/strings.json");
+strings.defaultLocale = "en-US";
+ui.setLanguage(strings.locale);
+strings.onChange((locale) => ui.setLanguage(locale));
 
 /** Translates an English source string; `{name}` placeholders come from `vars`. */
-export function T(key: string, vars?: Record<string, string | number>): string {
-  let s = key;
-  for (let l: string | undefined = locale; l; l = PARENT[l]) {
-    const t = TABLES[l];
-    if (t && Object.prototype.hasOwnProperty.call(t, key)) { s = t[key]!; break; }
-  }
-  if (vars) s = s.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
-  return s;
-}
+export function T(key: string, vars?: Record<string, string | number>): string { return strings.t(key, vars); }
 
 /** Why a game ended, e.g. "by checkmate". */
 export function reasonText(reason: string | undefined): string {

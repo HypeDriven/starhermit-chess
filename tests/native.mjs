@@ -4,7 +4,7 @@
 // practice against hal through server.js).
 // Also checks that the committed web index (starhermit-files.json) matches the
 // files, i.e. that `npm run package` ran after the last change, and that every
-// client string has its translations in strings.js (T("…") literals and lists
+// client string has its translations in assets/strings.json (T("…") literals and lists
 // marked `// translated:`). Point STARHERMIT at the Windows runtime (WSL runs it
 // directly); without it only those two checks run.
 import { execFileSync } from 'node:child_process';
@@ -17,16 +17,14 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const exe = process.env.STARHERMIT;
 
 // Every string the client translates (T("…") and the hint/how-to tables) has
-// a row in strings.js for each table locale.
-globalThis.self = globalThis;
-await import(join(root, 'strings.js'));
-const tables = globalThis.CH_STRINGS;
+// a message in assets/strings.json for each table locale.
+const tables = JSON.parse(readFileSync(join(root, 'assets', 'strings.json'), 'utf8'));
 const untranslated = [];
 for (const f of readdirSync(join(root, 'native')).filter((n) => n.endsWith('.ts'))) {
   const src = readFileSync(join(root, 'native', f), 'utf8');
   const keys = [...src.matchAll(/\bT\(\s*"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1]);
   for (const m of src.matchAll(/\/\/ translated:\n([\s\S]*?)\n[\]}];/g)) keys.push(...[...m[1].matchAll(/"((?:[^"\\]|\\.)*)"(\s*:)?/g)].filter((x) => !x[2]).map((x) => x[1]));
-  for (const k of keys) for (const loc of ['es-419', 'de-DE', 'fr-FR', 'pt-BR', 'it-IT']) {
+  for (const k of keys.filter((x) => !x.startsWith('starhermit.'))) for (const loc of ['es-419', 'de-DE', 'fr-FR', 'pt-BR', 'it-IT']) {
     if (!(k in tables[loc])) untranslated.push(`${f}: ${loc} "${k}"`);
   }
 }
