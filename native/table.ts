@@ -1,3 +1,7 @@
+import { localizedStyle as __l10nStyle } from "./l10n/font.js";
+import { localizedDrawOptions as __l10nDrawOptions } from "./l10n/font.js";
+// localization-runtime:attached
+import { localizedFont as __l10nFont } from "./l10n/font.js";
 // The game screen. Online it talks to the platform's game socket; offline
 // practice runs server.js itself as a local authority, so both paths receive
 // the same broadcasts and this screen has one code path.
@@ -415,7 +419,7 @@ export class TableScreen implements Screen {
     const mine = this.myColor();
 
     if (!v) {
-      draw.text(T("Connecting…"), layout.board.x, layout.board.y, { size: 18 * scale, color: PALETTE.muted });
+      draw.text(T("Connecting…"), layout.board.x, layout.board.y, __l10nDrawOptions({ size: 18 * scale, color: PALETTE.muted }));
     } else {
       const last = v.moves.length ? v.moves[v.moves.length - 1]! : null;
       drawBoard(layout.board, {
@@ -440,7 +444,7 @@ export class TableScreen implements Screen {
           if (ui.id("back").button(T("← Club"))) nav.club();
           if (v && v.status === "active" && mine) {
             if (ui.id("draw").button(T("Offer draw"), { disabled: v.drawOfferBy === mine })) this.confirm = "draw";
-            if (ui.id("resign").style("danger").button(T("Resign"))) this.confirm = "resign";
+            if (ui.id("resign").style(__l10nStyle("danger")).button(T("Resign"))) this.confirm = "resign";
           }
         }, { spacing: 8 });
         framedPanel("status", w, () => {
@@ -468,10 +472,10 @@ export class TableScreen implements Screen {
     const rated = !!this.sessionId;
     const dot = this.oppOnline == null || v.ai === oppColor ? "" : this.oppOnline ? "● " : "○ ";
     const opp = `${dot}${short(this.oppName(), 28)}${rated ? `  ${v.ratings[oppColor]}` : ""}  · ${colorName(oppColor)}`;
-    draw.text(opp, board.x, board.y - 36 * scale, { size, color: PALETTE.ink });
+    draw.text(opp, board.x, board.y - 36 * scale, __l10nDrawOptions({ size, color: PALETTE.ink }));
     let you = `${short(meName, 28)}${rated ? `  ${v.ratings[myColor]}` : ""}  · ${colorName(myColor)}`;
     if (v.status === "active" && v.turn === myColor && checkSquare(this.game) >= 0) you += `   ${T("Check")}`;
-    draw.text(you, board.x, board.y + board.height + 12 * scale, { size, color: PALETTE.ink });
+    draw.text(you, board.x, board.y + board.height + 12 * scale, __l10nDrawOptions({ size, color: PALETTE.ink }));
   }
 
   private clock(v: View, mine: Color | null, inner: number): void {
@@ -481,12 +485,12 @@ export class TableScreen implements Screen {
         const outcome = k === "draw" ? T("Drawn")
           : k === "white" || k === "black" ? (k === this.myColor() ? T("You won") : T("{name} won", { name: short(this.seatName(k)) }))
           : T("Abandoned");
-        ui.label(v.result.reason ? `${outcome} — ${reasonText(v.result.reason)}` : outcome, { font: "serif", size: 20, color: PALETTE.brass });
+        ui.label(v.result.reason ? `${outcome} — ${reasonText(v.result.reason)}` : outcome, { font: __l10nFont("serif"), size: 20, color: PALETTE.brass });
       }
       return;
     }
     const myTurn = v.turn === mine;
-    ui.label(myTurn ? T("Your move") : T("{name} to move", { name: short(this.oppName()) }), { font: "serif", size: 22, weight: "600", color: myTurn ? PALETTE.brass : PALETTE.ink });
+    ui.label(myTurn ? T("Your move") : T("{name} to move", { name: short(this.oppName()) }), { font: __l10nFont("serif"), size: 22, weight: "600", color: myTurn ? PALETTE.brass : PALETTE.ink });
     if (!this.sessionId) return; // offline practice has no clock
     const left = Math.max(0, v.deadline - Date.now());
     const urgent = left < HOUR_MS;
@@ -517,13 +521,13 @@ export class TableScreen implements Screen {
     this.sheetMoves = moves.length;
     panelTitle(T("Scoresheet"));
     ui.scrollArea("scoresheet", { width: inner, height: 160 }, () => {
-      if (!moves.length) ui.label(T("No moves yet."), { font: "serif", color: PALETTE.faint });
+      if (!moves.length) ui.label(T("No moves yet."), { font: __l10nFont("serif"), color: PALETTE.faint });
       for (let i = 0; i < moves.length; i += 2) {
         const black = moves[i + 1];
         ui.row(`sheet-${i}`, () => {
           ui.column(`sheet-n-${i}`, () => ui.label(`${i / 2 + 1}.`, { color: PALETTE.faint }), { width: 36 });
-          ui.column(`sheet-w-${i}`, () => ui.label(moves[i]!.san, { font: "serif" }), { width: 80 });
-          if (black) ui.label(black.san, { font: "serif" });
+          ui.column(`sheet-w-${i}`, () => ui.label(moves[i]!.san, { font: __l10nFont("serif") }), { width: 80 });
+          if (black) ui.label(black.san, { font: __l10nFont("serif") });
         });
       }
       if (this.conn === "connecting") ui.label(T("connecting…"), { tone: "muted" });
@@ -604,7 +608,7 @@ export class TableScreen implements Screen {
       const kind = this.confirm;
       const open = ui.dialog("confirm", kind === "resign" ? T("Resign this game?") : T("Offer a draw to {name}?", { name: this.oppName() }), true, () => {
         ui.row("confirm-row", () => {
-          if (ui.id("confirm-yes").style(kind === "resign" ? "danger" : "primary").button(kind === "resign" ? T("Resign") : T("Offer draw"))) {
+          if (ui.id("confirm-yes").style(__l10nStyle(kind === "resign" ? "danger" : "primary")).button(kind === "resign" ? T("Resign") : T("Offer draw"))) {
             this.link.send({ type: kind === "resign" ? "resign" : "offer-draw" });
             this.confirm = null;
           }

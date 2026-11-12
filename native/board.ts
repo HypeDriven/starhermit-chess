@@ -1,3 +1,4 @@
+import { localizedDrawOptions as __l10nDrawOptions } from "./l10n/font.js";
 // The board: squares, markers and pieces drawn into the overlay, hit-testing
 // for clicks and taps, and the keyboard/gamepad focus square. The piece art is
 // the browser's (ui.js UI.PIECE): one 45 x 45 grid, rasterized per size.
@@ -134,8 +135,8 @@ export function drawBoard(rect: Rect, v: BoardView, scale: number): void {
     const coordColor = light ? "rgba(28,21,14,0.55)" : "rgba(236,225,204,0.55)";
     const bottomRow = v.flipped ? rank === 7 : rank === 0;
     const leftCol = v.flipped ? file === 7 : file === 0;
-    if (bottomRow) draw.text("abcdefgh"[file]!, c.x + c.width * 0.96, c.y + c.height * 0.96 - coordSize, { size: coordSize, color: coordColor, align: "end" });
-    if (leftCol) draw.text(String(rank + 1), c.x + c.width * 0.05, c.y + c.height * 0.04, { size: coordSize, color: coordColor });
+    if (bottomRow) draw.text("abcdefgh"[file]!, c.x + c.width * 0.96, c.y + c.height * 0.96 - coordSize, __l10nDrawOptions({ size: coordSize, color: coordColor, align: "end" }));
+    if (leftCol) draw.text(String(rank + 1), c.x + c.width * 0.05, c.y + c.height * 0.04, __l10nDrawOptions({ size: coordSize, color: coordColor }));
     const p = v.board[i]!;
     if (p !== ".") draw.image(pieceImage(p, c.width), c.x, c.y, c.width, c.height);
   }

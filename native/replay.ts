@@ -1,3 +1,6 @@
+import { localizedDrawOptions as __l10nDrawOptions } from "./l10n/font.js";
+// localization-runtime:attached
+import { localizedFont as __l10nFont } from "./l10n/font.js";
 // The replay viewer: a finished session's move log stepped through server.js.
 import { frame } from "starhermit:engine";
 import * as draw from "starhermit:draw";
@@ -81,15 +84,15 @@ export class ReplayScreen implements Screen {
       drawBoard(layout.board, { board: pos.board, flipped: this.flipped, last: pos.last, check: pos.check }, scale);
       const top = this.flipped ? this.white : this.black, bottom = this.flipped ? this.black : this.white;
       const size = 17 * scale;
-      draw.text(`${this.name(top)} · ${colorName(this.flipped ? "white" : "black")}`, layout.board.x, layout.board.y - 36 * scale, { size, color: PALETTE.ink });
-      draw.text(`${this.name(bottom)} · ${colorName(this.flipped ? "black" : "white")}`, layout.board.x, layout.board.y + layout.board.height + 12 * scale, { size, color: PALETTE.ink });
+      draw.text(`${this.name(top)} · ${colorName(this.flipped ? "white" : "black")}`, layout.board.x, layout.board.y - 36 * scale, __l10nDrawOptions({ size, color: PALETTE.ink }));
+      draw.text(`${this.name(bottom)} · ${colorName(this.flipped ? "black" : "white")}`, layout.board.x, layout.board.y + layout.board.height + 12 * scale, __l10nDrawOptions({ size, color: PALETTE.ink }));
     } else {
-      draw.text(T("Loading…"), layout.board.x, layout.board.y, { size: 18 * scale, color: PALETTE.muted });
+      draw.text(T("Loading…"), layout.board.x, layout.board.y, __l10nDrawOptions({ size: 18 * scale, color: PALETTE.muted }));
     }
     scrollPanel("replay-scroll", layout.side, () => {
       ui.column("replay", () => {
         if (ui.id("back").button(T("← Club"))) nav.club();
-        ui.label(T("Replay"), { font: "serif", size: 22, weight: "600", color: PALETTE.brass });
+        ui.label(T("Replay"), { font: __l10nFont("serif"), size: 22, weight: "600", color: PALETTE.brass });
         if (this.resultLine) ui.label(this.resultLine, { tone: "accent" });
         ui.row("replay-controls", () => {
           if (ui.id("first").button("|◀")) this.go(0);

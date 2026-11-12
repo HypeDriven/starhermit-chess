@@ -1,8 +1,13 @@
+import { localizedStyle as __l10nStyle } from "./l10n/font.js";
+import { localizedDrawOptions as __l10nDrawOptions } from "./l10n/font.js";
+// localization-runtime:attached
+import { localizedFont as __l10nFont, setLocalizedStyles as __l10nStyles } from "./l10n/font.js";
+import { openLocalizedOptions as __l10nOptions } from "./l10n/menu.js";
 // The club room's look, as the browser client drew it (style.css): brass on
 // walnut, serif headings, framed panels and cards with a 1-pixel line, a top
 // bar with the wordmark. The rules are ui.setStyles classes, CSS for CSS.
 import { createImageBitmap, OffscreenCanvas, type ImageBitmap } from "starhermit:canvas";
-import { frame, openMenu } from "starhermit:engine";
+import { frame } from "starhermit:engine";
 import * as draw from "starhermit:draw";
 import * as ui from "starhermit:ui";
 import { PALETTE } from "./board.js";
@@ -48,7 +53,7 @@ const STYLES: { [key: string]: ui.Style } = {
     hovered: { border: { color: PALETTE.danger } },
   },
   ".small": { padding: { top: 4, bottom: 4, start: 11, end: 11 }, text: { size: 13 } },
-  ".big": { padding: { top: 12, bottom: 12, start: 44, end: 44 }, text: { size: 18, font: "serif", letterSpacing: "0.04em" } },
+  ".big": { padding: { top: 12, bottom: 12, start: 44, end: 44 }, text: { size: 18, font: __l10nFont("serif"), letterSpacing: "0.04em" } },
   ".wide": { width: "fill", text: { align: "center" } },
   // .panel
   ".framed": {
@@ -73,7 +78,7 @@ const STYLES: { [key: string]: ui.Style } = {
     background: "transparent",
     border: { width: 0 },
     padding: 0,
-    text: { font: "serif", size: 16, color: PALETTE.ink },
+    text: { font: __l10nFont("serif"), size: 16, color: PALETTE.ink },
     hovered: { text: { color: PALETTE.brassHi } },
   },
   // .card-turn, .card-turn.mine
@@ -107,33 +112,33 @@ const STYLES: { [key: string]: ui.Style } = {
 
 export function setTheme(): void {
   ui.setTheme(THEME);
-  ui.setStyles(STYLES);
+  __l10nStyles(STYLES);
 }
 
 /** The filled brass button (Play): `big` is the menu's large serif one,
  * `wide` fills its column. */
 export function primaryButton(id: string, label: string, options: { big?: boolean; wide?: boolean; disabled?: boolean } = {}): boolean {
-  return ui.id(id).style("primary", !!options.big && "big", !!options.wide && "wide").button(label, { disabled: !!options.disabled });
+  return ui.id(id).style(__l10nStyle("primary"), __l10nStyle(!!options.big && "big"), __l10nStyle(!!options.wide && "wide")).button(label, { disabled: !!options.disabled });
 }
 
 /** A small secondary button (.btn-small). */
 export function smallButton(id: string, label: string): boolean {
-  return ui.id(id).style("small").button(label);
+  return ui.id(id).style(__l10nStyle("small")).button(label);
 }
 
 /** A card's name, as a button that is only its serif text. */
 export function cardButton(id: string, label: string): boolean {
-  return ui.id(id).style("card-name").button(label);
+  return ui.id(id).style(__l10nStyle("card-name")).button(label);
 }
 
 /** The small turn pill on a game card: brass when it is the player's move. */
 export function pill(id: string, text: string, mine: boolean): void {
-  ui.id(id).style(mine ? "pill-mine" : "pill").label(text);
+  ui.id(id).style(__l10nStyle(mine ? "pill-mine" : "pill")).label(text);
 }
 
 /** A panel's title: brass serif. */
 export function panelTitle(text: string): void {
-  ui.label(text, { font: "serif", size: 16, weight: "600", color: PALETTE.brass });
+  ui.label(text, { font: __l10nFont("serif"), size: 16, weight: "600", color: PALETTE.brass });
 }
 
 /** Muted small print (the browser client's .panel-note / .play-hint). */
@@ -161,12 +166,12 @@ export function divider(id: string, text: string, width: number): void {
   const textW = m.width / s + [...text].length * 11 * 0.12;
   const rule = Math.max(0, (width - textW) / 2 - 12);
   const top = Math.round(m.height / s / 2);
-  ui.id(id).style("divider", {
+  ui.id(id).style(__l10nStyle("divider"), __l10nStyle({
     decorations: [
       { fill: PALETTE.line, start: 0, top, width: rule, height: 1 },
       { fill: PALETTE.line, end: 0, top, width: rule, height: 1 },
     ],
-  }).label(text);
+  })).label(text);
 }
 
 /** A card: a raised row in a panel (.card; `tight` in the side column). */
@@ -211,14 +216,14 @@ export function topBar(elo: number | null): void {
   const h = TOP_BAR * scale;
   draw.line(0, y0 + h, width, y0 + h, PALETTE.line, scale);
   if (icon) draw.image(icon, x0, y0 + 16 * scale, 22 * scale, 22 * scale);
-  draw.text("STARHERMIT CHESS", x0 + 30 * scale, y0 + 20 * scale, { size: 13 * scale, font: "serif", color: PALETTE.muted, letterSpacing: 0.22 * 13 * scale });
+  draw.text("STARHERMIT CHESS", x0 + 30 * scale, y0 + 20 * scale, __l10nDrawOptions({ size: 13 * scale, font: __l10nFont("serif"), color: PALETTE.muted, letterSpacing: 0.22 * 13 * scale }));
   const narrow = width / scale < 560;
   const right = { x: width / 2, y: y0 + 11 * scale, width: width / 2 - safeArea.right - 22 * scale, height: 34 * scale };
   ui.area(right, () => {
     ui.row("top-right", () => {
-      if (elo != null && !narrow) ui.label(`Elo ${elo}`, { font: "serif", size: 14, color: PALETTE.brass });
-      if (ui.id("sound").style("small").button(soundOn() ? T("Sound on") : T("Sound off"), { selected: soundOn() })) toggleSound();
-      if (ui.id("settings").style("small").button(narrow ? "⚙" : `⚙ ${T("Settings")}`)) openMenu();
+      if (elo != null && !narrow) ui.label(`Elo ${elo}`, { font: __l10nFont("serif"), size: 14, color: PALETTE.brass });
+      if (ui.id("sound").style(__l10nStyle("small")).button(soundOn() ? T("Sound on") : T("Sound off"), { selected: soundOn() })) toggleSound();
+      if (ui.id("settings").style(__l10nStyle("small")).button(narrow ? "⚙" : `⚙ ${T("Settings")}`)) __l10nOptions();
     }, { spacing: 12, align: "center", justify: "end", width: right.width / scale });
   });
 }

@@ -1,3 +1,4 @@
+import { withLanguageRender as __l10nRender } from "./l10n/menu.js";
 // StarHermit Chess: the entry module the StarHermit engine runs
 // (starhermit.txt engine.entry), natively in the Windows client and in
 // browsers on the engine's web runtime; both speak to the same server.js.
@@ -69,4 +70,8 @@ onUpdate((dt) => {
   updateStarfield(dt, screen() instanceof ClubScreen && !!player(), camera);
   screen()?.update();
 });
-onRender(() => { drawToasts(); });
+onRender(__l10nRender(() => { drawToasts(); }));
+
+// localization-runtime:menu
+import { installLanguageMenu as __installLanguageMenu } from "./l10n/menu.js";
+__installLanguageMenu(false);

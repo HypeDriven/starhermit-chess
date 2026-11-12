@@ -1,3 +1,4 @@
+import { localizedDrawOptions as __l10nDrawOptions } from "./l10n/font.js";
 // What every screen shares: the router, toasts, the theme and a name cache.
 import { frame } from "starhermit:engine";
 import * as draw from "starhermit:draw";
@@ -50,11 +51,11 @@ export function drawToasts(): void {
   const size = 15 * scale;
   for (let i = toasts.length - 1; i >= 0; i--) {
     const t = toasts[i]!;
-    const m = draw.measureText(t.text, { size, maxWidth: Math.min(width - 48 * scale, 560 * scale) });
+    const m = draw.measureText(t.text, __l10nDrawOptions({ size, maxWidth: Math.min(width - 48 * scale, 560 * scale) }));
     const w = m.width + 32 * scale, h = m.height + 18 * scale;
     y -= h;
     draw.roundRect((width - w) / 2, y, w, h, 6 * scale, t.danger ? PALETTE.danger : PALETTE.panel2);
-    draw.text(t.text, width / 2, y + 9 * scale, { size, color: PALETTE.ink, align: "center", maxWidth: m.width + 1 });
+    draw.text(t.text, width / 2, y + 9 * scale, __l10nDrawOptions({ size, color: PALETTE.ink, align: "center", maxWidth: m.width + 1 }));
     y -= 8 * scale;
   }
 }

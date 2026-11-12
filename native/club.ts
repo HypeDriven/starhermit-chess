@@ -1,3 +1,6 @@
+import { localizedStyle as __l10nStyle } from "./l10n/font.js";
+// localization-runtime:attached
+import { localizedFont as __l10nFont } from "./l10n/font.js";
 // The club: practice for everyone; for a signed-in player matchmaking, My
 // games, invitations, friends' ratings and recent games.
 import { clipboard, frame } from "starhermit:engine";
@@ -201,9 +204,9 @@ export class ClubScreen implements Screen {
   private guest(w: number): void {
     const inner = w - 56;
     framedPanel("landing", w, () => {
-      ui.label(T("Take a seat"), { font: "serif", size: 28, weight: "600" });
+      ui.label(T("Take a seat"), { font: __l10nFont("serif"), size: 28, weight: "600" });
       if (primaryButton("play-local", T("Play"), { wide: true })) nav.practice(false);
-      ui.style("hint").label(T("Practice against hal right now — no sign-in needed."));
+      ui.style(__l10nStyle("hint")).label(T("Practice against hal right now — no sign-in needed."));
       ui.row("landing-more", () => {
         if (hasKeptPractice() && smallButton("resume-practice", T("Resume practice"))) nav.practice(true);
         if (smallButton("how-to", T("How to play"))) this.howTo = true;
@@ -229,7 +232,7 @@ export class ClubScreen implements Screen {
         }, { spacing: 14, align: "center", width: w });
       } else {
         ui.row("search-row", () => {
-          ui.label(T("Looking for an opponent…"), { font: "serif", color: PALETTE.muted });
+          ui.label(T("Looking for an opponent…"), { font: __l10nFont("serif"), color: PALETTE.muted });
           if (ui.id("cancel-search").button(T("Cancel"))) this.stopSearch(true);
           const waited = (Date.now() - this.searchingSince!) / 1000;
           if (waited >= HAL_AFTER_S && primaryButton("play-hal", T("Play against hal"))) this.playHal();
@@ -260,7 +263,7 @@ export class ClubScreen implements Screen {
     const inner = w - 32;
     framedPanel("my-games", w, () => {
       this.header("games-head", T("My games"), inner, () => note(T("{n} of {cap} seats", { n: this.games.length, cap: 20 })));
-      if (!this.games.length) ui.label(T("No games in progress."), { font: "serif", color: PALETTE.faint });
+      if (!this.games.length) ui.label(T("No games in progress."), { font: __l10nFont("serif"), color: PALETTE.faint });
       const narrow = w < 520;
       for (const g of this.games) {
         const opp = g.players.find((x) => x.userId !== player()?.userId);
@@ -290,7 +293,7 @@ export class ClubScreen implements Screen {
       }, 420);
       for (const inv of this.incoming) {
         card(`inv-${inv.inviteId}`, inner, () => {
-          ui.label(short(nameOf(inv.from)), { font: "serif", size: 16 });
+          ui.label(short(nameOf(inv.from)), { font: __l10nFont("serif"), size: 16 });
           ui.label(T("invites you to a game"), { size: 13, color: PALETTE.muted });
           spacer(`inv-gap-${inv.inviteId}`);
           if (primaryButton(`acc-${inv.inviteId}`, T("Accept"))) {
@@ -303,7 +306,7 @@ export class ClubScreen implements Screen {
       }
       for (const inv of this.outgoing) {
         card(`out-${inv.inviteId}`, inner, () => {
-          ui.label(short(nameOf(inv.to)), { font: "serif", size: 16 });
+          ui.label(short(nameOf(inv.to)), { font: __l10nFont("serif"), size: 16 });
           ui.label(T("invited — waiting"), { size: 13, color: PALETTE.muted });
         });
       }
@@ -315,8 +318,8 @@ export class ClubScreen implements Screen {
     framedPanel("rating", w, () => {
       panelTitle(T("My rating"));
       const m = this.me;
-      ui.label(m?.elo != null ? String(m.elo) : "—", { font: "serif", size: 34, color: PALETTE.brass });
-      ui.label(T("{wins} won · {losses} lost · {draws} drawn", { wins: m?.wins ?? 0, losses: m?.losses ?? 0, draws: m?.draws ?? 0 }), { font: "serif", size: 14, color: PALETTE.muted });
+      ui.label(m?.elo != null ? String(m.elo) : "—", { font: __l10nFont("serif"), size: 34, color: PALETTE.brass });
+      ui.label(T("{wins} won · {losses} lost · {draws} drawn", { wins: m?.wins ?? 0, losses: m?.losses ?? 0, draws: m?.draws ?? 0 }), { font: __l10nFont("serif"), size: 14, color: PALETTE.muted });
     }, 4);
     // Locked secret achievements stay hidden, as the platform keeps them.
     const shown = this.achievements.filter((a) => a.unlocked || !a.secret);
@@ -329,7 +332,7 @@ export class ClubScreen implements Screen {
           ui.row(`ach-${a.key}`, () => {
             ui.column(`ach-mark-${a.key}`, () => ui.label(a.unlocked ? "✓" : "○", { color: a.unlocked ? PALETTE.brass : PALETTE.faint }), { width: 14 });
             ui.column(`ach-text-${a.key}`, () => {
-              ui.label(t.name, { font: "serif", size: 15, color: a.unlocked ? PALETTE.ink : PALETTE.muted });
+              ui.label(t.name, { font: __l10nFont("serif"), size: 15, color: a.unlocked ? PALETTE.ink : PALETTE.muted });
               ui.paragraph(t.description, inner - 28, { size: 12.5 });
             }, { spacing: 1 });
           }, { spacing: 8 });
@@ -344,7 +347,7 @@ export class ClubScreen implements Screen {
           ui.row(`lb-${e.userId}`, () => {
             ui.column(`lb-rank-${e.userId}`, () => ui.label(String(e.rank), { size: 14, color: PALETTE.faint }), { width: 30 });
             ui.column(`lb-name-${e.userId}`, () => ui.label(short(nameOf(e.userId), 22), { size: 14, color: me ? PALETTE.brassHi : PALETTE.ink }), { width: inner - 100 });
-            ui.column(`lb-score-${e.userId}`, () => ui.label(String(e.score), { font: "serif", size: 14, color: PALETTE.brass }), { width: 60, align: "end" });
+            ui.column(`lb-score-${e.userId}`, () => ui.label(String(e.score), { font: __l10nFont("serif"), size: 14, color: PALETTE.brass }), { width: 60, align: "end" });
           }, { spacing: 4, width: inner });
         }
       }, 6);
@@ -352,7 +355,7 @@ export class ClubScreen implements Screen {
     if (this.replaysEnabled) {
       framedPanel("recent", w, () => {
         panelTitle(T("Recent games"));
-        if (!this.recent.length) ui.label(T("No finished games yet."), { font: "serif", color: PALETTE.faint });
+        if (!this.recent.length) ui.label(T("No finished games yet."), { font: __l10nFont("serif"), color: PALETTE.faint });
         const narrow = frame().width / frame().scale < 560;
         const me = player()?.userId ?? "";
         for (const r of this.recent) {
