@@ -1,5 +1,7 @@
 # StarHermit Chess — multiplayer correspondence chess on Starhermit
 
+**[▶ Play Chess on StarHermit](https://dashboard.starhermit.com/play/83fd04b1-3cbe-4b09-a251-3733ad4b9d94)**
+
 A reference implementation of a Starhermit game. Its entire rules authority
 lives in **one server-side JavaScript file** (`server.js`) that the platform
 runs in a sandboxed, budgeted engine. Clients send commands; the platform runs
