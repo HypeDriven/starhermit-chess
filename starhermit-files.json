@@ -1,9 +1,10 @@
 {
   "files": {
     "LICENSE.md": {"sha256": "13324de5e020665146bea6eafc542805d5058daacbf163d89d9434f9367f33b8", "size": 4463},
-    "README.md": {"sha256": "d0ec14a0a569161f0128342a2dae99a8ea1984ce2048839b03da1e6474649b35", "size": 4366},
+    "README.md": {"sha256": "7e4ef0b220cadf19bc15b293413f0e6d1ba73b3001c5884fbc1866ba457cd1a2", "size": 4478},
     "assets/chess-pieces.glb": {"sha256": "2bebed31d0d454a3d24e1a4f7af015df22e63b89c2589f00434dc7f3fe6a9c34", "size": 376264},
     "assets/key-art.webp": {"sha256": "54be3819abf374b16c34c6fdc279436219c8075887e829108d12573fc78795cd", "size": 42620},
+    "assets/key-art.webp.ktx2": {"sha256": "fb096bc5c5f38347b0c4be79b25e55072ee9173497086df0fe592300f51b2705", "size": 1229936},
     "assets/localization/CJK-OFL.txt": {"sha256": "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2", "size": 4301},
     "assets/localization/Japanese.otf": {"sha256": "42d5233539d032aedaef8717092be23439d93e467612d4eb3541e7a7649e43ed", "size": 247984},
     "assets/localization/Khmer-OFL.txt": {"sha256": "be0407f060aea48787ff9e75d8d3aedef70aef113b3ce9aca26fdaacd10b1870", "size": 4381},
@@ -19,7 +20,8 @@
     "cover.jpg": {"sha256": "35f6e8afeeff367cf616cfc4be2e735d01148771cb894a33e9b34d76a4193a99", "size": 137482},
     "coverart.png": {"sha256": "58ccb0ae8dc60da0f7c16edf38f2a9a90fbaca3a288cff635f70178f0120194c", "size": 449796},
     "icon.png": {"sha256": "d3a1f22da6b3684e27398c1924a6e1dbc6b1b0889b8a3c3ad2aa1d15dae5dd55", "size": 6291},
-    "index.html": {"sha256": "26a37b3c1077be65225306e74c969578ac34f142b48be4bff83f46898172e109", "size": 1924},
+    "icon.png.ktx2": {"sha256": "b0924f6d6916ee322ea5c3aaa9a618215585cb540323461c1dc9482f79f15603", "size": 87776},
+    "index.html": {"sha256": "6894bd7bdec6016360cb5552c4ea04dde0b24afc6e2a855a5dc7cfc217cc1eb4", "size": 1766},
     "leaderboards.json": {"sha256": "e770782d74ba39f5c6c495448b993ac811fbc7b18d2c546b65f398e6d21c4f38", "size": 139},
     "native/board.ts": {"sha256": "3296fb3ae5f6e5b36afdeaa19c8e1a9b84c0ab34a8b81169c44324f8a438ef1b", "size": 7901},
     "native/club.ts": {"sha256": "61a22eff99ef2d769766c7a880b9e0d47276496ea2f3643c27e6d97b8d4602dc", "size": 19625},
@@ -35,7 +37,7 @@
     "native/starfield.ts": {"sha256": "96363f27738ad03376237bce18c87cdf9352f45f9ce0ec3c9a83eeceeb37f431", "size": 10390},
     "native/style.ts": {"sha256": "7b7d4b812e82173a0bb8b72161c93ec4350aa795164ec8a8778804000622727b", "size": 10316},
     "native/table.ts": {"sha256": "d20f95151eb2eec5398d4f65a2444e037f21eeb6aaf63e4e77cacccfa18e6dc0", "size": 29088},
-    "publication.json": {"sha256": "3832cbcf705bd3df4bae72bc6e8a19e09c759b675e4f218e11c2a861ea70ed84", "size": 3217},
+    "publication.json": {"sha256": "d3cda09bb37d4cf67e076c4ad6205d4b8cb54ae6f2cf00051c7bfcf7e4d0cb06", "size": 3217},
     "server.js": {"sha256": "4e2d5b5bf7a91229b525bc72678add26a9eddef2e0612e490aa70aeca99e8356", "size": 44621},
     "sfx/chat-note.opus": {"sha256": "e4db67a9be6590648a20611962bf29a66bd46ce4da41e8eebda1f10acbbb34e4", "size": 12010},
     "sfx/check-bell.opus": {"sha256": "d57d0feb611fb31229565bb6d3ae64b503c4c34f060c30aed0ba9b14934971c4", "size": 27719},
@@ -54,8 +56,8 @@
     "sfx/piece-move.opus": {"sha256": "f8b5b5c6899cece59d3fd2d80ad52c5ac5066429d92d4db8dec82ea6f2c08148", "size": 12630},
     "sfx/piece-select.opus": {"sha256": "9df5e65950e8410181bfe21d73202e0bd1d5fbc12426a9274781759dcdb086d5", "size": 11763},
     "sfx/promote-chime.opus": {"sha256": "4de21d026b88350f63303ef16b3a223e45f8cf44eb62132663b51a27bb6c99d4", "size": 28150},
-    "spec.md": {"sha256": "684f10d603c6c1746c18769e73e80db6a86db56cd28a8a1a0b52e7d76a3161c3", "size": 42543},
-    "starhermit.txt": {"sha256": "7905b7581bf9d5bf3b4ffb65c8f06305983bc3c98687ef4717ec646ebf65e0d1", "size": 2809}
+    "spec.md": {"sha256": "e2a878bc4b9918d4e660b0759957195f363d077cf3e6d1a1f8bda7d791e6f48a", "size": 42853},
+    "starhermit.txt": {"sha256": "c0f47469647a06516e0dffa4a2d0bc755b3aa92338ca69384ce9589dd4cde607", "size": 2861}
   },
   "excluded": ["node_modules/", "package.json", "tests/", "tools/", "tsconfig.json"],
   "format": 1
