@@ -63,13 +63,13 @@ function step(name, args) {
 }
 
 try {
-  const out = execFileSync(exe, ['check', '.', '--quiet'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const out = execFileSync(exe, ['check', '.', '--quiet', '--no-motion-blur'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   const warnings = out.split('\n').filter((l) => l.startsWith('warning'));
   if (warnings.length) { failed++; console.log(`not ok - starhermit check warns\n${warnings.join('\n')}`); }
   else console.log('ok - starhermit check');
 } catch (e) { failed++; console.log(`not ok - starhermit check\n${(e.stderr || e.stdout || e.message).trim()}`); }
 for (const f of readdirSync(join(root, 'tests', 'native')).filter((n) => n.endsWith('.play')).sort()) {
-  step(f, ['.', '--render-check', '--guest', '--script', `tests/native/${f}`]);
+  step(f, ['.', '--render-check', '--no-motion-blur', '--guest', '--script', `tests/native/${f}`]);
 }
 console.log(failed ? `NATIVE FAIL — ${failed} failed` : 'NATIVE PASS');
 process.exit(failed ? 1 : 0);
