@@ -1,3 +1,4 @@
+import { showCursor } from "./cursor.js";
 import { withLanguageRender as __l10nRender } from "./l10n/menu.js";
 // StarHermit Chess: the entry module the StarHermit engine runs
 // (starhermit.txt engine.entry), natively in the Windows client and in
@@ -28,6 +29,7 @@ renderer.camera = camera;
 scene.background = new Color(PALETTE.bg);
 
 onStart(() => {
+  showCursor();
   setTheme();
   void loadSfx(); // the board needs no sound to start; clips load behind it
   nav.club();
