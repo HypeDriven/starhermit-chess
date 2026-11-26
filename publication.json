@@ -12,7 +12,7 @@
     "metadataSource": "starhermit.txt",
     "createdAt": "2026-07-20T17:11:07.068196+00:00",
     "coverArtSource": "manifest",
-    "coverArtUpdatedAt": "2026-11-23T17:01:25.953402+00:00",
+    "coverArtUpdatedAt": "2026-11-26T11:45:31.726501+00:00",
     "submittedByUserId": "2712e04e-461b-4d23-81ae-e40b429128a8",
     "submittedByUsername": "starhermit",
     "hosting": {
@@ -22,9 +22,9 @@
       "pinnedCommitSha": null,
       "deployedCommitSha": null,
       "deployError": null,
-      "deployedAt": "2026-11-23T17:01:25.938714+00:00",
+      "deployedAt": "2026-11-26T11:45:31.67394+00:00",
       "externalLaunchUrl": null,
-      "engineVersion": "1.47.0",
+      "engineVersion": "1.50.0",
       "deployWarning": null
     },
     "description": "Play correspondence chess against other players or practice against an AI in a quiet club setting.",
@@ -36,19 +36,19 @@
     "links": [],
     "isDisabled": false
   },
-  "publishedAt": "2026-11-23T17:01:26.131Z",
-  "sourceCommit": "bcbbde7d2d3909073eec98e86a82906a91651812",
-  "bytesReceived": 2870633,
-  "archiveSha256": "29b28630f951331da58c9eb94092da0dc75c1925f9bf057511d86a4f4a11298b",
+  "publishedAt": "2026-11-26T11:45:31.857Z",
+  "sourceCommit": "049aec2aa52b21a27d261a6b5c960958b0f361ee",
+  "bytesReceived": 2870622,
+  "archiveSha256": "98379cbe2e44406aff721de31a7920182c8e0cc55a6446bb6c42d87111087690",
   "indexSha256": "7c0ded11ecadb517d890ea511c16258cb1746737c8e8059e4619306b175ac406",
   "result": {
     "clientPublished": true,
     "serverImageLoaded": false,
     "imageDigest": null,
-    "bytesReceived": 2870633,
+    "bytesReceived": 2870622,
     "mode": "replace",
     "filesRemoved": 0,
-    "engineVersion": "1.47.0",
+    "engineVersion": "1.50.0",
     "deployWarning": null
   },
   "liveVerification": {
