@@ -23,7 +23,7 @@
     "favicon.png.ktx2": {"sha256": "b0924f6d6916ee322ea5c3aaa9a618215585cb540323461c1dc9482f79f15603", "size": 87776},
     "icon.png": {"sha256": "d3a1f22da6b3684e27398c1924a6e1dbc6b1b0889b8a3c3ad2aa1d15dae5dd55", "size": 6291},
     "icon.png.ktx2": {"sha256": "b0924f6d6916ee322ea5c3aaa9a618215585cb540323461c1dc9482f79f15603", "size": 87776},
-    "index.html": {"sha256": "b33c12e6435d25892b9258782a163ed3c5dbdca7803d86c5c8b8addfaf7bca5c", "size": 1769},
+    "index.html": {"sha256": "7f756697683167197815122a47c8820140764860115141b0ec5df251b49e531c", "size": 1769},
     "leaderboards.json": {"sha256": "e770782d74ba39f5c6c495448b993ac811fbc7b18d2c546b65f398e6d21c4f38", "size": 139},
     "native/board.ts": {"sha256": "3296fb3ae5f6e5b36afdeaa19c8e1a9b84c0ab34a8b81169c44324f8a438ef1b", "size": 7901},
     "native/club.ts": {"sha256": "61a22eff99ef2d769766c7a880b9e0d47276496ea2f3643c27e6d97b8d4602dc", "size": 19625},
@@ -40,7 +40,7 @@
     "native/starfield.ts": {"sha256": "96363f27738ad03376237bce18c87cdf9352f45f9ce0ec3c9a83eeceeb37f431", "size": 10390},
     "native/style.ts": {"sha256": "7b7d4b812e82173a0bb8b72161c93ec4350aa795164ec8a8778804000622727b", "size": 10316},
     "native/table.ts": {"sha256": "d20f95151eb2eec5398d4f65a2444e037f21eeb6aaf63e4e77cacccfa18e6dc0", "size": 29088},
-    "publication.json": {"sha256": "4fdba2ac47f26e92737185dbe60140d8befc81e82fe55c6dca6234dab3a99a29", "size": 4104},
+    "publication.json": {"sha256": "f1ee043c9b17fbbff31738a0b5b60888224c468f389adadd513d853c35b4d1da", "size": 4104},
     "server.js": {"sha256": "4e2d5b5bf7a91229b525bc72678add26a9eddef2e0612e490aa70aeca99e8356", "size": 44621},
     "sfx/chat-note.opus": {"sha256": "e4db67a9be6590648a20611962bf29a66bd46ce4da41e8eebda1f10acbbb34e4", "size": 12010},
     "sfx/check-bell.opus": {"sha256": "d57d0feb611fb31229565bb6d3ae64b503c4c34f060c30aed0ba9b14934971c4", "size": 27719},
@@ -59,8 +59,8 @@
     "sfx/piece-move.opus": {"sha256": "f8b5b5c6899cece59d3fd2d80ad52c5ac5066429d92d4db8dec82ea6f2c08148", "size": 12630},
     "sfx/piece-select.opus": {"sha256": "9df5e65950e8410181bfe21d73202e0bd1d5fbc12426a9274781759dcdb086d5", "size": 11763},
     "sfx/promote-chime.opus": {"sha256": "4de21d026b88350f63303ef16b3a223e45f8cf44eb62132663b51a27bb6c99d4", "size": 28150},
-    "spec.md": {"sha256": "c3a96432b995e123ca37b389e14c4b549942d577341bd363b2d70da6cdf30e87", "size": 43039},
-    "starhermit.txt": {"sha256": "d104c2acdc6cb170df709e390c0a15c76a63fbc2b78ef0e1e8e324f34bbf977f", "size": 2884}
+    "spec.md": {"sha256": "f2626aa5f858663b86ed15c69208668990630c2559e8bee50bba1c30b7942b7a", "size": 43313},
+    "starhermit.txt": {"sha256": "26fa065899463fdf94973a9816021ffd2c06310dbd43b227bbf405529c982228", "size": 2884}
   },
   "excluded": ["package.json", "tests/", "tools/", "tsconfig.json"],
   "format": 1
